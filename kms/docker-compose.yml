@@ -1,0 +1,20 @@
+services:
+  kms:
+    image: ghcr.io/cosmian/kms:latest
+    container_name: cosmian-kms
+    restart: unless-stopped
+    ports:
+      - "9998:9998"
+    volumes:
+      - ./data:/var/lib/cosmian-kms/cosmian-kms/sqlite-data
+      - ./kms.toml:/etc/cosmian/kms.toml:ro
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - COSMIAN_KMS_CONF=/etc/cosmian/kms.toml
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9998/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+

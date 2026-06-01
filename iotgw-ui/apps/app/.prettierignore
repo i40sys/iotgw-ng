@@ -1,0 +1,13 @@
+# Ignore artifacts
+dist
+build
+coverage
+node_modules
+
+# Ignore generated files
+*.gen.ts
+*.gen.tsx
+routeTree.gen.ts
+
+# Ignore configs
+pnpm-lock.yaml

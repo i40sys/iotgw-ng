@@ -1,0 +1,46 @@
+[project]
+name = "cosmian-kms-tools"
+version = "0.2.0"
+description = "Utilities for Cosmian KMS - SSH key conversion and management"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Oriol" }]
+
+dependencies = [
+    "cryptography>=43.0.0",
+]
+
+[project.scripts]
+convert-keys = "kms_tools.convert_keys:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kms_tools"]
+
+[tool.uv]
+dev-dependencies = [
+    "commitizen>=4.0.0",
+    "pre-commit>=4.0.0",
+    "ruff>=0.8.0",
+]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.2.0"
+version_files = [
+    "pyproject.toml:^version",
+    "VERSION",
+]
+tag_format = "v$version"
+update_changelog_on_bump = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

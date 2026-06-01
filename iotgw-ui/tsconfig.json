@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "@iotgw/app": ["./apps/app/src"],
+      "@iotgw/app/*": ["./apps/app/src/*"],
+      "@iotgw/backend": ["./apps/backend/src"],
+      "@iotgw/backend/*": ["./apps/backend/src/*"],
+      "@iotgw/www": ["./apps/www/src"],
+      "@iotgw/www/*": ["./apps/www/src/*"],
+      "@iotgw/supabase-contract": ["./packages/supabase-contract/src"],
+      "@iotgw/supabase-contract/*": ["./packages/supabase-contract/src/*"]
+    }
+  },
+  "exclude": ["node_modules"]
+}

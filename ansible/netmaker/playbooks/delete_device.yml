@@ -1,0 +1,41 @@
+---
+# Example playbook: Delete a Netmaker External Client Device
+#
+# Usage:
+#   just delete-device sensor-01
+#   or
+#   uv run ansible-playbook playbooks/delete_device.yml -e device_name=sensor-01 -e network=iot-network
+
+- name: Delete Netmaker External Client Device
+  hosts: localhost
+  gather_facts: no
+  vars:
+    # Default Netmaker server URL
+    netmaker_url: "https://api.netmaker.i40sys.com"
+
+    # Master key is REQUIRED - pass with -e netmaker_master_key=your_key
+    # netmaker_master_key: ""
+
+    # Device name and network - must be provided via -e
+    device_name: ""
+    network: "iot-network"
+
+  tasks:
+    - name: Validate device_name is provided
+      fail:
+        msg: "device_name is required. Use -e device_name=your-device-name"
+      when: device_name == ""
+
+    - name: Delete external client device
+      netmaker_management:
+        resource_type: extclient
+        name: "{{ device_name }}"
+        network: "{{ network }}"
+        state: absent
+        base_url: "{{ netmaker_url }}"
+        master_key: "{{ netmaker_master_key }}"
+      register: result
+
+    - name: Display result
+      debug:
+        msg: "{{ result.msg }}"

@@ -1,0 +1,5 @@
+[ v3_ca ]
+basicConstraints=CA:FALSE
+keyUsage=digitalSignature,keyEncipherment
+extendedKeyUsage=serverAuth
+subjectAltName=DNS:wsl.ymbihq.local,DNS:*.wsl.ymbihq.local,DNS:localhost,IP:127.0.0.1

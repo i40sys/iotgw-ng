@@ -1,0 +1,38 @@
+---
+# Example playbook: Create Netmaker networks
+#
+# Usage:
+#   just create
+#   or
+#   uv run ansible-playbook playbooks/create_network.yml
+#   or with custom credentials:
+#   uv run ansible-playbook playbooks/create_network.yml -e netmaker_url=https://your-server.com -e netmaker_user=admin -e netmaker_password=pass
+
+- name: Manage Netmaker Networks
+  hosts: localhost
+  gather_facts: no
+  vars:
+    # Default Netmaker server URL - override with -e netmaker_url=https://your-server.com
+    netmaker_url: "https://api.netmaker.i40sys.com"
+
+    # Master key is REQUIRED - pass with -e netmaker_master_key=your_key
+    # netmaker_master_key: ""
+
+  tasks:
+    - name: Create IoT devices network
+      netmaker_management:
+        resource_type: network
+        name: iot-network
+        state: present
+        base_url: "{{ netmaker_url }}"
+        master_key: "{{ netmaker_master_key }}"
+        addressrange: "10.102.0.0/24"
+        defaultmtu: 1280
+        defaultkeepalive: 25
+      register: iot_network
+
+    - name: Display summary
+      debug:
+        msg:
+          - "Networks created successfully!"
+          - "IoT: {{ iot_network.resource.netid if iot_network.resource is defined else 'N/A' }}"

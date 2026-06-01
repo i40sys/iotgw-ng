@@ -1,0 +1,10 @@
+procs:
+  app:
+    cwd: ./apps/app
+    shell: pnpm dev
+    autostart: true
+  
+  backend:
+    cwd: ./apps/backend
+    shell: pnpm dev
+    autostart: true

@@ -1,0 +1,62 @@
+---
+# Example playbook: Manage Netmaker External Client Devices
+#
+# Usage:
+#   just manage-devices
+#   or
+#   uv run ansible-playbook playbooks/manage_devices.yml
+
+- name: Manage Netmaker External Client Devices
+  hosts: localhost
+  gather_facts: no
+  vars:
+    # Default Netmaker server URL
+    netmaker_url: "https://api.netmaker.i40sys.com"
+
+    # Master key is REQUIRED - pass with -e netmaker_master_key=your_key
+    # netmaker_master_key: ""
+
+  tasks:
+    - name: Create IoT device sensor-01
+      netmaker_management:
+        resource_type: extclient
+        name: sensor-01
+        network: iot-network
+        ingress_gateway_id: auto
+        state: present
+        base_url: "{{ netmaker_url }}"
+        master_key: "{{ netmaker_master_key }}"
+        enabled: true
+      register: sensor01
+
+    - name: Create IoT device sensor-02
+      netmaker_management:
+        resource_type: extclient
+        name: sensor-02
+        network: iot-network
+        ingress_gateway_id: auto
+        state: present
+        base_url: "{{ netmaker_url }}"
+        master_key: "{{ netmaker_master_key }}"
+        enabled: true
+      register: sensor02
+
+    - name: Create IoT device camera-01
+      netmaker_management:
+        resource_type: extclient
+        name: camera-01
+        network: iot-network
+        ingress_gateway_id: auto
+        state: present
+        base_url: "{{ netmaker_url }}"
+        master_key: "{{ netmaker_master_key }}"
+        enabled: true
+      register: camera01
+
+    - name: Display summary
+      debug:
+        msg:
+          - "Devices created/updated successfully!"
+          - "Sensor 01: {{ sensor01.msg }}"
+          - "Sensor 02: {{ sensor02.msg }}"
+          - "Camera 01: {{ camera01.msg }}"

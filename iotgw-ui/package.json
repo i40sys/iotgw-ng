@@ -1,0 +1,50 @@
+{
+  "name": "iotgw",
+  "version": "0.11.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "pnpm -r test:run",
+    "test:watch": "pnpm --filter @iotgw/app test",
+    "test:ui": "pnpm --filter @iotgw/app test:ui",
+    "test:app": "pnpm --filter @iotgw/app test:run",
+    "test:backend": "pnpm --filter @iotgw/backend test:run",
+    "dev": "mprocs",
+    "backend": "pnpm --filter @iotgw/backend dev",
+    "app": "pnpm --filter @iotgw/app dev",
+    "build": "pnpm build:contract && pnpm build:backend && pnpm build:app",
+    "build:contract": "pnpm --filter @iotgw/supabase-contract build",
+    "build:backend": "pnpm --filter @iotgw/backend build",
+    "build:app": "pnpm --filter @iotgw/app build",
+    "build-types": "pnpm --filter @iotgw/supabase-contract build",
+    "db:reset": "env-cmd -f ./.env --use-shell -- 'pnpx supabase db reset --db-url=\"$DATABASE_URL\"'",
+    "db:reset:full": "./scripts/reset-database-and-webhooks.sh",
+    "db:migrate": "env-cmd -f ./.env --use-shell -- 'pnpx supabase db push --db-url \"$DATABASE_URL\"'",
+    "generate": "env-cmd -f ./.env -- pnpm --filter @iotgw/supabase-contract generate",
+    "generate:contract": "pnpm generate",
+    "generate:saas": "pnpm --filter @iotgw/supabase-contract generate:saas",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint --fix",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r exec rm -rf node_modules dist .turbo",
+    "clean:all": "pnpm clean && rm -rf node_modules"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@10.17.0",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "env-cmd": "^11.0.0",
+    "eslint": "^9.27.0",
+    "mprocs": "^0.7.2",
+    "prettier": "^3.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.11",
+    "typescript-eslint": "^8.32.1"
+  }
+}

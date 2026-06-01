@@ -1,0 +1,42 @@
+{
+  "name": "@iotgw/supabase-contract",
+  "version": "0.1.0",
+  "description": "Shared Supabase database types for IoT Gateway",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "type-check": "tsc --noEmit",
+    "test": "echo 'No tests for contract package'",
+    "test:run": "echo 'No tests for contract package'",
+    "generate": "pnpx supabase gen types typescript --db-url \"$DATABASE_URL\" --schema public > ./src/database.types.ts",
+    "generate:saas": "pnpx supabase gen types typescript --project-id 'todcssqoqubmcroizrsp' --schema public > ./src/database.types.ts",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "lint": "eslint --cache \"src/**/*.{ts,tsx,js}\""
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "eslint": "^9.27.0",
+    "prettier": "^3.5.3",
+    "tsdown": "^0.11.12",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.32.1"
+  }
+}

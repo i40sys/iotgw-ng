@@ -1,29 +1,64 @@
-# ── Backups ────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════
+#  iotgw-ng workspace — root repository ignore rules
+#
+#  This is now a SINGLE repo for the whole workspace. Each former
+#  subproject keeps its own .gitignore (still applied to its subtree);
+#  the rules below are cross-cutting, or cover dirs that have no local
+#  .gitignore (kestra/, supabase/volumes/). Runtime/Docker volumes,
+#  postgres data, dependencies and secrets are excluded.
+# ════════════════════════════════════════════════════════════════
+
+# ── Backups & local .git archives ──
 /BACKUP/
 
-# ── Dependencies / build noise ─────────────────────────────
+# ── Dependencies / build output (belt-and-suspenders) ──
 node_modules/
 dist/
+dist-ssr/
+build/
+*.tsbuildinfo
+
+# ── Python ──
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ── Editor / OS ──
 .DS_Store
+Thumbs.db
+.idea/
+*.swp
 
-# ── Independent subproject git repositories ────────────────
-# These are managed by their own git remotes; required by this
-# workspace but NOT tracked by the root orchestration repo.
-/iotgw-ui/
-/kms/
-/supabase/
-/ansible/netmaker/
-/kestra/kestra-ansible-reporter/
+# ── Agent / memory scratch ──
+**/.engram/
 
-# ── Kestra runtime volumes (internal storage, executions, DB) ─
-# Kestra-managed working dir: execution history, KV store, Postgres
-# data, and the namespace flow source (_files) — which is itself an
-# independent git repo. Regenerated/synced — not tracked by root.
+# ── Secrets — never commit (files stay on disk) ──
+.env
+*.pem
+*.p12
+*.key
+id_rsa
+
+# ── Binary artifacts ──
+*.deb
+
+# ── Kestra: Docker runtime data volume (root-owned) ──
+# The whole data volume is excluded: it is root-owned (Docker) and holds
+# execution history, KV store, version snapshots AND the flow source
+# (data/main/iotgw-ng/_files). That flow source is version-controlled
+# separately at github.com/i40sys/iotgw-kestra — NOT in this root repo.
+/kestra/data/
 /kestra/db/
 /kestra/logs/
-/kestra/data/
-# _files is a nested git repo (gitlink) — dir patterns don't catch it, so list explicitly
-/kestra/data/main/iotgw-ng/_files
 
-# ── Claude local (machine-specific) ────────────────────────
+# ── Supabase: Docker runtime volumes (postgres data, storage, logs) ──
+/supabase/volumes/db/data/
+/supabase/volumes/storage/
+/supabase/volumes/logs/
+
+# ── Claude machine-local settings ──
 .claude/settings.local.json
+
+# Vendored CLI binary (35MB) — kept on disk, not in source control
+/kms/contrib/cosmian

@@ -1,0 +1,33 @@
+---
+# Example playbook: Delete a Netmaker network
+#
+# Usage:
+#   just delete my-network
+#   or
+#   uv run ansible-playbook playbooks/delete_network.yml -e network_name=my-network
+#   or with custom credentials:
+#   uv run ansible-playbook playbooks/delete_network.yml -e network_name=my-network -e netmaker_url=https://your-server.com -e netmaker_master_key=your_key
+
+- name: Delete Netmaker Network
+  hosts: localhost
+  gather_facts: no
+  vars:
+    # Default Netmaker server URL - override with -e netmaker_url=https://your-server.com
+    netmaker_url: "https://api.netmaker.i40sys.com"
+
+    # Master key is REQUIRED - pass with -e netmaker_master_key=your_key
+    # netmaker_master_key: ""
+
+  tasks:
+    - name: Delete network
+      netmaker_management:
+        resource_type: network
+        name: iot-network
+        state: absent
+        base_url: "{{ netmaker_url }}"
+        master_key: "{{ netmaker_master_key }}"
+      register: result
+
+    - name: Display result
+      debug:
+        msg: "{{ result.msg }}"
