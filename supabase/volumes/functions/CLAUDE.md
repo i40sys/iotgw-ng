@@ -7,7 +7,8 @@ Deno-based edge functions served through the Kong gateway at `http://wsl.ymbihq.
 | Function | Trigger | Purpose |
 |---|---|---|
 | `main/` | dispatcher | Central router. JWT-verifies (when `VERIFY_JWT=true`) and dispatches `/function-name` to the right worker. |
-| `kestra-call/` | DB webhook on `devices` + `networks` tables | Starts Kestra flow, tracks job in `device_jobs`/`network_jobs`. See its own CLAUDE.md. |
+| `netmaker-call/` | DB webhooks on `devices` (INSERT + DELETE) **and** `networks` (INSERT/UPDATE/DELETE) | Provisions/deprovisions Netmaker extclients **and networks directly** via the Netmaker REST API (no Kestra/Ansible). Devices: writes WireGuard keys back to `devices` + tracks `device_jobs`. Networks: creates/updates/deletes the Netmaker network (no write-back) + tracks `network_jobs`. See its own CLAUDE.md. |
+| `kestra-call/` | none (devices + networks both repointed to `netmaker-call`) | Former webhook handler that started Kestra flows for devices/networks. No longer wired to any DB trigger; kept for reference and the install/provisioning/connectivity flows still triggered via Kestra directly. See its own CLAUDE.md. |
 | `kestra-call_delete/` | (planned) DB webhook on `devices` DELETE | SSH key revocation in KMS (see iotgw-ui task-039). |
 | `kestra-call.old/` | — | Deprecated. Do not edit; kept as reference. |
 | `hello/`, `martin/` | manual | Examples / smoke tests. |

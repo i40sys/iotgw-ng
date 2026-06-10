@@ -332,6 +332,9 @@ services:
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
       SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      # Netmaker — consumed by the netmaker-call edge function (direct Netmaker provisioning)
+      NETMAKER_BASE_URL: ${NETMAKER_BASE_URL}
+      NETMAKER_MASTER_KEY: ${NETMAKER_MASTER_KEY}
       # TODO: Allow configuring VERIFY_JWT per function. This PR might help: https://github.com/supabase/cli/pull/786
       VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
     command:
