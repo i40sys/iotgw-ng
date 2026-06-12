@@ -13,7 +13,7 @@ Before touching any function:
 - `supabase/volumes/functions/CLAUDE.md` — the function inventory.
 - `supabase/CLAUDE.md` — the self-hosted stack (services, ports, commands).
 - The target function's own `CLAUDE.md` (e.g. `kestra-call/CLAUDE.md`, `netmaker-call/CLAUDE.md`) — these document the contracts.
-- Integration docs in `iotgw-ui/backlog/`: **doc-016** (webhook→edge-fn→Kestra pattern), **doc-010** (DB migration + webhook management), **decision-009** (TOTP VPN), **decision-010** (SSH keys in KMS), **doc-013** (Deployments page — it polls the job tables).
+- Integration docs in `backlog/`: **doc-016** (webhook→edge-fn→Kestra pattern), **doc-010** (DB migration + webhook management), **decision-009** (TOTP VPN), **decision-010** (SSH keys in KMS), **doc-013** (Deployments page — it polls the job tables).
 - Root `CLAUDE.md` "Real Call Chain" — edge functions are step 5. Know where your change sits.
 
 Do not invent a contract. If a function is a seam, its shape is documented and changing it breaks the end-to-end flow; update the doc when you change the contract.
@@ -42,12 +42,13 @@ Self-hosted `supabase/edge-runtime:v1.69.6` — NOT the hosted platform, NOT `su
 - **One folder per function**, `index.ts` with a top-level `serve()`. Folder name = route name.
 - **URL imports**, no `package.json`/`node_modules`/import map: `serve` from `https://deno.land/std@<ver>/http/server.ts` (match the std version already in the file you edit; kestra-call/netmaker-call use `@0.131.0`), `createClient` from `https://esm.sh/@supabase/supabase-js@2`, JWT from `https://deno.land/x/jose@v4.14.4/index.ts`.
 - **`Deno` and `EdgeRuntime` are ambient globals** — `declare const` them locally (mirror existing files) rather than reaching for `@types`.
-- **Env comes from docker-compose**, forwarded to every worker by the dispatcher. Available: `SUPABASE_URL` (=`http://kong:8000` internally), `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `JWT_SECRET`, `VERIFY_JWT`, plus per-function vars (`KESTRA_BASE_URL`, `NETMAKER_BASE_URL`, `NETMAKER_MASTER_KEY`). Read via `Deno.env.get('NAME') || '<fallback>'`.
+- **Env comes from docker-compose**, forwarded to every worker by the dispatcher. Available: `SUPABASE_URL` (=`http://kong:8000` internally), `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `JWT_SECRET`, `VERIFY_JWT`, plus per-function vars (`KESTRA_BASE_URL`, `KESTRA_USER`, `KESTRA_PASSWORD`, `NETMAKER_BASE_URL`, `NETMAKER_MASTER_KEY`). Read via `Deno.env.get('NAME')`.
+- **Secrets are not hardcoded.** Credential vars (`KESTRA_USER`/`KESTRA_PASSWORD`, `NETMAKER_MASTER_KEY`, service-role/JWT keys) come from `supabase/.env`, which is **rendered from `secrets/supabase.enc.env` (SOPS+age, decision-014)** — there are no in-code fallback defaults for secrets. Fail loudly (throw / 500) if a required secret env var is missing; never inline a real credential. See decision-014 for the rotation runbook.
 - Use `SUPABASE_SERVICE_ROLE_KEY` for server-side writes that bypass RLS; anon key only for user-scoped access.
 
 ### Adding/changing an env var — restart ≠ recreate (this bites people)
 - **Code edit** → `docker compose restart functions` (the runtime caches modules; a restart clears it).
-- **New/changed env var or compose change** → you must edit **both** `supabase/docker-compose.yml` (the `functions:` `environment:` block) **and** `supabase/.env`, then **recreate**: `docker compose up -d functions`. A plain `restart` does **not** re-read env. (`.env` is gitignored — keep fallback defaults in code so the function still runs, and document the var in the function's CLAUDE.md.)
+- **New/changed env var or compose change** → you must edit **both** `supabase/docker-compose.yml` (the `functions:` `environment:` block) **and** `supabase/.env`, then **recreate**: `docker compose up -d functions`. A plain `restart` does **not** re-read env. (`.env` is gitignored and **rendered from `secrets/supabase.enc.env`** — for a new *secret* var, add it there too; do **not** add a real-credential fallback in code. Document the var in the function's CLAUDE.md.)
 
 ## The `main` Dispatcher
 
@@ -125,7 +126,7 @@ Mark test rows obviously (`zz-…`), delete them and their `device_jobs` rows, a
 
 ## Reference Templates & Guardrails
 
-- **`kestra-call/`** — orchestration template (webhook → Kestra → Ansible, poll logs, write back). **`netmaker-call/`** — direct-external-API template (webhook → Netmaker REST → write back). **`main/`** — dispatcher. **`vpn/`** — TOTP. Copy the closest one's skeleton.
+- **`netmaker-call/`** — the **LIVE** target for the `devices` **and** `networks` webhooks: direct-external-API template (webhook → Netmaker REST → write back). This is the template to copy for new provisioning seams. **`kestra-call/`** — **LEGACY** for device/network provisioning (that hop moved to `netmaker-call`); kept as the orchestration template (webhook → Kestra → Ansible, poll logs, write back) and still the pattern for Kestra-driven flows (install/provisioning/connectivity — OpenWRT + SSH keys via Cosmian KMS). Confirm the table's current trigger before assuming which one fires (see the `pg_get_triggerdef` check above). **`main/`** — dispatcher. **`vpn/`** — TOTP. Copy the closest one's skeleton.
 - Never edit `kestra-call.old/` (deprecated) or anything under `supabase-2025-10-20/` (snapshot/backup).
 - Don't change a webhook contract or the 202-immediate-return without confirming downstream UI polling + DB triggers still align (doc-016, doc-010, doc-013).
 - Run `docker compose` only from `supabase/`. Don't fabricate the network/job-table shapes — read the migration or `\d <table>` first.

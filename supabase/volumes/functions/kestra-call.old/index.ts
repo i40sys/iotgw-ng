@@ -41,8 +41,8 @@ async function executeKestraFlow(
   console.log('URL:', url)
   
   // Basic authentication credentials
-  const username = 'oriol@joor.net'
-  const password = '***REMOVED-ROTATED-KESTRA-PW***'
+  const username = Deno.env.get('KESTRA_USER') || ''
+  const password = Deno.env.get('KESTRA_PASSWORD') || ''
   const credentials = btoa(`${username}:${password}`)
   
   try {

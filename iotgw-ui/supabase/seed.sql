@@ -61,7 +61,7 @@ INSERT INTO "public"."devices" ("id", "network_id", "name", "description", "ip_a
 ('2efc7d19-e2ed-4241-a5e8-54619e58dbd9', 'f6a7b8c9-d0e1-2345-fabc-678901234567', 'iot-gateway-lab', 'R&D lab test gateway', '10.1.1.80', NULL, NULL, 0, '2025-06-03 05:21:22.567844+00'),
 ('07330cfb-920b-4a79-b8bf-a3de6a00a85e', 'f6a7b8c9-d0e1-2345-fabc-678901234567', 'iot-gateway-office', 'Office automation gateway', '10.1.1.90', NULL, NULL, 0, '2025-06-03 05:21:22.567844+00'),
 ('ea823fca-7072-4e8f-9a37-29c0a98a22a4', 'a7b8c9d0-e1f2-3456-abcd-789012345678', 'iot-gateway-datacenter', 'Datacenter environmental monitoring', '10.2.0.210', 'encrypted_private_key_here', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC...', 0, '2025-06-03 05:21:22.567844+00'),
-('0a532ab7-2549-465b-ab29-27403dfe5603', '951dfe21-4de9-46a7-947d-8569bf1a8aba', 'iotgw-m1', NULL, '10.121.101.254', '***REMOVED-FRAGMENT***5KJmpH7C0EEfMcbDWE/e3gtdncma9kI=', 'FTHRZN/uH/K8VBms86bzGbx6ByLAbHjIIcWLJHx9J0c=', 5, '2025-12-03 05:33:21.330211+00');
+('0a532ab7-2549-465b-ab29-27403dfe5603', '951dfe21-4de9-46a7-947d-8569bf1a8aba', 'iotgw-m1', NULL, '10.121.101.254', 'redacted_private_key_placeholder', 'redacted_public_key_placeholder', 5, '2025-12-03 05:33:21.330211+00');
 
 --
 -- PostgreSQL database dump complete

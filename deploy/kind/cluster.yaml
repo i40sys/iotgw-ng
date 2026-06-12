@@ -1,0 +1,46 @@
+# kind cluster for local iotgw-ng testing.
+# One control-plane node. Host ports are mapped so the platform is reachable on
+# wsl.ymbihq.local exactly like the docker-compose stacks were:
+#   80/443  -> ingress-nginx (Kong/Studio/whoami via Ingress)
+#   30000+  -> NodePorts for raw-TCP services (supavisor, kestra, kms)
+# All compose stacks are DOWN before using kind so these host ports are free.
+apiVersion: kind.x-k8s.io/v1alpha4
+kind: Cluster
+name: iotgw
+nodes:
+  # Pinned to a containerd-1.7 node image: kind's default v1.35 ships
+  # containerd 2.x, whose symlink-escape hardening rejects minimal images that
+  # symlink /etc/passwd (e.g. ghcr.io/cosmian/kms) with "path escapes from
+  # parent". v1.31.x avoids that and runs every platform image.
+  - role: control-plane
+    image: kindest/node:v1.31.12
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      # ingress-nginx
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+      # Supabase Kong API gateway (NodePort 30800)
+      - containerPort: 30800
+        hostPort: 8000
+        protocol: TCP
+      # Supabase supavisor (Postgres pooler, NodePort 30543)
+      - containerPort: 30543
+        hostPort: 5432
+        protocol: TCP
+      # Kestra UI/API (NodePort 30808)
+      - containerPort: 30808
+        hostPort: 8080
+        protocol: TCP
+      # Cosmian KMS (NodePort 30998)
+      - containerPort: 30998
+        hostPort: 9998
+        protocol: TCP

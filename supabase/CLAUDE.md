@@ -22,12 +22,12 @@ The deployment consists of multiple interconnected Docker containers orchestrate
   - Exposes port 5432 for client connections
   - Exposes port 6543 for proxy connections
 
-- **auth (supabase-auth)**: GoTrue v2.180.0 authentication service
+- **auth (supabase-auth)**: GoTrue v2.189.0 authentication service
   - Handles user authentication, JWT tokens, email/phone verification
   - Supports OAuth providers, magic links, password auth
   - Configured via GOTRUE_* environment variables in .env
 
-- **rest (supabase-rest)**: PostgREST v13.0.7 for automatic REST API generation
+- **rest (supabase-rest)**: PostgREST v14.12 for automatic REST API generation
   - Auto-generates REST endpoints from PostgreSQL schemas
   - Configured schemas: public, storage, graphql_public (PGRST_DB_SCHEMAS)
 
@@ -40,17 +40,18 @@ The deployment consists of multiple interconnected Docker containers orchestrate
   - Integrates with imgproxy for image transformations
   - Can be switched to S3 backend using docker-compose.s3.yml
 
-- **functions (supabase-edge-functions)**: Deno-based edge runtime v1.69.6
+- **functions (supabase-edge-functions)**: Deno-based edge runtime v1.74.0
   - Functions located in volumes/functions/
   - Main routing function in volumes/functions/main/index.ts handles JWT verification and dispatches to specific functions
-  - Custom functions include kestra-call (Kestra workflow orchestration integration)
+  - Custom functions include netmaker-call (live device/network provisioning via direct Netmaker REST) and kestra-call (legacy Kestra workflow orchestration)
 
 - **kong**: API gateway routing all services through port 8000/8443
   - Configuration in volumes/api/kong.yml
   - Handles request routing, authentication, CORS
 
-- **studio**: Supabase Studio UI on port 3000
+- **studio**: Supabase Studio UI
   - Web-based database and project management interface
+  - Publishes NO host port in compose; reached via Kong on :8000 (catch-all route) behind dashboard basic-auth
 
 - **analytics (logflare)**: Log aggregation and analytics
   - Port 4000 exposed
@@ -75,11 +76,16 @@ The deployment consists of multiple interconnected Docker containers orchestrate
 
 The deployment includes custom Deno edge functions in volumes/functions/:
 
-- **kestra-call**: Integration with Kestra workflow engine
-  - Executes Kestra workflows for 'networks' and 'devices' tables
+- **netmaker-call**: CURRENT live webhook target for both 'devices' AND 'networks' tables
+  - Provisions devices/networks directly against the Netmaker REST API (no Kestra in the loop)
+  - This is what the DB AFTER INSERT/UPDATE triggers point at today
+  - Located at: volumes/functions/netmaker-call/index.ts
+
+- **kestra-call**: LEGACY integration with Kestra workflow engine (not trigger-wired)
+  - Previously executed Kestra workflows for 'networks' and 'devices' tables; superseded by netmaker-call for provisioning
   - Polls execution status until completion
   - Requires KESTRA_BASE_URL configuration
-  - Uses hardcoded credentials (oriol@joor.net) - consider externalizing
+  - Reads credentials from env (KESTRA_USER / KESTRA_PASSWORD), sourced from secrets/ (SOPS+age) — no longer hardcoded
   - Supports transaction tracking via X-Transaction-ID header
   - Located at: volumes/functions/kestra-call/index.ts
 
@@ -171,7 +177,7 @@ docker compose logs -f supabase-edge-functions
 
 ### Accessing Services
 
-- **Supabase Studio**: http://wsl.ymbihq.local:3000 (or SUPABASE_PUBLIC_URL from .env)
+- **Supabase Studio**: via Kong at http://wsl.ymbihq.local:8000 (catch-all route, behind dashboard basic-auth) — Studio publishes no host port of its own
 - **API Gateway (Kong)**: http://wsl.ymbihq.local:8000
 - **Database**: localhost:5432 (through supavisor pooler)
 - **Analytics**: http://localhost:4000
@@ -181,6 +187,8 @@ docker compose logs -f supabase-edge-functions
 ### Environment Variables
 
 All configuration is in the `.env` file. Key variables:
+
+> Note: real secret values live encrypted in `secrets/supabase.enc.env` (SOPS+age, decision-014). Render the plaintext `.env` with `just secrets-render` or `tools/secrets/secrets.sh render supabase`. `KESTRA_BASE_URL` is sourced from `.env`.
 
 **Security** (must change for production):
 - JWT_SECRET: JWT signing key (min 32 chars)
@@ -269,7 +277,7 @@ No automated test suite is currently configured in package.json. Consider adding
 
 4. **JWT Keys**: ANON_KEY and SERVICE_ROLE_KEY must be generated using the JWT_SECRET. These are JWT tokens with specific role claims.
 
-5. **Kestra Integration**: The kestra-call function has hardcoded credentials and URLs. Consider moving these to environment variables for better security and flexibility.
+5. **Kestra Integration**: The kestra-call function (legacy, not trigger-wired) reads its credentials from env (KESTRA_USER / KESTRA_PASSWORD) and KESTRA_BASE_URL — sourced from secrets/ (SOPS+age, decision-014), no longer hardcoded. Live device/network provisioning now runs through the netmaker-call function.
 
 6. **Package Manager**: This project uses pnpm (version 10.17.0) as specified in package.json packageManager field.
 
@@ -277,7 +285,7 @@ No automated test suite is currently configured in package.json. Consider adding
 
 ## References
 
-- [decision-003](../iotgw-ui/backlog/decisions/decision-003%20-%20Database-and-Infrastructure-Supabase-PostgreSQL-Choice.md) — why Supabase was chosen
-- [doc-010](../iotgw-ui/backlog/docs/doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md) — migration + webhook management (devices/networks triggers)
-- [doc-016](../iotgw-ui/backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) — the webhook → edge-fn → Kestra pattern powering this instance
+- [decision-003](../backlog/decisions/decision-003%20-%20Database-and-Infrastructure-Supabase-PostgreSQL-Choice.md) — why Supabase was chosen
+- [doc-010](../backlog/docs/doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md) — migration + webhook management (devices/networks triggers)
+- [doc-016](../backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) — the webhook → edge-fn → Kestra pattern powering this instance
 - [volumes/functions/CLAUDE.md](volumes/functions/CLAUDE.md) — edge function map

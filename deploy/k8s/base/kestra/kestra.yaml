@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kestra
+  labels:
+    app.kubernetes.io/name: kestra
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate          # local storage PVC is RWO
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kestra
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kestra
+        app.kubernetes.io/part-of: iotgw-ng
+    spec:
+      containers:
+        - name: kestra
+          image: kestra/kestra:v1.3.22   # pinned (compose was :latest)
+          command: ["/bin/bash", "-c", "/app/kestra server standalone"]
+          env:
+            # Secrets injected from the kestra-env Secret. KESTRA_CONFIGURATION
+            # is a YAML doc; Kestra/Micronaut resolves ${KESTRA_POSTGRES_PASSWORD}
+            # from the environment at startup (k8s leaves ${...} untouched).
+            # NOTE: the Docker task runner used by the Ansible flows does NOT
+            # work here — those flows must move to Kestra's Kubernetes task
+            # runner (decision-015). The webserver/scheduler run fine.
+            - name: KESTRA_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: kestra-env, key: KESTRA_POSTGRES_PASSWORD }
+            - name: KESTRA_CONFIGURATION
+              value: |
+                datasources:
+                  postgres:
+                    url: jdbc:postgresql://kestra-postgres:5432/kestra
+                    driverClassName: org.postgresql.Driver
+                    username: kestra
+                    password: ${KESTRA_POSTGRES_PASSWORD}
+                kestra:
+                  repository:
+                    type: postgres
+                  queue:
+                    type: postgres
+                  storage:
+                    type: local
+                    local:
+                      basePath: /app/storage
+                  url: http://localhost:8080/
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: mgmt, containerPort: 8081 }
+          volumeMounts:
+            - name: storage
+              mountPath: /app/storage
+          readinessProbe:
+            httpGet: { path: /health, port: 8081 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 40
+          livenessProbe:
+            httpGet: { path: /health, port: 8081 }
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            failureThreshold: 6
+      volumes:
+        - name: storage
+          persistentVolumeClaim: { claimName: kestra-storage }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kestra-storage
+  labels:
+    app.kubernetes.io/name: kestra
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources: { requests: { storage: 2Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kestra
+  labels:
+    app.kubernetes.io/name: kestra
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  selector:
+    app.kubernetes.io/name: kestra
+  ports:
+    - { name: http, port: 8080, targetPort: 8080 }

@@ -5,6 +5,8 @@ date: "2025-08-24 11:59"
 status: approved
 ---
 
+> **Scope note:** This ADR concerns the **internal pnpm workspace within `iotgw-ui`** (its `apps/` and `packages/`), not the workspace-level monorepo organization. For the workspace-level monorepo, see decision-013.
+
 ## Context
 
 The IoT Gateway system consists of multiple interconnected components:

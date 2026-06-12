@@ -1,0 +1,78 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meta
+  labels:
+    app.kubernetes.io/name: meta
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: meta
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: meta
+        app.kubernetes.io/part-of: iotgw-ng
+    spec:
+      containers:
+        - name: meta
+          image: supabase/postgres-meta:v0.96.6
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: PG_META_PORT
+              value: "8080"
+            - name: PG_META_DB_HOST
+              value: supabase-db
+            - name: PG_META_DB_PORT
+              value: "5432"
+            - name: PG_META_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: POSTGRES_DB
+            - name: PG_META_DB_USER
+              value: supabase_admin
+            - name: PG_META_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: meta
+  labels:
+    app.kubernetes.io/name: meta
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  selector:
+    app.kubernetes.io/name: meta
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

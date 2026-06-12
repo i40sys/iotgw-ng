@@ -1,0 +1,123 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: functions
+  labels:
+    app.kubernetes.io/name: functions
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: functions
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: functions
+        app.kubernetes.io/part-of: iotgw-ng
+    spec:
+      containers:
+        - name: functions
+          image: supabase/edge-runtime:v1.74.0
+          args:
+            - start
+            - --main-service
+            - /home/deno/functions/main
+          ports:
+            - name: http
+              containerPort: 9000
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: JWT_SECRET
+            - name: SUPABASE_URL
+              value: http://kong:8000
+            - name: SUPABASE_ANON_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: ANON_KEY
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: SERVICE_ROLE_KEY
+            - name: FUNC_PW
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: POSTGRES_PASSWORD
+            - name: SUPABASE_DB_URL
+              value: postgresql://postgres:$(FUNC_PW)@supabase-db:5432/postgres
+            - name: NETMAKER_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: NETMAKER_BASE_URL
+            - name: NETMAKER_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: NETMAKER_MASTER_KEY
+            - name: KESTRA_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: KESTRA_BASE_URL
+            - name: KESTRA_USER
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: KESTRA_USER
+            - name: KESTRA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: KESTRA_PASSWORD
+            - name: VERIFY_JWT
+              value: "false"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: functions-src
+              mountPath: /home/deno/functions
+      volumes:
+        # NOTE: emptyDir is a placeholder only. The edge function source
+        # (volumes/functions, including the `main` entrypoint) is NOT present
+        # here. In k8s the functions code MUST be delivered another way:
+        # either bake it into a custom image (FROM supabase/edge-runtime:v1.74.0
+        # COPY volumes/functions /home/deno/functions) or git-sync it into this
+        # volume via an initContainer/sidecar. Do NOT ConfigMap the whole tree.
+        - name: functions-src
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: functions
+  labels:
+    app.kubernetes.io/name: functions
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  selector:
+    app.kubernetes.io/name: functions
+  ports:
+    - name: http
+      port: 9000
+      targetPort: 9000
+      protocol: TCP

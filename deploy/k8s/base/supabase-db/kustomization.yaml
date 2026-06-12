@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - statefulset.yaml
+  - service.yaml
+configMapGenerator:
+  - name: supabase-db-initdb
+    files:
+      - initdb/97-_supabase.sql
+      - initdb/98-webhooks.sql
+      - initdb/99-realtime.sql
+      - initdb/99-roles.sql
+      - initdb/99-jwt.sql
+      - initdb/99-logs.sql
+      - initdb/99-pooler.sql
+generatorOptions:
+  disableNameSuffixHash: true

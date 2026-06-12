@@ -2,7 +2,7 @@
 id: decision-012
 title: Workspace Git Consolidation into a Single Root Repository
 date: '2026-06-08 04:26'
-status: proposed
+status: superseded
 ---
 
 > **⚠️ This is an OPEN / INTERIM decision record, not a finalized ADR.**
@@ -10,6 +10,11 @@ status: proposed
 > captures the unresolved trade-offs that must still be settled before a
 > **final** decision is taken on the workspace's long-term VCS topology.
 > The "Open Questions" section is the part that still needs a human call.
+
+> **Note (superseded):** This interim decision has since been **FINALIZED by
+> decision-013** (monorepo organization, Outcome A) — all 7 open questions are
+> answered there. Secrets handling is covered by decision-014 (SOPS+age) and the
+> Kubernetes migration by decision-015. The content below is retained for history.
 
 ## Context
 

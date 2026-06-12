@@ -23,7 +23,7 @@ priority: high
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Both kestra/data/main/iotgw-ng/_files/network_update.yml and network_delete.yml hardcode netmaker_master_key=***REMOVED-DECOMMISSIONED*** in cleartext. Same files are mirrored to GitHub via sync-namespace-files, so the secret is also in github.com/i40sys/iotgw-kestra history.
+Both kestra/data/main/iotgw-ng/_files/network_update.yml and network_delete.yml hardcode netmaker_master_key=<REDACTED-rotate-and-store-in-secrets> in cleartext. Same files are mirrored to GitHub via sync-namespace-files, so the secret is also in github.com/i40sys/iotgw-kestra history.
 
 ## Change
 1. Remove the hardcoded var from both playbooks.

@@ -1,0 +1,93 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rest
+  labels:
+    app.kubernetes.io/name: rest
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rest
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rest
+        app.kubernetes.io/part-of: iotgw-ng
+    spec:
+      containers:
+        - name: rest
+          image: postgrest/postgrest:v14.12
+          imagePullPolicy: IfNotPresent
+          args:
+            - postgrest
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            # Password first so $(PGRST_PW) is resolvable in PGRST_DB_URI below.
+            - name: PGRST_PW
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: POSTGRES_PASSWORD
+            # k8s expands $(PGRST_PW) using a var defined earlier in this list.
+            - name: PGRST_DB_URI
+              value: postgres://authenticator:$(PGRST_PW)@supabase-db:5432/postgres
+            - name: PGRST_DB_SCHEMAS
+              value: public,storage,graphql_public
+            - name: PGRST_DB_ANON_ROLE
+              value: anon
+            - name: PGRST_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: JWT_SECRET
+            - name: PGRST_DB_USE_LEGACY_GUCS
+              value: "false"
+            - name: PGRST_APP_SETTINGS_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: JWT_SECRET
+            - name: PGRST_APP_SETTINGS_JWT_EXP
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: JWT_EXPIRY
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rest
+  labels:
+    app.kubernetes.io/name: rest
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  selector:
+    app.kubernetes.io/name: rest
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP

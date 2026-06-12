@@ -89,7 +89,7 @@ This mirrors the convention used by the `oriolrius.netmaker` Ansible collection.
 | `SUPABASE_URL` | `''` | Injected by docker-compose |
 | `SUPABASE_SERVICE_ROLE_KEY` | `''` | Service role — bypasses RLS |
 | `NETMAKER_BASE_URL` | `https://api.netmaker.i40sys.com` | Override in docker-compose env |
-| `NETMAKER_MASTER_KEY` | `***REMOVED-DECOMMISSIONED***` | **Footgun — see below** |
+| `NETMAKER_MASTER_KEY` | `''` (no fallback) | **Required.** Sourced from `supabase/.env` (decrypted from `secrets/supabase.enc.env`). The function logs FATAL and refuses to operate if unset — no key is baked into source. |
 
 To add or change env vars: edit the `functions:` service `environment:` block in `supabase/docker-compose.yml`.
 
@@ -149,7 +149,7 @@ DELETE `/networks/{netid}`. Idempotent via the same 404/500-"no result found" ha
 
 ## Known footguns
 
-1. **Master key is hardcoded as a fallback.** `NETMAKER_MASTER_KEY` has a non-empty default value in the source. If the env var is absent the real key is exposed in the source file. Externalise properly before production — ensure the env var is always set in docker-compose and remove the default.
+1. **Master key is environment-only (no fallback).** `NETMAKER_MASTER_KEY` must be supplied via the environment (from `supabase/.env`, decrypted from `secrets/supabase.enc.env`). The source no longer carries a default; if the var is missing the function logs FATAL and every Netmaker call fails. Do not reintroduce an inline default. The previously-committed key is compromised and must be rotated at Netmaker — see `backlog/decisions/decision-014` and `backlog/tasks/task-045`.
 
 2. **Ingress gateway dependency (devices).** The target network must already exist in Netmaker with at least one node configured as an ingress gateway. If there is no ingress gateway the INSERT flow throws `"No ingress gateway found in network <id>"` and the job is set to FAILED. The error message is surfaced in `device_jobs.error_message`.
 

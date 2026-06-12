@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: iotgw
+
+# Production overlay (SKETCH). Differences from kind:
+#   - includes the full Supabase application tier (supabase-app)
+#   - real Ingress hostnames + TLS instead of NodePorts (add ingress.yaml)
+#   - external/HA Postgres, image registry, resource limits (add patches)
+#   - Secrets re-keyed to a cluster/KMS age recipient (sops updatekeys), then
+#     created the same way: tools/secrets/secrets.sh k8s <name> iotgw <secret>
+# For the full Supabase data plane (realtime/storage/imgproxy/analytics/
+# supavisor/vector) prefer the supabase-kubernetes Helm chart fed from SOPS.
+resources:
+  - ../../base
+  - ../../base/supabase-app
+
+# patches:
+#   - path: patches/ingress-prod.yaml      # real hostnames + cert-manager TLS
+#   - path: patches/resources.yaml         # requests/limits
+#   - path: patches/external-postgres.yaml # point supabase-db/kestra at managed PG

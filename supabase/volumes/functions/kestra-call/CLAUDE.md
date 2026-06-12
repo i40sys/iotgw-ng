@@ -4,7 +4,7 @@
 
 ## Authoritative spec
 
-See [iotgw-ui doc-016](../../../../iotgw-ui/backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) — this function's API contract, trigger configuration, and polling behavior are documented there. Update that doc whenever you change this function.
+See [iotgw-ui doc-016](../../../../backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) — this function's API contract, trigger configuration, and polling behavior are documented there. Update that doc whenever you change this function.
 
 ## What it does
 
@@ -18,7 +18,7 @@ See [iotgw-ui doc-016](../../../../iotgw-ui/backlog/docs/doc-016%20-%20Kestra-No
 
 ## Known footguns
 
-- **Hardcoded Kestra basic-auth credentials** (`oriol@joor.net` / `***REMOVED-ROTATED-KESTRA-PW***`). Externalise before production.
+- **Kestra basic-auth credentials are environment-only** (`KESTRA_USER` / `KESTRA_PASSWORD`, sourced from `supabase/.env` ← `secrets/supabase.enc.env`). They are no longer hardcoded in the source. The previously-committed password is compromised and must be rotated on the Kestra instance — see `backlog/decisions/decision-014`.
 - **Log-parsing is brittle**: the key extraction supports two Kestra log formats (JSON task output + legacy text). If Kestra upgrades change log structure, `extractDeviceKeysFromLogs()` breaks silently — check the function's own logs.
 - **DELETE operations** use `old_record` instead of `record`. See the `type === 'DELETE'` branches.
 - **Table parameter is mandatory** and must be `'networks'` or `'devices'`. Anything else → 400.

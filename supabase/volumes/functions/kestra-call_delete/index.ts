@@ -82,8 +82,8 @@ async function getExecutionStatus(
   console.log(`[${txId}][getExecutionStatus] URL: ${url}`)
 
   // Basic authentication credentials
-  const username = 'oriol@joor.net'
-  const password = '***REMOVED-ROTATED-KESTRA-PW***'
+  const username = Deno.env.get('KESTRA_USER') || ''
+  const password = Deno.env.get('KESTRA_PASSWORD') || ''
   const credentials = btoa(`${username}:${password}`)
   console.log(`[${txId}][getExecutionStatus] Using basic auth with username: ${username}`)
 
@@ -210,8 +210,8 @@ async function executeKestraFlow(
   console.log(`[${txId}][executeKestraFlow] FormData created with json_data field (${jsonData.length} bytes)`)
   
   // Basic authentication credentials
-  const username = 'oriol@joor.net'
-  const password = '***REMOVED-ROTATED-KESTRA-PW***'
+  const username = Deno.env.get('KESTRA_USER') || ''
+  const password = Deno.env.get('KESTRA_PASSWORD') || ''
   const credentials = btoa(`${username}:${password}`)
   console.log(`[${txId}][executeKestraFlow] Using basic auth with username: ${username}`)
   

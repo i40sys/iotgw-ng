@@ -233,7 +233,7 @@ export const devicesRouter = {
         headers: {
           Authorization:
             "Basic " +
-            Buffer.from("oriol@joor.net:***REMOVED-ROTATED-KESTRA-PW***").toString("base64"),
+            Buffer.from(`${process.env.KESTRA_USER}:${process.env.KESTRA_PASSWORD}`).toString("base64"),
         },
         body: formData as unknown as BodyInit,
       });
@@ -266,7 +266,7 @@ export const devicesRouter = {
           headers: {
             Authorization:
               "Basic " +
-              Buffer.from("oriol@joor.net:***REMOVED-ROTATED-KESTRA-PW***").toString("base64"),
+              Buffer.from(`${process.env.KESTRA_USER}:${process.env.KESTRA_PASSWORD}`).toString("base64"),
           },
         });
 
@@ -856,7 +856,7 @@ export const devicesRouter = {
           headers: {
             Authorization:
               "Basic " +
-              Buffer.from("oriol@joor.net:***REMOVED-ROTATED-KESTRA-PW***").toString("base64"),
+              Buffer.from(`${process.env.KESTRA_USER}:${process.env.KESTRA_PASSWORD}`).toString("base64"),
           },
           body: formData as unknown as BodyInit,
         });
@@ -915,7 +915,7 @@ export const devicesRouter = {
             headers: {
               Authorization:
                 "Basic " +
-                Buffer.from("oriol@joor.net:***REMOVED-ROTATED-KESTRA-PW***").toString("base64"),
+                Buffer.from(`${process.env.KESTRA_USER}:${process.env.KESTRA_PASSWORD}`).toString("base64"),
             },
           });
 

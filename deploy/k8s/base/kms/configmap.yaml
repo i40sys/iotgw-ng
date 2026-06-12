@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cosmian-kms-config
+  labels:
+    app.kubernetes.io/name: cosmian-kms
+    app.kubernetes.io/part-of: iotgw-ng
+data:
+  # Mirrors kms/kms.toml. SQLite path matches the image default used by the
+  # compose deployment (see kms/DOCKER_FIXES.md). NOTE: no auth/TLS yet — in a
+  # real cluster add an [authentication] block + NetworkPolicy (see k8sNotes).
+  kms.toml: |
+    default_username = "admin"
+
+    [http]
+    port = 9998
+    hostname = "0.0.0.0"

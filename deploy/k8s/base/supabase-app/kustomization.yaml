@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Supabase application tier (the API path). Authored from the compose spec;
+# NOT yet validated on kind — see deploy/README.md "Known migration caveats".
+# Pulled in by the prod overlay; excluded from the kind smoke path. Requires the
+# supabase-env Secret and a running supabase-db. The remaining data-plane
+# services (realtime/storage/imgproxy/analytics/supavisor/vector) are best
+# deployed via the supabase-kubernetes Helm chart (decision-015).
+resources:
+  - meta.yaml
+  - rest.yaml
+  - auth.yaml
+  - kong.yaml
+  - functions.yaml

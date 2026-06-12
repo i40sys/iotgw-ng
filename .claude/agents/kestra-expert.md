@@ -19,10 +19,12 @@ Note: the REST path `/api/v1/version` returns **Not Found** in this version — 
 
 **The exact-version truth is the running instance.** Docs sites describe "latest"; the instance describes what you actually have.
 
-1. **The running instance (EXACT version + EXACT installed plugin versions).** The API requires Basic auth `oriol@joor.net:***REMOVED-ROTATED-KESTRA-PW***` (the same creds the `kestra-call` edge fn uses). The tenant is `main`, namespace `iotgw-ng`.
+1. **The running instance (EXACT version + EXACT installed plugin versions).** The API requires Basic auth, same creds the `kestra-call` edge fn uses — read them from the environment (`KESTRA_USER` / `KESTRA_PASSWORD`, decrypt with `sops -d secrets/kestra.enc.env`), never hardcode them. The tenant is `main`, namespace `iotgw-ng`.
    ```bash
-   AUTH='oriol@joor.net:***REMOVED-ROTATED-KESTRA-PW***'
-   curl -s -u "$AUTH" http://localhost:8080/api/v1/plugins | jq '.[].name' | head   # all installed plugins (192 groups)
+   # source the creds without printing them, e.g.:
+   #   export $(sops -d secrets/kestra.enc.env | grep -E '^KESTRA_BASIC_AUTH_' | sed 's/KESTRA_BASIC_AUTH_//')
+   AUTH="$KESTRA_USER:$KESTRA_PASSWORD"
+   curl -s -u "$AUTH" http://localhost:8080/api/v1/plugins | jq '.[].name' | head   # all installed plugins
    # plugin/task JSON schema (properties, types, defaults) for the EXACT installed version:
    curl -s -u "$AUTH" "http://localhost:8080/api/v1/plugins/io.kestra.plugin.scripts.runner.docker.Docker"
    ```
