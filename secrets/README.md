@@ -14,7 +14,7 @@ All secrets in this workspace are encrypted at rest with **[SOPS](https://github
 | `kestra-reporter.enc.env` | `kestra/kestra-ansible-reporter/.env` | Kestra creds for the reporter CLI |
 | `iotgw-ui-root.enc.env` | `iotgw-ui/.env` | `DATABASE_URL` for type generation |
 | `iotgw-ui-backend.enc.env` | `iotgw-ui/apps/backend/.env` | Supabase service key + Kestra creds for the backend |
-| `traefik-tls.enc.yaml` | (manual) | Traefik PoC TLS cert/key/CA (**compromised — regenerate**) |
+| `traefik-tls.enc.yaml` | (manual) | Ingress TLS cert/key/CA, ex-`traefik-poc` (**compromised — regenerate**) |
 
 `.sops.yaml` at the repo root defines the creation rules and the age recipient.
 

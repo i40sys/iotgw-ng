@@ -17,7 +17,6 @@ deployment definitions.
 | `supabase/` | **platform** | Self-hosted Supabase (Postgres, Kong, GoTrue, edge functions…). System of record + webhook hub. |
 | `kestra/` | **platform** | Kestra workflow orchestration (OpenWRT provisioning / install / connectivity flows). |
 | `kms/` | **platform** | Cosmian KMS — authoritative store for device SSH keys + the PoC PKI. |
-| `traefik-poc/` | **edge** | TLS-termination PoC (becomes an Ingress under k8s). |
 | `ansible/` | **automation** | The `oriolrius.netmaker` Ansible collection. |
 | `deploy/` | **infra** | Kubernetes manifests (kustomize) + local `kind` cluster + bootstrap. |
 | `secrets/` | **infra** | SOPS+age encrypted secrets (the only secret source of truth). |

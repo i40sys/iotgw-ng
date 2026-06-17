@@ -7,7 +7,7 @@ from the repo root (`/home/oriol/iotgw-ng`) so these agents/skills/settings load
 
 | Agent | Model | Use for |
 |---|---|---|
-| **stack-operator** | sonnet | docker-compose stacks: up/down/restart/recreate, status, logs, env (supabase, kestra, kms, traefik-poc) |
+| **stack-operator** | sonnet | docker-compose stacks: up/down/restart/recreate, status, logs, env (supabase, kestra, kms) |
 | **k8s-operator** | sonnet | the kind cluster + `deploy/` kustomize: create/deploy/smoke/debug, SOPS→Secret bridge |
 | **kestra-expert** | sonnet | authoring/debugging Kestra flows + config against the exact installed version |
 | **supabase-function-developer** | sonnet | Deno edge functions + DB-side verification (netmaker-call is live; kestra-call legacy) |

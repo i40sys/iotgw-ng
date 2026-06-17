@@ -31,10 +31,15 @@ and (c) a root `just` orchestrator + `README.md`.
 |---|---|---|
 | **app** | `iotgw-ui/` | product UI + API |
 | **platform** | `supabase/`, `kestra/`, `kms/` | stateful backend services |
-| **edge** | `traefik-poc/` | ingress/TLS (PoC → k8s Ingress) |
+| **edge** | `deploy/` (k8s Ingress) | ingress/TLS |
 | **automation** | `ansible/` | Netmaker collection |
 | **infra** | `deploy/`, `secrets/`, `tools/` | how it's built, secured, shipped |
 | **docs/meta** | `backlog/`, `.claude/`, `CLAUDE.md`, `README.md` | knowledge + tooling |
+
+> **Update (2026-06-17):** the **edge** group was originally the `traefik-poc/`
+> docker-compose PoC. That PoC has since been removed; TLS termination is now
+> realized by the k8s Ingress under `deploy/` (decision-015). The taxonomy is
+> unchanged — only its physical realization moved.
 
 ### What was added (non-breaking)
 

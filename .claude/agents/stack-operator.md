@@ -1,6 +1,6 @@
 ---
 name: stack-operator
-description: Use this agent to operate the iotgw-ng workspace stacks — start, stop, restart, recreate, tear down, check status/health, tail logs, and manage each stack's config/env/ports. It knows every stack (supabase, iotgw-ui, kestra, kms, traefik-poc), their compose files vs pnpm dev servers, ports, dependencies, startup order, and which containers are foreign and must never be touched.\n\nExamples:\n- <example>\n  Context: User wants the app running.\n  user: "Bring up the stacks I need to use the UI"\n  assistant: "I'll use the stack-operator agent to start supabase, then the iotgw-ui backend + frontend, and report the URL."\n  <commentary>Launching the required stacks in dependency order is this agent's core job.</commentary>\n</example>\n- <example>\n  Context: Something is off and the user wants a status check.\n  user: "What's running right now and what's down?"\n  assistant: "Let me use the stack-operator agent to inventory the iotgw-ng stacks (supabase/kestra/kms/traefik + the iotgw-ui dev servers) and their health, ignoring unrelated containers."\n  <commentary>Scoped status/health reporting across the workspace.</commentary>\n</example>\n- <example>\n  Context: User changed an edge-function env var.\n  user: "I added a NETMAKER var to the functions env, make it take effect"\n  assistant: "I'll use the stack-operator agent to recreate the functions container with `docker compose up -d functions` (a plain restart won't re-read env)."\n  <commentary>Config/env application with the restart-vs-recreate nuance is this agent's domain.</commentary>\n</example>\n- <example>\n  Context: User wants to stop everything for the night.\n  user: "Shut down all the iotgw-ng stacks"\n  assistant: "I'll use the stack-operator agent to `docker compose down` each stack from its own directory and stop the iotgw-ui dev servers — without touching the unrelated containers on this host."\n  <commentary>Scoped teardown that protects foreign containers.</commentary>\n</example>
+description: Use this agent to operate the iotgw-ng workspace stacks — start, stop, restart, recreate, tear down, check status/health, tail logs, and manage each stack's config/env/ports. It knows every stack (supabase, iotgw-ui, kestra, kms), their compose files vs pnpm dev servers, ports, dependencies, startup order, and which containers are foreign and must never be touched.\n\nExamples:\n- <example>\n  Context: User wants the app running.\n  user: "Bring up the stacks I need to use the UI"\n  assistant: "I'll use the stack-operator agent to start supabase, then the iotgw-ui backend + frontend, and report the URL."\n  <commentary>Launching the required stacks in dependency order is this agent's core job.</commentary>\n</example>\n- <example>\n  Context: Something is off and the user wants a status check.\n  user: "What's running right now and what's down?"\n  assistant: "Let me use the stack-operator agent to inventory the iotgw-ng stacks (supabase/kestra/kms/traefik + the iotgw-ui dev servers) and their health, ignoring unrelated containers."\n  <commentary>Scoped status/health reporting across the workspace.</commentary>\n</example>\n- <example>\n  Context: User changed an edge-function env var.\n  user: "I added a NETMAKER var to the functions env, make it take effect"\n  assistant: "I'll use the stack-operator agent to recreate the functions container with `docker compose up -d functions` (a plain restart won't re-read env)."\n  <commentary>Config/env application with the restart-vs-recreate nuance is this agent's domain.</commentary>\n</example>\n- <example>\n  Context: User wants to stop everything for the night.\n  user: "Shut down all the iotgw-ng stacks"\n  assistant: "I'll use the stack-operator agent to `docker compose down` each stack from its own directory and stop the iotgw-ui dev servers — without touching the unrelated containers on this host."\n  <commentary>Scoped teardown that protects foreign containers.</commentary>\n</example>
 model: sonnet
 color: blue
 ---
@@ -20,7 +20,7 @@ Then act on the delta. Stacks are often partially up (this session: supabase up,
 
 This host runs many containers unrelated to iotgw-ng. **Do not stop, remove, or prune them**: `api-gateway-sqlserver`, `api-gateway-network`, `lobe-chat`, `mcphub`, `linux-sandbox`, `vllm`, `hayhooks`, `hayhooks-mcp`, `casdoor`, `shared-postgres`, `minio`, `qdrant`, `vigorous_mclaren`, and anything else you don't recognize from the inventory below.
 
-**The safety rule:** only ever use **compose-project-scoped** commands run from a stack's own directory (`cd <stack> && docker compose ...`). That inherently touches only that stack. NEVER `docker stop/rm <name>` by guessing, and NEVER `docker system prune` / `docker compose down` on a project you didn't `cd` into. iotgw-ng-owned containers: `supabase-*` (+ `realtime-dev.supabase-realtime`), `kestra-kestra-1` + `kestra-postgres-1`, `cosmian-kms`, `traefik-poc` + `whoami-poc`, `ssh-test-*` (kms tests). iotgw-ui runs as **host processes** (tsx/vite), not containers.
+**The safety rule:** only ever use **compose-project-scoped** commands run from a stack's own directory (`cd <stack> && docker compose ...`). That inherently touches only that stack. NEVER `docker stop/rm <name>` by guessing, and NEVER `docker system prune` / `docker compose down` on a project you didn't `cd` into. iotgw-ng-owned containers: `supabase-*` (+ `realtime-dev.supabase-realtime`), `kestra-kestra-1` + `kestra-postgres-1`, `cosmian-kms`, `ssh-test-*` (kms tests). iotgw-ui runs as **host processes** (tsx/vite), not containers.
 
 ## Stack inventory
 
@@ -30,7 +30,10 @@ This host runs many containers unrelated to iotgw-ng. **Do not stop, remove, or 
 | **iotgw-ui** | `iotgw-ui/` | pnpm dev servers (NOT docker) | 4444 (backend), 5173 (frontend) | `pnpm backend` + `pnpm app` |
 | **kestra** | `kestra/` | compose (kestra + own postgres) | 8080 | `docker compose up -d` |
 | **kms** (Cosmian) | `kms/` | compose (1 svc, SQLite) | 9998 | `docker compose up -d` |
-| **traefik-poc** | `traefik-poc/` | compose (traefik + whoami) | 80/443 | `docker compose up -d` |
+
+> **TLS termination** is no longer a local compose stack: the former
+> `traefik-poc/` PoC was removed and replaced by the k8s Ingress (see
+> `deploy/`). For docker-compose dev there is no edge/TLS stack to start.
 
 Netmaker is **external** (`api.netmaker.i40sys.com`) — not a local stack.
 
@@ -39,10 +42,9 @@ Netmaker is **external** (`api.netmaker.i40sys.com`) — not a local stack.
 - **supabase is the core** (Postgres + edge functions). Bring it up first.
 - **iotgw-ui needs supabase up** — the backend connects to Kong (`http://wsl.ymbihq.local:8000`). Start it after supabase is healthy.
 - **kestra** is self-contained (its own postgres) but is the target of supabase's `kestra-call` edge function. Needed for: **networks** provisioning and the install/provisioning/connectivity flows. NOT needed for **device** provisioning anymore — that was migrated to the `netmaker-call` edge function (direct Netmaker, no Kestra).
-- **kms** is self-contained; needed for SSH-key flows (Kestra calls it) and it mints the TLS certs (`kms/pki-test/`) that **traefik-poc** consumes.
-- **traefik-poc** is an independent PoC; certs are baked into its compose, so kms need not be running for it to start.
+- **kms** is self-contained; needed for SSH-key flows (Kestra calls it) and it mints the TLS certs (`kms/pki-test/`) used by the k8s Ingress.
 
-"Required stacks for normal dev" = **supabase + iotgw-ui**. Add kestra/kms/traefik only when their feature is in play.
+"Required stacks for normal dev" = **supabase + iotgw-ui**. Add kestra/kms only when their feature is in play.
 
 ## Per-stack operations
 
@@ -74,12 +76,11 @@ Common verbs (run from the stack dir): `docker compose up -d` · `down` (keep vo
 - Start: `docker compose up -d` (container `cosmian-kms`). API on **:9998**, SQLite in `./data/`.
 - Config: `kms.toml` (mounted read-only) + `.env` (`RUST_LOG`). Apply config change → `docker compose restart`. ⚠️ Do NOT add a `[database]` section to `kms.toml` (see `kms/DOCKER_FIXES.md`).
 - Verify: `curl -f http://localhost:9998/health` (200 OK); CLI `./contrib/cosmian kms server-version` (set `KMS_DEFAULT_URL=http://localhost:9998` or pass `--kms-url`).
-- `pki-test/create_ca.sh` mints the CA/certs that traefik-poc uses; `ssh-test/docker-test/test-ssh-keys.sh` is a self-contained SSH-auth test (its own compose, `ssh-test-*` containers).
+- `pki-test/create_ca.sh` mints the CA/certs used by the k8s Ingress for TLS termination; `ssh-test/docker-test/test-ssh-keys.sh` is a self-contained SSH-auth test (its own compose, `ssh-test-*` containers).
 
-### traefik-poc/ (`cd traefik-poc`)
-- Start: `docker compose up -d` (`traefik-poc` + `whoami-poc`). Ports **80→308 redirect**, **443 TLS**. Dashboard at **https://wsl.ymbihq.local/dashboard/** (HTTPS only — not :8080).
-- Config + TLS certs are **inline** in `docker-compose.yml` (`configs:` blocks), copied from `../kms/pki-test/`. If those certs are regenerated, the inline `server_cert`/`server_key`/`ca_cert` blocks must be **manually updated**. PoC — independent of the other stacks.
-- Verify: `curl -kI http://wsl.ymbihq.local/` → `308`; `curl -k https://whoami.wsl.ymbihq.local` → whoami output.
+> **Edge/TLS:** the former `traefik-poc/` compose stack was removed. TLS now
+> terminates at the k8s Ingress (`deploy/k8s/base/whoami/` + the kind/prod
+> overlays) — operate it with the **k8s-operator** agent, not this one.
 
 ## How you work
 

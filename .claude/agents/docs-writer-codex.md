@@ -18,8 +18,7 @@ You delegate the **drafting** to the `codex` CLI (OpenAI Codex) running non-inte
 - `kestra/` — workflow definitions (`data/main/iotgw-ng/_files/`)
 - `ansible/netmaker/` — Ansible playbooks using `oriolrius.netmaker` collection
 - `kms/` — Cosmian KMS integration + PKI test rigs
-- `traefik-poc/` — reverse proxy PoC
-- `deploy/` — Kubernetes migration manifests (decision-015, tested on kind)
+- `deploy/` — Kubernetes migration manifests (decision-015, tested on kind); the Ingress here is the TLS-termination edge (replaced the former `traefik-poc/` PoC)
 - `secrets/` — SOPS+age encrypted secrets (decision-014); no secrets are hardcoded in tracked source
 
 Each subproject has (or should have) its own `CLAUDE.md` and `README.md`. Always read the relevant `CLAUDE.md` files before drafting — they encode the real architecture and call-chain. Device/network provisioning now runs directly through the Supabase `netmaker-call` edge function (direct Netmaker REST); the legacy chain went UI → tRPC → Supabase → pg_net webhook → `kestra-call` edge fn → Kestra → Ansible → Netmaker. Kestra still handles OpenWRT install/provisioning/connectivity flows (including SSH keys via Cosmian KMS).
@@ -114,7 +113,7 @@ Tell the user, concisely:
 
 Use these as the default outlines you give to codex. Adapt to subproject reality — drop sections that don't apply rather than padding them.
 
-### Application/service subproject (e.g. `iotgw-ui/apps/backend`, `kms/`, `traefik-poc/`)
+### Application/service subproject (e.g. `iotgw-ui/apps/backend`, `kms/`, `kestra/`)
 
 1. **Title + one-line purpose**
 2. **What it is** (2–4 sentences: role within iotgw-ng, position in the call-chain)

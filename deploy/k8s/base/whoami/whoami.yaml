@@ -1,6 +1,6 @@
-# whoami behind an Ingress — the k8s equivalent of the traefik-poc PoC.
-# In k8s the docker-provider Traefik PoC is replaced by a real ingress
-# controller (ingress-nginx in the kind overlay; Traefik/Gateway API in prod).
+# whoami behind an Ingress — the k8s TLS-termination demo.
+# A real ingress controller (ingress-nginx in the kind overlay; Traefik/Gateway
+# API in prod) terminates TLS here, replacing the former compose-based PoC.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

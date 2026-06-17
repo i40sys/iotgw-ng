@@ -6,7 +6,7 @@
 set shell := ["bash", "-uc"]
 
 # Stacks that are docker-compose based (dir name == compose project)
-compose_stacks := "supabase kestra kms traefik-poc"
+compose_stacks := "supabase kestra kms"
 
 # default: list recipes
 default:
@@ -41,11 +41,9 @@ up-all: secrets-render
     cd supabase    && docker compose up -d
     cd kestra      && docker compose up -d
     cd kms         && docker compose up -d
-    @echo "traefik-poc is a PoC — start manually with: just up traefik-poc"
 
 # Tear down every compose stack
 down-all:
-    -cd traefik-poc && docker compose down
     -cd kms         && docker compose down
     -cd kestra      && docker compose down
     -cd supabase    && docker compose down
@@ -53,7 +51,7 @@ down-all:
 # Cross-stack status (only iotgw-ng containers)
 status:
     @docker ps --format 'table {{{{.Names}}}}\t{{{{.Image}}}}\t{{{{.Status}}}}' \
-      | grep -E 'supabase|kestra|cosmian-kms|traefik-poc|whoami' || echo "no iotgw-ng containers running"
+      | grep -E 'supabase|kestra|cosmian-kms|whoami' || echo "no iotgw-ng containers running"
 
 # ─────────────────────────── iotgw-ui (pnpm) ───────────────────────────
 

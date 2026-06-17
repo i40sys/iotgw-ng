@@ -14,7 +14,7 @@ deploy/
       kms/            # Cosmian KMS (StatefulSet + PVC + ConfigMap + Service)
       supabase-db/    # Supabase Postgres (StatefulSet + PVC + init-SQL ConfigMap)
       kestra/         # Kestra server + its Postgres
-      whoami/         # demo app behind Ingress (replaces traefik-poc)
+      whoami/         # demo app behind Ingress (the k8s TLS-termination demo)
       supabase-app/   # Supabase application tier (kong/auth/rest/meta/functions)
     overlays/
       kind/           # local dev: NodePorts mapped to host ports

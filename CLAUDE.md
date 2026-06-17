@@ -44,8 +44,8 @@ migrations 20260610000000/01):
   SSH keys — devices store only `ssh_key_id` (`decision-010`).
 - The Kestra `devices` / `networks` flows and the `kestra-call` edge function
   are **legacy** (kept for reference; no longer webhook-triggered).
-- **TLS certs**: `kms/pki-test/` mints certs; `traefik-poc/` (→ Ingress under
-  k8s) consumes them.
+- **TLS certs**: `kms/pki-test/` mints certs, consumed by the k8s Ingress
+  (the former `traefik-poc/` PoC has been removed — see `deploy/`).
 
 ## Critical Validated Docs (in `backlog/`)
 
@@ -81,8 +81,7 @@ archives are in `BACKUP/git-archives/` (the reversibility net).
 | `kestra/` | workflow orchestration (flow source in DB + `i40sys/iotgw-kestra`) | [kestra/CLAUDE.md](kestra/CLAUDE.md) |
 | `ansible/netmaker/` | `oriolrius.netmaker` collection (published to Galaxy) | [ansible/netmaker/CLAUDE.md](ansible/netmaker/CLAUDE.md) |
 | `kms/` | Cosmian KMS (device SSH keys + PoC PKI) | [kms/CLAUDE.md](kms/CLAUDE.md) |
-| `traefik-poc/` | TLS PoC (→ k8s Ingress) | [traefik-poc/CLAUDE.md](traefik-poc/CLAUDE.md) |
-| `deploy/` | Kubernetes (kustomize) + local kind | [deploy/README.md](deploy/README.md) |
+| `deploy/` | Kubernetes (kustomize) + local kind; TLS terminates at the Ingress (replaced the former `traefik-poc/`) | [deploy/README.md](deploy/README.md) |
 | `secrets/` | SOPS+age encrypted secrets | [secrets/README.md](secrets/README.md) |
 | `tools/` | `secrets.sh`, `verify.sh` | — |
 | `backlog/` | ADRs, docs, tasks (Backlog.md CLI) | — |
