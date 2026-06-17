@@ -80,6 +80,12 @@ safety net were produced before any deletion.
 **Current state:** one local repo, 510 files, clean tree, no remote.
 All prior subproject remotes are untouched on their servers.
 
+> **Update (2026-06-17):** a canonical remote now exists — the private Gitea
+> repo `oriolrius/iotgw-ng` (`ssh://git@git.oriolrius.cat:222/oriolrius/iotgw-ng.git`,
+> default branch `main`). All branches were pushed; this resolves open
+> question 4 below in favour of "push it to private Gitea". `BACKUP/git-archives/`
+> remains the reversibility net.
+
 ## Decision (interim)
 
 Adopt — **provisionally** — a single flat root repository at `~/iotgw-ng`
@@ -120,6 +126,8 @@ These are the "worth flagging" items. Each needs an explicit call.
 4. **Root repo has no remote.** The consolidated repo is local-only.
    *Decide:* push it somewhere (GitHub `i40sys/iotgw-ng`? private Gitea?) or
    intentionally keep it local.
+   **Resolved (2026-06-17):** pushed to private Gitea `oriolrius/iotgw-ng`
+   (see the "Current state" update above).
 
 5. **Kestra flow source is outside the root repo.** `kestra/data/.../_files`
    is a root-owned Docker volume and was excluded; its source lives only at
