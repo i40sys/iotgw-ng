@@ -40,10 +40,16 @@ migrations 20260610000000/01):
 
 **Kestra is still used** for the OpenWRT side (NOT device/network provisioning):
 - `install` / `provisioning` / `connectivity-check` flows run Ansible
-  (`cytopia/ansible`) against gateways, and call **Cosmian KMS** (`kms/`) for
-  SSH keys — devices store only `ssh_key_id` (`decision-010`).
+  (`cytopia/ansible`) against gateways, **fetching** device SSH keys from
+  **Cosmian KMS** (`kms/`) to deploy them onto the gateway.
+- SSH-key **generation** is **not** a Kestra step: the iotgw-ui backend mints
+  keys directly in Cosmian KMS via its KMIP REST API
+  (`apps/backend/src/services/kms.ts`), automatically when a device is created
+  and on demand via `generateMissingSshKey`. Devices store only `ssh_key_id`
+  (`decision-010`, `task-060`).
 - The Kestra `devices` / `networks` flows and the `kestra-call` edge function
-  are **legacy** (kept for reference; no longer webhook-triggered).
+  are **removed** — device/network provisioning runs through `netmaker-call`
+  and SSH-key generation through the backend→KMS path.
 - **TLS certs**: `kms/pki-test/` mints certs, consumed by the k8s Ingress
   (the former `traefik-poc/` PoC has been removed — see `deploy/`).
 

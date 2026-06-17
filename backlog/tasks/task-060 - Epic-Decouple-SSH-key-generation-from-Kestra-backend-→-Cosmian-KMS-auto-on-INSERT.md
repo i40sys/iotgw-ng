@@ -3,9 +3,10 @@ id: TASK-060
 title: >-
   Epic: Decouple SSH-key generation from Kestra (backend → Cosmian KMS, auto on
   INSERT)
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-06-17 04:53'
+updated_date: '2026-06-17 05:38'
 labels:
   - epic
   - ssh
@@ -32,3 +33,9 @@ Relocate SSH-key *generation* off the legacy Kestra `iotgw-ng/devices` flow and 
 ## References
 - decision-010 (SSH key mgmt via Cosmian KMS), doc-016 (provisioning automation pattern), kms/ssh-test + kms/src/kms_tools/convert_keys.py (the KMS recipe), netmaker-call (the analogous direct-call migration).
 <!-- SECTION:DESCRIPTION:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Core implementation complete (060.01-060.05 Done): SSH-key generation decoupled from Kestra and moved to a direct backend->Cosmian KMS path (KMIP REST + node:crypto), auto on device INSERT, with generateMissingSshKey as the backfill/force path; legacy Kestra devices/networks flows removed; docs/ADR updated. Verified live against KMS 5.20.0; typecheck + tests green; adversarial review findings fixed. Remaining: task-060.06 (e2e stack verification, kind Kestra basic-auth fix, Netmaker master-key rotation).
+<!-- SECTION:NOTES:END -->

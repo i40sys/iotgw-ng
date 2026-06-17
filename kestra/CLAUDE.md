@@ -1,6 +1,6 @@
 # Kestra — Workflow Orchestration
 
-Self-hosted Kestra instance that runs the `install` / `provisioning` / `connectivity-check` flows (OpenWRT config + SSH keys via Cosmian KMS). Device/network provisioning moved to the Supabase `netmaker-call` edge function (direct Netmaker REST); the `devices` / `networks` flows here are **LEGACY** and no longer webhook-triggered. Flows execute Ansible playbooks inside `cytopia/ansible:latest-tools` Docker runners.
+Self-hosted Kestra instance that runs the `install` / `provisioning` / `connectivity-check` flows (OpenWRT config; these **fetch** device SSH keys from Cosmian KMS to deploy them). Device/network provisioning moved to the Supabase `netmaker-call` edge function (direct Netmaker REST), and SSH-key **generation** moved to the iotgw-ui backend (direct Cosmian KMS, `task-060`); the `devices` / `networks` flows here were **removed** (`task-060.04`). Flows execute Ansible playbooks inside `cytopia/ansible:latest-tools` Docker runners.
 
 ## Layout
 
@@ -14,8 +14,8 @@ Self-hosted Kestra instance that runs the `install` / `provisioning` / `connecti
 
 | Flow (namespace `iotgw-ng`) | Triggered by | Runs playbook |
 |---|---|---|
-| `devices` | **LEGACY** — no longer triggered by kestra-call (device provisioning moved to `netmaker-call` edge fn) | `device_update.yml` / `device_delete.yml` |
-| `networks` | **LEGACY** — no longer triggered by kestra-call (network provisioning moved to `netmaker-call` edge fn) | `network_update.yml` / `network_delete.yml` |
+| ~~`devices`~~ | **REMOVED** (`task-060.04`) — provisioning → `netmaker-call`, SSH-key gen → backend→KMS | ~~`device_update.yml` / `device_delete.yml`~~ (deleted) |
+| ~~`networks`~~ | **REMOVED** (`task-060.04`) — provisioning → `netmaker-call` | ~~`network_update.yml` / `network_delete.yml`~~ (deleted) |
 | `provisioning` | manual / backend tRPC deployment call | `i11_provisioning_iotgw.yaml` |
 | `install` | manual | `d01_install_owrt.yml` |
 | `connectivity-check` | scheduled / on-demand | `connectivity_check.yml` |

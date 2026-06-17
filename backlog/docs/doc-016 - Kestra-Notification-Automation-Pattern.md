@@ -168,14 +168,17 @@ Kestra is **no longer** in the device/network provisioning path. It remains the
 orchestrator for the **OpenWRT gateway** side:
 
 - `install` / `provisioning` / `connectivity-check` flows run Ansible
-  (`cytopia/ansible`) against gateways.
-- SSH keys are minted via **Cosmian KMS** (`decision-010`); the `devices`
-  Kestra flow is still invoked **directly** by the iotgw-ui backend
-  (`apps/backend/src/routers/devices.ts` → `generateMissingSshKey`) for SSH-key
-  generation — not via a webhook/edge function.
+  (`cytopia/ansible`) against gateways, **fetching** device SSH keys from
+  Cosmian KMS to deploy them.
+- SSH-key **generation** is no longer a Kestra step (`decision-010`,
+  `task-060`): the iotgw-ui backend mints keys directly in Cosmian KMS over its
+  KMIP REST API (`apps/backend/src/services/kms.ts`), automatically on device
+  create and on demand via `generateMissingSshKey`. The backend no longer calls
+  any Kestra flow for SSH keys.
 
 The legacy `kestra-call`, `kestra-call_delete`, and `kestra-call.old` edge
-functions and the Dashboard-webhook setup they relied on have been removed.
+functions (and the Dashboard-webhook setup they relied on) and the Kestra
+`devices`/`networks` provisioning flows have all been removed.
 
 ## References
 

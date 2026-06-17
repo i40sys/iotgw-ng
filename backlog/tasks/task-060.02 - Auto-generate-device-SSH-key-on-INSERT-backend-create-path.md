@@ -1,9 +1,10 @@
 ---
 id: TASK-060.02
 title: Auto-generate device SSH key on INSERT (backend create path)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-17 04:54'
+updated_date: '2026-06-17 05:38'
 labels:
   - ssh
   - kms
@@ -24,7 +25,13 @@ Define failure semantics: device creation should not be silently broken if KMS i
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Creating a device via the backend results in a real Cosmian KMS ed25519 key (id device_ssh_<id>) and devices.ssh_key_id set, with no Kestra call
-- [ ] #2 KMS failure during create is handled gracefully (documented behavior) and recoverable via the on-demand path (task-060.03)
-- [ ] #3 Tests cover: device create generates+stores ssh_key_id (KMS mocked), and the KMS-failure path
+- [x] #1 Creating a device via the backend results in a real Cosmian KMS ed25519 key (id device_ssh_<id>) and devices.ssh_key_id set, with no Kestra call
+- [x] #2 KMS failure during create is handled gracefully (documented behavior) and recoverable via the on-demand path (task-060.03)
+- [x] #3 Tests cover: device create generates+stores ssh_key_id (KMS mocked), and the KMS-failure path
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+createDevice mints the KMS key after insert and persists ssh_key_id; degraded-on-failure (device still created without a key, recoverable via generateMissingSshKey). Tests assert the ssh_key_id UPDATE (column+row), the degraded path (no update on KMS failure), and the persist-failure branch.
+<!-- SECTION:NOTES:END -->
