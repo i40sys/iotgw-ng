@@ -8,7 +8,7 @@ It receives Supabase DB webhook POSTs for BOTH the `devices` and `networks` tabl
 
 ## Purpose
 
-Replaces the `kestra-call` path for both device and network operations:
+Replaces the former `kestra-call` path (since removed) for both device and network operations:
 
 ```
 DB trigger (devices, INSERT or DELETE)
@@ -95,7 +95,7 @@ To add or change env vars: edit the `functions:` service `environment:` block in
 
 ## device_jobs lifecycle
 
-Mirrors kestra-call so the Deployments UI (which calls `get_device_jobs` RPC) requires no changes.
+Mirrors the former kestra-call job-table shape, so the Deployments UI (which calls `get_device_jobs` RPC) required no changes.
 
 | Phase | status | Notes |
 |---|---|---|
@@ -104,7 +104,7 @@ Mirrors kestra-call so the Deployments UI (which calls `get_device_jobs` RPC) re
 | Netmaker call succeeds | `SUCCESS` | For INSERT: also updates `device_ip_address` in the job row |
 | Any thrown error | `FAILED` | `error_message` set to the exception message |
 
-The `network_name` column in `device_jobs` is left `null` on insert — a DB trigger backfills it from `network_id` (same as kestra-call).
+The `network_name` column in `device_jobs` is left `null` on insert — a DB trigger backfills it from `network_id` (same as the former kestra-call).
 
 ## network_jobs lifecycle
 
@@ -157,7 +157,7 @@ DELETE `/networks/{netid}`. Idempotent via the same 404/500-"no result found" ha
 
 4. **Read-back after create (devices).** The function never trusts the POST `/extclients/…` response for WireGuard keys. It always does a second GET to find the canonical object. If that second GET still cannot locate the extclient the job is set to FAILED.
 
-5. **No polling / no timeout.** Unlike kestra-call, there is no long-running poll loop. The entire Netmaker operation is synchronous inside the background function and completes in one or two HTTP round-trips. The worker timeout in `main/index.ts` (60s) is far more than enough.
+5. **No polling / no timeout.** Unlike the former kestra-call, there is no long-running poll loop. The entire Netmaker operation is synchronous inside the background function and completes in one or two HTTP round-trips. The worker timeout in `main/index.ts` (60s) is far more than enough.
 
 6. **DELETE uses `old_record`.** Standard Supabase webhook shape for DELETE events has `record: null`. The function reads from `old_record`. A misconfigured webhook that sends DELETE without `old_record` returns 400.
 

@@ -13,7 +13,7 @@
 //   networks: netid    = network.id with dashes stripped
 //
 // device_jobs / network_jobs rows are written in the same lifecycle shape
-// as kestra-call so the Deployments UI works without modification.
+// as the former kestra-call so the Deployments UI works without modification.
 
 import { serve } from 'https://deno.land/std@0.131.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'

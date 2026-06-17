@@ -43,7 +43,7 @@ The deployment consists of multiple interconnected Docker containers orchestrate
 - **functions (supabase-edge-functions)**: Deno-based edge runtime v1.74.0
   - Functions located in volumes/functions/
   - Main routing function in volumes/functions/main/index.ts handles JWT verification and dispatches to specific functions
-  - Custom functions include netmaker-call (live device/network provisioning via direct Netmaker REST) and kestra-call (legacy Kestra workflow orchestration)
+  - Custom function netmaker-call handles live device/network provisioning via direct Netmaker REST (the legacy kestra-call edge functions have been removed)
 
 - **kong**: API gateway routing all services through port 8000/8443
   - Configuration in volumes/api/kong.yml
@@ -80,14 +80,6 @@ The deployment includes custom Deno edge functions in volumes/functions/:
   - Provisions devices/networks directly against the Netmaker REST API (no Kestra in the loop)
   - This is what the DB AFTER INSERT/UPDATE triggers point at today
   - Located at: volumes/functions/netmaker-call/index.ts
-
-- **kestra-call**: LEGACY integration with Kestra workflow engine (not trigger-wired)
-  - Previously executed Kestra workflows for 'networks' and 'devices' tables; superseded by netmaker-call for provisioning
-  - Polls execution status until completion
-  - Requires KESTRA_BASE_URL configuration
-  - Reads credentials from env (KESTRA_USER / KESTRA_PASSWORD), sourced from secrets/ (SOPS+age) — no longer hardcoded
-  - Supports transaction tracking via X-Transaction-ID header
-  - Located at: volumes/functions/kestra-call/index.ts
 
 - **main**: Central routing function for all edge functions
   - JWT verification when VERIFY_JWT=true
@@ -188,7 +180,7 @@ docker compose logs -f supabase-edge-functions
 
 All configuration is in the `.env` file. Key variables:
 
-> Note: real secret values live encrypted in `secrets/supabase.enc.env` (SOPS+age, decision-014). Render the plaintext `.env` with `just secrets-render` or `tools/secrets/secrets.sh render supabase`. `KESTRA_BASE_URL` is sourced from `.env`.
+> Note: real secret values live encrypted in `secrets/supabase.enc.env` (SOPS+age, decision-014). Render the plaintext `.env` with `just secrets-render` or `tools/secrets/secrets.sh render supabase`.
 
 **Security** (must change for production):
 - JWT_SECRET: JWT signing key (min 32 chars)
@@ -221,7 +213,7 @@ All configuration is in the `.env` file. Key variables:
 - FUNCTIONS_VERIFY_JWT=false (applies to all functions)
 
 **Custom**:
-- KESTRA_BASE_URL: Used by kestra-call function (default: http://wsl.ymbihq.local:8080)
+- (none) — `KESTRA_BASE_URL` was only consumed by the removed kestra-call edge function; the iotgw-ui backend talks to Kestra via its own hardcoded URL + KESTRA_USER/KESTRA_PASSWORD.
 
 ### Kong Configuration
 
@@ -277,7 +269,7 @@ No automated test suite is currently configured in package.json. Consider adding
 
 4. **JWT Keys**: ANON_KEY and SERVICE_ROLE_KEY must be generated using the JWT_SECRET. These are JWT tokens with specific role claims.
 
-5. **Kestra Integration**: The kestra-call function (legacy, not trigger-wired) reads its credentials from env (KESTRA_USER / KESTRA_PASSWORD) and KESTRA_BASE_URL — sourced from secrets/ (SOPS+age, decision-014), no longer hardcoded. Live device/network provisioning now runs through the netmaker-call function.
+5. **Kestra Integration**: Live device/network provisioning runs through the netmaker-call function (direct Netmaker REST). The legacy kestra-call edge functions have been removed. Kestra is still used for OpenWRT install/provisioning/connectivity flows and SSH-key generation, but those are triggered directly from the iotgw-ui backend (KESTRA_USER / KESTRA_PASSWORD from secrets/, SOPS+age, decision-014).
 
 6. **Package Manager**: This project uses pnpm (version 10.17.0) as specified in package.json packageManager field.
 
@@ -287,5 +279,5 @@ No automated test suite is currently configured in package.json. Consider adding
 
 - [decision-003](../backlog/decisions/decision-003%20-%20Database-and-Infrastructure-Supabase-PostgreSQL-Choice.md) — why Supabase was chosen
 - [doc-010](../backlog/docs/doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md) — migration + webhook management (devices/networks triggers)
-- [doc-016](../backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) — the webhook → edge-fn → Kestra pattern powering this instance
+- [doc-016](../backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) — the DB-trigger → netmaker-call → Netmaker REST provisioning pattern
 - [volumes/functions/CLAUDE.md](volumes/functions/CLAUDE.md) — edge function map

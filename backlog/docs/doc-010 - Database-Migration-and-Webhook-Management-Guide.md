@@ -3,307 +3,187 @@ id: doc-010
 title: Database Migration and Webhook Management Guide
 type: other
 created_date: '2025-11-17 11:14'
+updated_date: '2026-06-17'
 ---
 
 # Database Migration and Webhook Management Guide
 
+> **Rewritten 2026-06-17.** This guide previously described configuring
+> **Supabase Dashboard / Management-API webhooks** (cloud `*.supabase.co`,
+> `SUPABASE_ACCESS_TOKEN`, a `setup-webhooks.ts` script) that called the
+> `kestra-call` edge function. None of that applies to this **self-hosted**
+> stack anymore: webhooks are **Postgres triggers defined in migrations**, and
+> the target is the `netmaker-call` edge function. The old setup script and
+> `pnpm setup:webhooks` were removed.
+
 ## Overview
 
-This guide explains how to manage database migrations and webhooks in the IOTGW-UI project. The project uses Supabase for database management, and webhooks are configured to trigger Kestra workflows when devices or networks are created/updated.
+The iotgw-ui database lives in the **self-hosted** Supabase stack (`supabase/`,
+host `wsl.ymbihq.local`). Schema **and** the provisioning webhooks are both
+managed as **SQL migrations** — there is no separate webhook-configuration step
+and no control-plane API. Applying the migrations creates the tables, the RPCs,
+and the row triggers that POST to the `netmaker-call` edge function.
 
-## Key Concepts
+## Key concepts
 
-### Database Migrations
+### Migrations
 
-- **Location**: `supabase/migrations/`
-- **Naming**: Timestamps in format `YYYYMMDDHHMMSS_description.sql`
-- **Order**: Migrations are applied in chronological order based on filename
-- **Tool**: Supabase CLI
+- **Location**: `iotgw-ui/supabase/migrations/`
+- **Naming**: `YYYYMMDDHHMMSS_description.sql`, applied in chronological order
+- **Tool**: the Supabase CLI, invoked through pnpm scripts (below)
+- **Append-only**: migrations are an immutable ledger — never edit or delete an
+  applied migration; add a new one that supersedes it. (E.g. the original
+  `kestra-call` webhook migrations are kept; later `…_repoint_…` migrations
+  move the triggers to `netmaker-call`.)
 
-### Database Webhooks
+### Webhooks (Postgres triggers, not Dashboard webhooks)
 
-- **Storage**: Stored in Supabase's control plane (not in database)
-- **Configuration**: Created via Supabase Management API
-- **Purpose**: Trigger Kestra workflows when devices/networks change
-- **Tables**: `devices` and `networks`
+- **Storage**: in the database, as `AFTER` row triggers — created by migrations.
+- **Mechanism**: `supabase_functions.http_request(url, method, headers, body,
+  timeout_ms)` (backed by `pg_net`), which fires a non-blocking HTTP POST.
+- **Purpose**: provision Netmaker resources when `devices` / `networks` change.
+- **Current target**: `…/functions/v1/netmaker-call` (direct Netmaker REST).
 
-## Common Operations
+| Table | Events | Defined in |
+|---|---|---|
+| `devices` | INSERT, DELETE | `20260610000000_repoint_devices_webhook_to_netmaker.sql` |
+| `networks` | INSERT, UPDATE, DELETE | `20260610000001_repoint_networks_webhook_to_netmaker.sql` |
 
-### 1. Reset Database (Migrations Only)
+The mechanics of the trigger → edge-function → Netmaker flow are documented in
+[doc-016](doc-016%20-%20Kestra-Notification-Automation-Pattern.md).
 
-Resets the database and applies all migrations from scratch:
+## Common operations
+
+All commands run from `iotgw-ui/`. `DATABASE_URL` (in `iotgw-ui/.env`, rendered
+from `secrets/`) points at the self-hosted Postgres.
+
+### 1. Reset the database (schema + triggers)
 
 ```bash
 pnpm db:reset
 ```
 
-This will:
-- Drop all database objects
-- Reapply all migrations in `supabase/migrations/`
-- Run seed data (if exists)
+Drops all objects, reapplies every migration in order (which recreates the
+tables, RPCs **and** the trigger "webhooks"), and runs seed data if present.
+Because the triggers come from migrations, this is all that's needed — there is
+no separate webhook step.
 
-**Note**: This does NOT configure webhooks.
+> ⚠️ Destructive — wipes all data. Confirm before running against anything you
+> care about.
 
-### 2. Reset Database + Setup Webhooks (Full Reset)
-
-Complete database and webhook setup:
-
-```bash
-# Set required environment variables
-export SUPABASE_ACCESS_TOKEN="sbp_xxxxx"  # From https://supabase.com/dashboard/account/tokens
-export SUPABASE_PROJECT_REF="your-ref"     # From project URL
-export SUPABASE_ANON_KEY="eyJhbGci..."     # From Project Settings → API
-
-# Run full reset
-pnpm db:reset:full
-```
-
-This will:
-1. Reset database and apply migrations
-2. Configure webhooks for devices and networks tables
-
-**Use this when**:
-- Setting up a new environment
-- After major schema changes
-- When webhooks are not working
-
-### 3. Setup Webhooks Only
-
-If database is already set up and you only need to configure webhooks:
+### 2. Full reset helper
 
 ```bash
-export SUPABASE_ACCESS_TOKEN="sbp_xxxxx"
-export SUPABASE_PROJECT_REF="your-ref"
-export SUPABASE_ANON_KEY="eyJhbGci..."
-
-pnpm setup:webhooks
+pnpm db:reset:full        # → scripts/reset-database-and-webhooks.sh
 ```
 
-### 4. Apply New Migrations (Forward Only)
+A thin wrapper around `supabase db reset` (kept for the historical name). The
+"+ webhooks" part is now automatic via the migrations — there is nothing extra
+to provision.
 
-Push new migrations without resetting:
+### 3. Apply new migrations (forward-only)
 
 ```bash
-pnpm db:migrate
+pnpm db:migrate           # supabase db push
 ```
 
-**Warning**: This is forward-only. It doesn't handle migration rollbacks.
+Pushes pending migrations without a full reset. Forward-only (no rollback).
 
-### 5. Generate TypeScript Types
-
-After schema changes, regenerate TypeScript types:
+### 4. Regenerate TypeScript contract types
 
 ```bash
 pnpm generate:contract
 ```
 
-This updates `packages/supabase-contract/src/database.types.ts` with the latest schema.
+Updates `packages/supabase-contract/src/database.types.ts` from the live schema.
+Run after any schema change, then `pnpm typecheck`.
 
-## Getting Required Credentials
+## Adding a migration
 
-### SUPABASE_ACCESS_TOKEN
+```bash
+# from iotgw-ui/
+touch supabase/migrations/$(date +%Y%m%d%H%M%S)_your_change.sql
+# write SQL …
+pnpm db:reset            # test a from-scratch replay locally
+pnpm generate:contract   # refresh types
+pnpm typecheck           # verify
+git add supabase/migrations/<file> && git commit
+```
 
-1. Go to https://supabase.com/dashboard/account/tokens
-2. Click "Generate new token"
-3. Give it a name (e.g., "Webhook Setup")
-4. Copy the token (starts with `sbp_`)
+To change webhook wiring, write a **new** migration that
+`drop trigger if exists …` + `create trigger …` (see the `…_repoint_…`
+migrations as the template) — don't edit an existing one.
 
-### SUPABASE_PROJECT_REF
+## Verifying the webhooks (self-hosted)
 
-Found in multiple places:
-- Your project URL: `https://<PROJECT_REF>.supabase.co`
-- Dashboard → Project Settings → General → Reference ID
+There is no Dashboard "Webhooks → Logs" tab here. Verify through the database
+and the edge-function container instead:
 
-### SUPABASE_ANON_KEY
-
-1. Dashboard → Project Settings → API
-2. Under "Project API keys"
-3. Copy the `anon` `public` key
-
-## Webhook Configuration
-
-### What Webhooks Do
-
-When a device or network is created/updated:
-1. Webhook fires automatically
-2. Calls `kestra-call` edge function
-3. Edge function creates a job record (`device_jobs` or `network_jobs`)
-4. Executes corresponding Kestra workflow
-5. Updates job record with execution status
-
-### Webhook Details
-
-**Devices Webhook**:
-- Name: `kestra-devices-webhook`
-- Table: `public.devices`
-- Events: INSERT, UPDATE
-- Endpoint: `/functions/v1/kestra-call`
-
-**Networks Webhook**:
-- Name: `kestra-networks-webhook`
-- Table: `public.networks`
-- Events: INSERT, UPDATE
-- Endpoint: `/functions/v1/kestra-call`
-
-### Verifying Webhooks
-
-1. **Check webhook logs**:
-   - Dashboard → Database → Webhooks → Logs
-   - Should show successful POST requests
-
-2. **Verify job records**:
+1. **Trigger POSTs (pg_net response log):**
    ```sql
-   SELECT * FROM device_jobs ORDER BY created_at DESC LIMIT 5;
-   SELECT * FROM network_jobs ORDER BY created_at DESC LIMIT 5;
+   select id, status_code, content, created
+   from net._http_response order by created desc limit 10;
    ```
-
-3. **Test manually**:
+2. **Job records:**
    ```sql
-   INSERT INTO devices (network_id, name, description)
-   VALUES ('<network-uuid>', 'test-device', 'Test webhook');
+   select * from device_jobs  order by started_at desc limit 5;
+   select * from network_jobs order by started_at desc limit 5;
+   ```
+3. **Edge-function logs:**
+   ```bash
+   cd ../supabase && docker compose logs -f supabase-edge-functions
+   ```
+4. **Manual trigger:**
+   ```sql
+   insert into devices (network_id, name)
+   values ('<network-uuid>', 'test-device');
    ```
 
 ## Troubleshooting
 
-### Database Reset Fails
+### `db:reset` fails to connect
+- Check `DATABASE_URL` in `iotgw-ui/.env` (render with `just secrets-render`).
+- Ensure the supabase stack is up (`cd supabase && docker compose ps`).
+- `PGSSLMODE=disable` for the local pooler if SSL negotiation fails.
 
-**Symptom**: `pnpm db:reset` fails with connection error
+### Inserts don't create job records / nothing provisions
+- Confirm the triggers exist:
+  ```sql
+  select tgname, tgrelid::regclass from pg_trigger
+  where tgname like '%webhook%';
+  ```
+- Check `net._http_response` for a non-2xx `status_code` (the edge function
+  errored) or no row at all (the trigger didn't fire / `pg_net` not enabled).
+- Confirm the `functions` container is running and reachable at
+  `http://wsl.ymbihq.local:8000/functions/v1/netmaker-call`.
+- Read the edge-function logs for the failing transaction id.
 
-**Solution**:
-1. Check `DATABASE_URL` in `.env` file
-2. Verify database is accessible
-3. Check `PGSSLMODE=disable` is set
-
-### Webhook Setup Fails (401 Unauthorized)
-
-**Symptom**: `Failed to list webhooks: 401`
-
-**Solution**:
-- Token is invalid or expired
-- Generate new token from https://supabase.com/dashboard/account/tokens
-
-### Webhook Setup Fails (404 Not Found)
-
-**Symptom**: `Failed to create webhook: 404`
-
-**Solution**:
-- `SUPABASE_PROJECT_REF` is incorrect
-- Verify in Dashboard → Project Settings
-
-### Webhooks Not Triggering
-
-**Symptoms**:
-- Creating/editing devices doesn't create job records
-- No entries in webhook logs
-
-**Solutions**:
-1. Verify webhooks are configured:
-   ```bash
-   pnpm setup:webhooks
-   ```
-
-2. Check `kestra-call` edge function is deployed
-
-3. Verify webhook logs in Dashboard for errors
-
-4. Check edge function logs for error messages
-
-### Type Errors After Migration
-
-**Symptom**: TypeScript errors after schema changes
-
-**Solution**:
+### Type errors after a migration
 ```bash
-pnpm generate:contract
-pnpm typecheck
+pnpm generate:contract && pnpm typecheck
 ```
 
-## Development Workflow
+## File locations
 
-### Adding a New Migration
+- **Migrations**: `iotgw-ui/supabase/migrations/*.sql`
+- **Full-reset helper**: `iotgw-ui/scripts/reset-database-and-webhooks.sh`
+- **Edge function**: `supabase/volumes/functions/netmaker-call/`
+- **DB config**: `iotgw-ui/.env` (`DATABASE_URL`, rendered from `secrets/`)
+- **Generated types**: `packages/supabase-contract/src/database.types.ts`
 
-1. Create migration file:
-   ```bash
-   touch supabase/migrations/$(date +%Y%m%d%H%M%S)_your_migration_name.sql
-   ```
-
-2. Write SQL in the migration file
-
-3. Test locally:
-   ```bash
-   pnpm db:reset
-   ```
-
-4. Generate types:
-   ```bash
-   pnpm generate:contract
-   ```
-
-5. Verify no type errors:
-   ```bash
-   pnpm typecheck
-   ```
-
-6. Commit migration file to git
-
-### Deploying to Production
+## Quick reference
 
 ```bash
-# 1. Set production credentials
-export SUPABASE_ACCESS_TOKEN="prod-token"
-export SUPABASE_PROJECT_REF="prod-ref"
-export SUPABASE_ANON_KEY="prod-anon-key"
-
-# 2. Run full reset (database + webhooks)
-pnpm db:reset:full
-
-# 3. Verify
-# Check Dashboard → Database → Webhooks
-# Test by creating a device/network
+pnpm db:reset            # reset DB + reapply migrations (incl. triggers)
+pnpm db:reset:full       # same, via the reset helper script
+pnpm db:migrate          # forward-only migration push
+pnpm generate:contract   # regenerate TS types
+pnpm typecheck           # verify types
 ```
 
-## File Locations
+## Related documentation
 
-- **Migrations**: `supabase/migrations/*.sql`
-- **Webhook Setup Script**: `scripts/setup-webhooks.ts`
-- **Full Reset Script**: `scripts/reset-database-and-webhooks.sh`
-- **Database Config**: `.env` (DATABASE_URL)
-- **Generated Types**: `packages/supabase-contract/src/database.types.ts`
-
-## Related Documentation
-
-- **Decision-008**: Kestra Notification Automation Pattern
-- **Supabase CLI**: https://supabase.com/docs/guides/cli
-- **Supabase Management API**: https://supabase.com/docs/reference/api/introduction
-- **Database Webhooks**: https://supabase.com/docs/guides/database/webhooks
-
-## Quick Reference
-
-```bash
-# Database only
-pnpm db:reset              # Reset DB + apply migrations
-
-# Database + Webhooks (requires env vars)
-pnpm db:reset:full         # Full reset + webhook setup
-
-# Webhooks only (requires env vars)
-pnpm setup:webhooks        # Configure webhooks
-
-# Types
-pnpm generate:contract     # Regenerate TS types
-
-# Verification
-pnpm typecheck             # Check for type errors
-```
-
-## Environment Variables Summary
-
-```bash
-# Required for db:reset
-DATABASE_URL="postgresql://..."  # In .env file
-
-# Required for webhook operations
-SUPABASE_ACCESS_TOKEN="sbp_..."
-SUPABASE_PROJECT_REF="your-ref"
-SUPABASE_ANON_KEY="eyJhbGci..."
-```
+- [doc-016 — Database-Change Provisioning Automation Pattern](doc-016%20-%20Kestra-Notification-Automation-Pattern.md)
+- [doc-008 — Domains/Networks/Devices architecture](doc-008%20-%20Domains-Networks-and-Devices-Architecture.md)
+- [netmaker-call edge function CLAUDE.md](../../supabase/volumes/functions/netmaker-call/CLAUDE.md)
+- [Supabase CLI](https://supabase.com/docs/guides/cli)

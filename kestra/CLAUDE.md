@@ -41,5 +41,5 @@ This is step 6–8 in the **LEGACY** device/network path. Current device/network
 
 ## References
 
-- [doc-016](../backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) — how kestra-call triggers flows here
+- [doc-016](../backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) — the current DB-trigger → netmaker-call provisioning pattern (and where Kestra still fits)
 - [doc-014 OpenWRT Wireguard](../backlog/docs/doc-014%20OpenWRT%20Wireguard.md) — device-side WireGuard config produced by these playbooks

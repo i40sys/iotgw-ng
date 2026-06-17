@@ -57,7 +57,7 @@ integration point:
 | **decision-013** | [Monorepo organization](backlog/decisions/decision-013%20-%20Monorepo-Organization-Single-Repo-with-Logical-Grouping.md) |
 | **decision-014** | [Secrets management (SOPS+age) + rotation runbook](backlog/decisions/decision-014%20-%20Secrets-Management-with-SOPS-and-age.md) |
 | **decision-015** | [Kubernetes migration with kind](backlog/decisions/decision-015%20-%20Kubernetes-Migration-with-local-kind.md) |
-| **doc-016** | [Kestra notification automation pattern](backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) (legacy device/network path; still describes install/provisioning) |
+| **doc-016** | [Database-change provisioning automation pattern](backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) (current: DB trigger → `netmaker-call` → Netmaker REST) |
 | **decision-010** | [SSH key management via Cosmian KMS](backlog/decisions/decision-010%20-%20ADR-001-SSH-Key-Management-with-Cosmian-KMS.md) |
 | **decision-009** | [TOTP authentication for device VPN access](backlog/decisions/decision-009%20-%20TOTP-Authentication-for-Device-VPN-Access.md) |
 | **doc-008** | [Domains → Networks → Devices hierarchy](backlog/docs/doc-008%20-%20Domains-Networks-and-Devices-Architecture.md) |
