@@ -24,7 +24,8 @@ spec:
           command: ["/bin/bash", "-c", "/app/kestra server standalone"]
           env:
             # Secrets injected from the kestra-env Secret. KESTRA_CONFIGURATION
-            # is a YAML doc; Kestra/Micronaut resolves ${KESTRA_POSTGRES_PASSWORD}
+            # is a YAML doc; Kestra/Micronaut resolves ${KESTRA_POSTGRES_PASSWORD},
+            # ${KESTRA_BASIC_AUTH_USERNAME}, and ${KESTRA_BASIC_AUTH_PASSWORD}
             # from the environment at startup (k8s leaves ${...} untouched).
             # NOTE: the Docker task runner used by the Ansible flows does NOT
             # work here — those flows must move to Kestra's Kubernetes task
@@ -32,6 +33,12 @@ spec:
             - name: KESTRA_POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef: { name: kestra-env, key: KESTRA_POSTGRES_PASSWORD }
+            - name: KESTRA_BASIC_AUTH_USERNAME
+              valueFrom:
+                secretKeyRef: { name: kestra-env, key: KESTRA_BASIC_AUTH_USERNAME }
+            - name: KESTRA_BASIC_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: kestra-env, key: KESTRA_BASIC_AUTH_PASSWORD }
             - name: KESTRA_CONFIGURATION
               value: |
                 datasources:
@@ -50,6 +57,10 @@ spec:
                     local:
                       basePath: /app/storage
                   url: http://localhost:8080/
+                  server:
+                    basic-auth:
+                      username: ${KESTRA_BASIC_AUTH_USERNAME}
+                      password: ${KESTRA_BASIC_AUTH_PASSWORD}
           ports:
             - { name: http, containerPort: 8080 }
             - { name: mgmt, containerPort: 8081 }
