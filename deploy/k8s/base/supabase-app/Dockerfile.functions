@@ -1,0 +1,4 @@
+FROM supabase/edge-runtime:v1.74.0
+# Bake all edge functions into the image.
+# The edge-runtime image expects functions at /home/deno/functions/
+COPY --chown=deno:deno functions/ /home/deno/functions/

@@ -35,3 +35,16 @@ spec:
     app.kubernetes.io/name: supabase-db
   ports:
     - { name: postgres, port: 5432, targetPort: 5432, nodePort: 30543 }
+---
+# Supabase Kong NodePort: maps host :8000 (via cluster.yaml containerPort 30800)
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-nodeport
+  labels: { app.kubernetes.io/part-of: iotgw-ng }
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: kong
+  ports:
+    - { name: proxy, port: 8000, targetPort: 8000, nodePort: 30800 }

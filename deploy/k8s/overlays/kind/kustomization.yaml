@@ -3,9 +3,35 @@ kind: Kustomization
 namespace: iotgw
 
 # Local kind overlay: the validated core (KMS, Supabase DB, Kestra, whoami)
-# exposed via NodePorts that the kind cluster maps to host ports
+# plus the Supabase app tier (kong/auth/rest/meta/functions), exposed via
+# NodePorts that the kind cluster maps to host ports
 # (see deploy/kind/cluster.yaml). Secrets (supabase-env, kestra-env) are
 # created out-of-band by deploy/kind/bootstrap.sh from the SOPS store.
 resources:
   - ../../base
+  - ../../base/supabase-app
   - nodeports.yaml
+
+images:
+  # Use the locally-built functions image (functions code baked in, not emptyDir)
+  - name: supabase/edge-runtime:v1.74.0
+    newName: iotgw-functions
+    newTag: local
+
+patches:
+  # Remove the emptyDir volumes/volumeMounts so the baked-in image content at
+  # /home/deno/functions/ is used (not shadowed by the placeholder emptyDir).
+  - target:
+      kind: Deployment
+      name: functions
+    patch: |-
+      - op: remove
+        path: /spec/template/spec/volumes
+      - op: remove
+        path: /spec/template/spec/containers/0/volumeMounts
+  # Ensure Postgres listens on all interfaces (not just localhost) so Services
+  # can route to the pod.
+  - path: patch-db-listen-all.yaml
+    target:
+      kind: StatefulSet
+      name: supabase-db
