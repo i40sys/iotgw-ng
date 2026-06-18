@@ -89,7 +89,7 @@ upstream service**, then updated via `secrets.sh edit <name>`.
 
 | # | Secret | Severity | Rotate where | Then update |
 |---|---|---|---|---|
-| 1 | Netmaker master key | **critical** | Netmaker admin (`api.netmaker.i40sys.com`) | `secrets.sh edit supabase` + `netmaker`; re-run Kestra `sync-namespace-files` after scrubbing playbooks (task-045) |
+| 1 | Netmaker master key | **critical** | **Not rotatable by us** — `api.netmaker.i40sys.com` is a shared production server managing other networks; rotating its `MASTER_KEY` would disrupt them. Mitigation instead: move our consumers to a **scoped, revocable Netmaker API key** (non-disruptive). | when swapping the credential: `secrets.sh edit supabase` + `netmaker` (same value in both), `just secrets-render`, refresh the kind `supabase-env` Secret, restart `functions`. See `backlog/docs/netmaker-credential-handling.md` |
 | 2 | Supabase `JWT_SECRET` (+ re-mint `ANON_KEY`/`SERVICE_ROLE_KEY`) | **critical** | regenerate secret; re-issue both JWTs | `secrets.sh edit supabase` + `iotgw-ui-backend`; restart stack |
 | 3 | Supabase `POSTGRES_PASSWORD` | **critical** | `ALTER ROLE` on the DB; update all service roles | `secrets.sh edit supabase` |
 | 4 | Kestra basic-auth password (`oriol@joor.net`) | **high** (personal account) | Kestra user settings | `secrets.sh edit kestra` + `supabase` + `kestra-reporter` + `iotgw-ui-backend` |
