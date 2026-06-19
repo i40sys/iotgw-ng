@@ -5,6 +5,15 @@ date: '2026-06-12 22:00'
 status: accepted
 ---
 
+> **Forward note (2026-06-18):** docker-compose was decommissioned in the
+> `TASK-062` milestone — the platform runs on **k8s/kind** (`decision-017`). The
+> SOPS+age model is unchanged, but the rendered-`.env` step described below is now
+> only for the pnpm-dev consumers; the platform's secrets are created as **k8s
+> Secrets** straight from the SOPS store by `deploy/kind/bootstrap.sh make_secrets`
+> (`tools/secrets/secrets.sh k8s …`). Where this doc says "render the `.env` then
+> `docker compose up`," substitute "create the Secret then
+> `kubectl rollout restart` the consumer." See [deploy/README.md](../../deploy/README.md).
+
 ## Context
 
 A workspace-wide credential sweep (2026-06-12, recorded in
@@ -15,7 +24,8 @@ files — they were hardcoded in **git-tracked source**:
 - Netmaker master key `NBMtSWau…GtjH5` in `netmaker-call/index.ts` (fallback
   default), its `CLAUDE.md`, ~75 versioned Kestra playbooks, and mirrored to
   the `i40sys/iotgw-kestra` GitHub remote.
-- Kestra basic-auth `oriol@joor.net` / `***REMOVED-ROTATED-KESTRA-PW***` in **~10 tracked
+- Kestra basic-auth `oriol@joor.net` / `The2pa…rd.` (redacted; rotate per
+  task-053) in **~10 tracked
   files** (3 edge functions, 2 backend routers across 7 call sites, agent
   docs, test docs).
 - A Google Gemini API key and the Kestra Postgres password inline in tracked

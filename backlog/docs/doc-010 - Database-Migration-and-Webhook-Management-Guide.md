@@ -8,6 +8,15 @@ updated_date: '2026-06-17'
 
 # Database Migration and Webhook Management Guide
 
+> **Runtime forward-note (2026-06-18):** docker-compose was decommissioned in the
+> `TASK-062` milestone — the platform runs on **k8s/kind** (`decision-017`). The
+> Postgres tier is now a StackGres SGCluster (`decision-018`), so any
+> `docker exec supabase-db …` shown below maps to
+> `kubectl -n iotgw exec <stackgres-primary-pod> -c patroni -- psql …`, and pg_net
+> webhook URLs point at the in-cluster Kong Service (`TASK-055`). The migration
+> and webhook *concepts* are unchanged; only the runtime moved. See
+> [deploy/README.md](../../deploy/README.md).
+
 > **Rewritten 2026-06-17.** This guide previously described configuring
 > **Supabase Dashboard / Management-API webhooks** (cloud `*.supabase.co`,
 > `SUPABASE_ACCESS_TOKEN`, a `setup-webhooks.ts` script) that called the

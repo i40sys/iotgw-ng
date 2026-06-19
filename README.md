@@ -30,30 +30,34 @@ The call chain (UI → tRPC → Supabase → webhook → edge function → Netma
 
 ## Quickstart
 
+The platform runs on **Kubernetes** (a local `kind` cluster for development);
+docker-compose was decommissioned in the task-062 milestone (`decision-017`).
+
 ```bash
 # 0. Tools: docker, pnpm, node 22, just, sops+age, kubectl, kind, helm
 #    age private key must be at ~/.config/sops/age/keys.txt (see secrets/README.md)
 
-just secrets-render     # decrypt secrets/*.enc.env -> consuming .env files
 just secrets-check      # audit the encrypted store
 
-# Local development with docker-compose:
-just up-all             # supabase + kestra + kms
-just dev                # iotgw-ui frontend + backend (pnpm)
-just status             # what's running
+# Bring the whole platform up on kind — see deploy/README.md:
+just bootstrap          # = kind-up + k8s-deploy + k8s-smoke
+#   just kind-up        #   create the cluster (+ ingress-nginx + StackGres operator)
+#   just k8s-deploy     #   create Secrets from SOPS, build/load images, apply the kind overlay
+#   just k8s-smoke      #   smoke checks
+just status             # pods in the iotgw namespace
 
-# Local Kubernetes (kind) — see deploy/README.md:
-just kind-up            # create the cluster
-just k8s-deploy         # apply the dev overlay
-just k8s-smoke          # smoke checks
+# iotgw-ui dev servers (pnpm) — optional, for live frontend/backend work:
+just secrets-render     # decrypt secrets/*.enc.env -> the pnpm-dev .env files
+just dev                # iotgw-ui frontend + backend (Vite + tsx)
 ```
 
 Run `just` with no args to list every recipe.
 
 ## Conventions
 
-- **Always operate from this root** via `just`, or `cd` into the relevant
-  stack before running `docker compose` / `pnpm` directly.
+- **Always operate from this root** via `just` (`just bootstrap`, `just dev`,
+  `just kind-up` + `just k8s-deploy`), or `cd` into the relevant stack before
+  running `kubectl` / `pnpm` directly.
 - **Never commit a plaintext secret.** Everything secret lives encrypted in
   `secrets/`; `.gitignore` + `just secrets-check` enforce it. See
   `backlog/decisions/decision-014`.

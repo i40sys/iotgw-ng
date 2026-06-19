@@ -18,17 +18,21 @@
 #                                              # emit a sops-decrypted k8s Secret
 #
 # The name→destination map below is the single source of truth for where each
-# decrypted .env lands for local docker-compose / pnpm dev.
+# decrypted .env lands for local pnpm dev. The k8s path (`k8s <name> …`) reads
+# secrets/<name>.enc.env DIRECTLY (not via this map), so the in-cluster
+# supabase-env/kestra-env Secrets do not need a rendered .env.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
 
-# name -> plaintext destination consumed by the stack at runtime
+# name -> plaintext destination consumed at runtime by a pnpm-dev / ansible
+# process. The former compose-only render targets supabase/.env and kestra/.env
+# were pruned with the docker-compose decommission (task-062.13): in k8s the
+# supabase + kestra Secrets are created from secrets/{supabase,kestra}.enc.env
+# directly via `secrets.sh k8s …` (see deploy/kind/bootstrap.sh make_secrets).
 declare -A DEST=(
-  [supabase]="supabase/.env"
-  [kestra]="kestra/.env"
   [netmaker]="ansible/netmaker/.env"
   [kestra-reporter]="kestra/kestra-ansible-reporter/.env"
   [iotgw-ui-root]="iotgw-ui/.env"

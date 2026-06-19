@@ -23,18 +23,18 @@ You are helping debug a Supabase edge function. Follow these systematic steps:
 3. **Check recent logs**:
    ```bash
    # Get recent function logs
-   docker compose logs --tail=100 supabase-edge-functions
+   kubectl -n iotgw logs --tail=100 deploy/functions
 
    # Follow logs in real-time
-   docker compose logs -f supabase-edge-functions
+   kubectl -n iotgw logs -f deploy/functions
    ```
 
 4. **Verify function is accessible**:
    ```bash
-   # Check if functions container is running
-   docker compose ps supabase-edge-functions
+   # Check if the functions pod is running
+   kubectl -n iotgw get pods -l app=functions
 
-   # Check if function directory exists
+   # Check if function directory exists (code is baked into the image)
    ls -la volumes/functions/<function-name>/
    ```
 
@@ -48,8 +48,11 @@ You are helping debug a Supabase edge function. Follow these systematic steps:
    ```
 
 6. **Check environment variables**:
-   - Verify required env vars are in .env
-   - Check if they're being passed to functions container in docker-compose.yml
+   - Env for the functions Deployment comes from the `supabase-env` k8s Secret
+     (envFrom on deploy/functions), sourced from `secrets/supabase.enc.env`. To
+     add/change a var: edit `secrets/supabase.enc.env`, run
+     `deploy/kind/bootstrap.sh secrets`, then
+     `kubectl -n iotgw rollout restart deploy/functions`.
    - Test access: Add console.log(Deno.env.get('VAR_NAME')) temporarily
 
 7. **Test with minimal request**:
@@ -94,7 +97,10 @@ You are helping debug a Supabase edge function. Follow these systematic steps:
    - Log request body, headers
    - Log intermediate values
    - Log before external calls
-   - Restart function: `docker compose restart functions`
+   - Deploy the edit: function code is baked into `iotgw-functions:local`, so
+     rebuild + kind-load + rollout:
+     `deploy/kind/bootstrap.sh functions` then
+     `kubectl -n iotgw rollout restart deploy/functions`
 
 10. **Test in isolation**:
     - Create a minimal test version
@@ -103,8 +109,8 @@ You are helping debug a Supabase edge function. Follow these systematic steps:
 
 11. **Check network connectivity** (for external APIs):
     ```bash
-    # Execute from within container
-    docker exec -it supabase-edge-functions sh
+    # Execute from within the functions pod
+    kubectl -n iotgw exec -it deploy/functions -- sh
     curl -v <external-api-url>
     ```
 

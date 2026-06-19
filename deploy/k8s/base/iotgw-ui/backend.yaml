@@ -1,0 +1,87 @@
+---
+# iotgw-ui backend: Fastify + tRPC v11, port 4444.
+# Env wiring (decision-014):
+#   SUPABASE_URL       -> http://kong:8000  (in-cluster Kong Service)
+#   SUPABASE_SERVICE_KEY -> supabase-env / SERVICE_ROLE_KEY
+#   KMS_URL            -> http://cosmian-kms:9998  (in-cluster KMS Service)
+#   KESTRA_USER / PASSWORD -> kestra-env / KESTRA_BASIC_AUTH_*
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iotgw-ui-backend
+  labels:
+    app.kubernetes.io/name: iotgw-ui-backend
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: iotgw-ui-backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: iotgw-ui-backend
+        app.kubernetes.io/part-of: iotgw-ng
+    spec:
+      containers:
+        - name: backend
+          image: iotgw-ui-backend:local
+          imagePullPolicy: Never    # kind-loaded local image
+          ports:
+            - { name: http, containerPort: 4444 }
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: SUPABASE_URL
+              value: http://kong:8000
+            - name: SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: SERVICE_ROLE_KEY
+            - name: KMS_URL
+              value: http://cosmian-kms:9998
+            # KMS API-token bearer (task-057): the KMS now requires auth. The
+            # token is the base64 of the `iotgw_api_token` symmetric key; it is
+            # SOPS-stored (secrets/iotgw-ui-backend.enc.env → KMS_AUTH_TOKEN) and
+            # bridged into the `kms-auth` Secret by bootstrap.sh make_secrets.
+            - name: KMS_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: kms-auth
+                  key: KMS_AUTH_TOKEN
+            - name: KESTRA_USER
+              valueFrom:
+                secretKeyRef:
+                  name: kestra-env
+                  key: KESTRA_BASIC_AUTH_USERNAME
+            - name: KESTRA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kestra-env
+                  key: KESTRA_BASIC_AUTH_PASSWORD
+          readinessProbe:
+            tcpSocket:
+              port: 4444
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket:
+              port: 4444
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iotgw-ui-backend
+  labels:
+    app.kubernetes.io/name: iotgw-ui-backend
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  selector:
+    app.kubernetes.io/name: iotgw-ui-backend
+  ports:
+    - { name: http, port: 4444, targetPort: 4444 }

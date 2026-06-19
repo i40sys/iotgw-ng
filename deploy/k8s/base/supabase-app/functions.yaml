@@ -63,10 +63,11 @@ spec:
                   name: supabase-env
                   key: NETMAKER_MASTER_KEY
             - name: KESTRA_BASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: supabase-env
-                  key: KESTRA_BASE_URL
+              # In-cluster Kestra Service. The supabase-env Secret carries the
+              # external host URL (wsl.ymbihq.local:8080) from the SOPS store;
+              # override it here so edge functions always reach Kestra in-cluster.
+              # task-062.18
+              value: "http://kestra:8080"
             - name: KESTRA_USER
               valueFrom:
                 secretKeyRef:

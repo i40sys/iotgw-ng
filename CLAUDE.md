@@ -6,8 +6,10 @@ consolidated into this one (`decision-012`), and the organization was finalized
 in `decision-013`. There is no per-subproject `.git`. Start with
 [README.md](README.md) for the repo map and `just` orchestrator.
 
-> Operate from the root via `just` (e.g. `just up-all`, `just dev`,
-> `just kind-up`), or `cd` into a stack before running `docker compose`/`pnpm`.
+> The platform runs on **Kubernetes (kind locally)** — `docker-compose` was
+> decommissioned in the task-062 milestone (`decision-017`). Operate from the
+> root via `just` (e.g. `just bootstrap`, `just dev`, `just kind-up` +
+> `just k8s-deploy`), or `cd` into a stack before running `kubectl`/`pnpm`.
 
 ## The Real Call Chain
 
@@ -110,16 +112,18 @@ archives are in `BACKUP/git-archives/` (the reversibility net).
 
 ## Service Ports (host `wsl.ymbihq.local`)
 
-Same ports whether you run docker-compose (`just up-all`) or kind
-(`just kind-up`; NodePorts/ingress map to these host ports):
+The kind cluster maps these host ports via NodePorts/ingress (`deploy/kind/cluster.yaml`):
 
-| Service | Port |
-|---------|------|
-| Supabase Kong API (edge fns via `/functions/v1/*`) | 8000 |
-| Supabase DB (via supavisor / NodePort) | 5432 |
-| Supabase Studio (compose: via Kong + basic-auth; no own port) | — |
-| iotgw-ui frontend (Vite) | 5173 |
-| iotgw-ui backend (tRPC + WS) | 4444 |
-| Kestra UI/API | 8080 |
-| Cosmian KMS | 9998 |
-| Ingress / Traefik HTTP / HTTPS | 80 / 443 |
+| Service | Port | via |
+|---------|------|-----|
+| Supabase Kong API (edge fns via `/functions/v1/*`) | 8000 | NodePort 30800 |
+| Supabase Postgres (StackGres `supabase-db` primary, direct — no pooler) | 5432 | NodePort 30543 |
+| Kestra UI/API | 8080 | NodePort 30808 |
+| Cosmian KMS | 9998 | NodePort 30998 (host path blocked by the task-057 NetworkPolicy; reached in-cluster) |
+| iotgw-ui frontend (Vite) | 5173 | NodePort / ingress hostname |
+| iotgw-ui backend (tRPC + WS) | 4444 | NodePort / ingress hostname |
+| Ingress (whoami, iotgw-ui, …) HTTP / HTTPS | 80 / 443 | ingress-nginx |
+
+> Supabase Studio, realtime, storage, imgproxy, analytics, supavisor and vector
+> are **intentionally not deployed** (`decision-018`); the app tier connects to
+> the direct primary at `supabase-db:5432`. See `deploy/README.md`.

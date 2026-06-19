@@ -1,0 +1,38 @@
+# SPIKE artifact for TASK-062.16 — throwaway. Proves pg_net + the Supabase
+# initdb on a StackGres SGCluster (PG15). Isolated in the `sg-spike` namespace;
+# does NOT touch the validated iotgw workloads. Delete with:
+#   kubectl delete namespace sg-spike
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sg-spike
+---
+# Minimal instance profile (size-xs) — small footprint for the single-node kind.
+apiVersion: stackgres.io/v1
+kind: SGInstanceProfile
+metadata:
+  name: size-xs
+  namespace: sg-spike
+spec:
+  cpu: "500m"
+  memory: "768Mi"
+---
+# Postgres config. We deliberately do NOT pre-set shared_preload_libraries here:
+# the spike first checks whether StackGres auto-injects pg_net's bgworker when
+# the extension is declared on the SGCluster; if not, we add it here + SGDbOps
+# restart (the documented mechanism the AC calls for).
+apiVersion: stackgres.io/v1
+kind: SGPostgresConfig
+metadata:
+  name: pgconfig15
+  namespace: sg-spike
+spec:
+  postgresVersion: "15"
+  postgresql.conf:
+    shared_buffers: "128MB"
+    max_connections: "100"
+    # pg_net needs its bgworker preloaded. StackGres did NOT auto-add it, so we
+    # append it here (retaining the StackGres auto-managed pg_stat_statements +
+    # auto_explain) and roll the cluster with an SGDbOps restart.
+    shared_preload_libraries: "pg_stat_statements, auto_explain, pg_net"

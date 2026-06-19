@@ -5,6 +5,11 @@ date: '2026-06-13 00:30'
 status: accepted
 ---
 
+> **Forward note (2026-06-18):** `decision-017` supersedes the "compose and kind
+> as co-equal parallel paths" stance taken here — Kubernetes is now the **sole**
+> supported runtime and the docker-compose stacks are being decommissioned
+> (milestone `TASK-062`). The Postgres tier moves to StackGres (`decision-018`).
+
 ## Context
 
 The platform ran as **5 independent docker-compose stacks** (supabase 13
@@ -82,7 +87,23 @@ real ingress hostnames + TLS, external/HA Postgres, the Helm-managed Supabase
 data plane), and re-key the SOPS files to a cluster/KMS age recipient
 (`sops updatekeys`). Outstanding for prod: Kestra Kubernetes task runner for
 the Ansible flows; re-running the pg_net webhook migrations against in-cluster
-Service URLs; KMS authentication + NetworkPolicy (it has none today).
+Service URLs.
+
+**KMS hardening (task-057) — DONE in kind:** the KMS no longer runs open. It now
+requires **Cosmian KMS 5.20 API-token auth** (`[http] api_token_id` →
+`iotgw_api_token` symmetric key; clients send `Authorization: Bearer <token>`,
+the base64 of the key's raw bytes lowercased) and is fronted by a
+**NetworkPolicy** that default-denies ingress to `:9998` except from the
+in-namespace clients (iotgw-ui-backend, kestra, kestra-spawned Ansible runner
+pods labelled `app.kubernetes.io/managed-by: kestra`). The token is SOPS-stored
+(`secrets/iotgw-ui-backend.enc.env` → `KMS_AUTH_TOKEN`), bridged to the
+`kms-auth` Secret, and injected into the backend; provisioned idempotently by
+`deploy/kind/bootstrap.sh kms-auth`. Finding: the `kindnet` CNI on this cluster
+**does enforce** the policy (verified live: a non-allowed pod is denied), so the
+host→NodePort `/version` smoke is blocked and the smoke checks fall back to an
+in-cluster probe. Prod (Calico/Cilium) enforces identically. The Ansible
+KMS-fetch role in the Kestra flows must additionally present `KMS_AUTH_TOKEN`
+(owned by the Kestra-runner task, not changed here). TLS is still Ingress-only.
 
 ## Consequences
 

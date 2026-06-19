@@ -4,72 +4,93 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a self-hosted Supabase instance using Docker Compose. It provides a complete backend-as-a-service stack including PostgreSQL database, authentication, REST API, real-time subscriptions, storage, edge functions, and analytics. This deployment is part of the iotgw-ng project (IoT Gateway Next Generation).
+This is the self-hosted Supabase app tier for the iotgw-ng project (IoT Gateway
+Next Generation), **deployed on Kubernetes** (local `kind` cluster; `decision-017`
+made k8s the sole supported runtime, retiring the former compose stack). The
+running stack is a trimmed set of stateless Deployments — Kong, GoTrue (auth),
+PostgREST (rest), postgres-meta, and the Deno edge runtime (functions) — sitting
+in front of a StackGres-managed PostgreSQL tier (`decision-018`). It provides
+backend-as-a-service capabilities: PostgreSQL database, authentication, REST API,
+and edge functions.
+
+This `supabase/` directory remains the source of the edge-function code, the DB
+init SQL (ported into the StackGres SGScript), and the Kong declarative config;
+the deployment itself is driven from `deploy/` (see [deploy/README.md](../deploy/README.md)).
 
 ## Architecture
 
 ### Core Services
 
-The deployment consists of multiple interconnected Docker containers orchestrated through docker-compose.yml:
+The app tier runs as Deployments in the `iotgw` namespace. Manifests live in
+[`deploy/k8s/base/supabase-app/`](../deploy/k8s/base/supabase-app/), applied via
+the kustomize overlays (`deploy/k8s/overlays/{kind,prod}`):
 
-- **db (supabase-db)**: PostgreSQL 15.8.1 database with Supabase extensions
-  - Includes initialization scripts in volumes/db/ (realtime.sql, webhooks.sql, roles.sql, jwt.sql, _supabase.sql, logs.sql, pooler.sql)
-  - Data persisted in volumes/db/data/
-  - Port 5432 exposed through supavisor pooler
+- **db (supabase-db)**: a **StackGres `SGCluster` named `supabase-db`** (PG 15,
+  `decision-018`), NOT the bundled compose Postgres image.
+  - Init SQL (roles, the `SECURITY DEFINER` webhook fn, the event trigger, JWT
+    GUCs) is ported from volumes/db/ into a StackGres `SGScript`
+  - Data persisted on a StackGres-managed PVC (Patroni-managed)
+  - `disableConnectionPooling: true` → clients hit the **direct primary** at
+    `supabase-db:5432`; there is **no supavisor pooler and no :6543**
+  - The hand-authored `supabase-db` StatefulSet under `deploy/k8s/base/supabase-db/`
+    is retained only as the documented NO-GO rollback and is not deployed
 
-- **supavisor (supabase-pooler)**: Connection pooler for PostgreSQL
-  - Manages database connection pools in transaction mode
-  - Exposes port 5432 for client connections
-  - Exposes port 6543 for proxy connections
+- **supavisor (pooler)**: *intentionally not deployed on k8s (`decision-018` §4).*
+  Transaction pooling would change prepared-statement / `SET ROLE` semantics the
+  app tier has never been tested against, so clients use the direct primary above
+  (no :5432-via-pooler, no :6543).
 
-- **auth (supabase-auth)**: GoTrue v2.189.0 authentication service
+- **auth (GoTrue)**: GoTrue authentication service — **deployed**
   - Handles user authentication, JWT tokens, email/phone verification
   - Supports OAuth providers, magic links, password auth
-  - Configured via GOTRUE_* environment variables in .env
+  - Configured via GOTRUE_* keys in the `supabase-env` Secret (`envFrom`)
 
-- **rest (supabase-rest)**: PostgREST v14.12 for automatic REST API generation
+- **rest (PostgREST)**: PostgREST for automatic REST API generation — **deployed**
   - Auto-generates REST endpoints from PostgreSQL schemas
-  - Configured schemas: public, storage, graphql_public (PGRST_DB_SCHEMAS)
+  - Configured schemas trimmed to `public` (`PGRST_DB_SCHEMAS`; storage/graphql
+    schemas dropped with their services)
 
-- **realtime**: Real-time subscriptions for database changes
-  - WebSocket server for live updates
-  - Container named "realtime-dev.supabase-realtime" for tenant routing
+- **realtime**: *intentionally not deployed on k8s (`decision-018` §4).* The
+  compose-era tenant-from-hostname quirk is moot.
 
-- **storage (supabase-storage)**: Object storage API
-  - File storage in volumes/storage/
-  - Integrates with imgproxy for image transformations
-  - Can be switched to S3 backend using docker-compose.s3.yml
+- **storage / imgproxy**: *intentionally not deployed on k8s (`decision-018` §4).*
+  Object storage and image transformation are not part of the running stack.
 
-- **functions (supabase-edge-functions)**: Deno-based edge runtime v1.74.0
-  - Functions located in volumes/functions/
+- **functions (edge runtime)**: Deno-based edge runtime — **deployed**
+  - Function source lives in volumes/functions/ but is **baked into the
+    `iotgw-functions:local` image** (not bind-mounted — see Edge Functions
+    Development below)
   - Main routing function in volumes/functions/main/index.ts handles JWT verification and dispatches to specific functions
   - Custom function netmaker-call handles live device/network provisioning via direct Netmaker REST (the legacy kestra-call edge functions have been removed)
 
-- **kong**: API gateway routing all services through port 8000/8443
-  - Configuration in volumes/api/kong.yml
+- **kong**: API gateway routing services through port 8000 — **deployed**
+  - Declarative config from volumes/api/kong.yml, rendered with secret
+    substitution by an `envsubst` initContainer (replacing the compose `eval` hack)
   - Handles request routing, authentication, CORS
+  - Exposed as NodePort 30800 → host port 8000
 
-- **studio**: Supabase Studio UI
-  - Web-based database and project management interface
-  - Publishes NO host port in compose; reached via Kong on :8000 (catch-all route) behind dashboard basic-auth
+- **studio**: *intentionally not deployed on k8s (`decision-018` §4).* There is
+  no Studio UI on the running cluster.
 
-- **analytics (logflare)**: Log aggregation and analytics
-  - Port 4000 exposed
-  - Uses PostgreSQL backend (can be switched to BigQuery)
+- **analytics (logflare)**: *intentionally not deployed on k8s (`decision-018` §4).*
 
-- **meta (postgres-meta)**: Database metadata API for Studio
+- **meta (postgres-meta)**: Database metadata API — **deployed**
 
-- **imgproxy**: Image transformation service for storage
-
-- **vector**: Log collection and forwarding using Vector
-  - Configuration in volumes/logs/vector.yml
+- **vector**: *intentionally not deployed on k8s (`decision-018` §4).* The
+  compose-era Docker-socket scraping is moot.
 
 ### Key Architecture Patterns
 
-1. **Service Dependencies**: All services depend on the db and analytics services being healthy before starting
-2. **Internal Networking**: Services communicate via internal Docker network using service names (e.g., http://kong:8000)
-3. **Environment Configuration**: Centralized in .env file with secrets like JWT_SECRET, POSTGRES_PASSWORD, API keys
-4. **Volume Mounts**: Persistent data and configuration stored in ./volumes/ directory
+1. **Workload model**: the app tier is a set of stateless Deployments in the
+   `iotgw` namespace; the DB tier is a StackGres `SGCluster`. Bring-up,
+   teardown, and readiness are managed by k8s, not compose `depends_on`.
+2. **Internal Networking**: services reach each other by k8s Service name (e.g.
+   `http://kong:8000`, `supabase-db:5432`) within the `iotgw` namespace
+3. **Environment Configuration**: provided by the `supabase-env` k8s Secret
+   (`envFrom`), generated from `secrets/supabase.enc.env` (SOPS+age, decision-014)
+   — JWT_SECRET, POSTGRES_PASSWORD, API keys, etc.
+4. **Persistence**: the StackGres-managed PVC holds DB data; the dropped
+   data-plane services (storage/etc.) carried the only other volumes
 5. **Edge Functions Main Router**: The main function acts as a dispatcher that verifies JWT tokens and routes requests to specific edge functions by path
 
 ### Custom Edge Functions
@@ -91,112 +112,122 @@ The deployment includes custom Deno edge functions in volumes/functions/:
 
 ## Common Commands
 
+All commands run from the **repo root** against the local `kind` cluster.
+
 ### Starting/Stopping Services
 
 ```bash
-# Start all services
-docker compose up
+# Bring the whole platform up (create cluster + deploy + smoke)
+just bootstrap        # = just kind-up + just k8s-deploy + just k8s-smoke
 
-# Start with dev helpers (includes additional dev services)
-docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml up
-
-# Start with S3 storage backend
-docker compose -f docker-compose.yml -f docker-compose.s3.yml up
-
-# Stop services
-docker compose down
-
-# Stop and remove all data
-docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down -v --remove-orphans
-
-# Complete reset (removes all data and resets .env)
-./reset.sh
+# Tear the cluster down (removes the cluster and all its data)
+just kind-down
 ```
+
+> A full reset is `just kind-down` followed by `just bootstrap` (the compose-era
+> `reset.sh` helper was removed with the docker-compose decommission, `decision-017`).
 
 ### Service Management
 
 ```bash
-# View logs for all services
-docker compose logs -f
+# View logs for a service (Deployment) in the iotgw namespace
+kubectl -n iotgw logs -f deploy/functions
+# Examples: functions, kong, auth, rest, meta
 
-# View logs for specific service
-docker compose logs -f <service-name>
-# Examples: db, auth, rest, functions, kong, studio
+# Restart (roll) a service — picks up new image / Secret values
+kubectl -n iotgw rollout restart deploy/<name>
 
-# Restart a specific service
-docker compose restart <service-name>
-
-# Check service health
-docker compose ps
+# Check service health (pod status)
+kubectl -n iotgw get pods
 ```
 
 ### Database Operations
 
-```bash
-# Connect to PostgreSQL database
-docker exec -it supabase-db psql -U postgres -d postgres
+The DB is a StackGres SGCluster; psql runs inside the primary pod's `patroni`
+container. Resolve the primary pod first:
 
-# Run SQL migrations
-# Place migration files in volumes/db/ and restart db service
+```bash
+# Resolve the StackGres primary pod
+PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
+       -o jsonpath='{.items[0].metadata.name}')
+
+# Connect to PostgreSQL (interactive)
+kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres
+
+# Apply the iotgw-ui migration set (idempotent)
+deploy/kind/bootstrap.sh migrate   # schema source: iotgw-ui/supabase/migrations/
 
 # Backup database
-docker exec supabase-db pg_dump -U postgres postgres > backup.sql
+kubectl -n iotgw exec "$PG" -c patroni -- pg_dump -U postgres postgres > backup.sql
 
 # Restore database
-docker exec -i supabase-db psql -U postgres postgres < backup.sql
+kubectl -n iotgw exec -i "$PG" -c patroni -- psql -U postgres postgres < backup.sql
 ```
 
 ### Edge Functions Development
 
 ```bash
-# Edge functions are in volumes/functions/
-# Each function is in its own directory with an index.ts file
+# Edge functions are in volumes/functions/ but are BAKED INTO the
+# iotgw-functions:local image (not bind-mounted).
 
 # To add a new function:
 # 1. Create a directory in volumes/functions/
 # 2. Add index.ts with Deno serve() handler
-# 3. Restart functions service: docker compose restart functions
+# 3. Rebuild + load the image, then roll the Deployment:
+deploy/kind/bootstrap.sh functions          # docker build + kind load
+kubectl -n iotgw rollout restart deploy/functions
+# (just k8s-deploy does this build+load as part of a full apply)
 
-# Test edge function locally
+# Test edge function (Kong NodePort → host :8000)
 curl -X POST http://localhost:8000/functions/v1/<function-name> \
   -H "Authorization: Bearer ${ANON_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"key":"value"}'
 
 # View function logs
-docker compose logs -f supabase-edge-functions
+kubectl -n iotgw logs -f deploy/functions
 ```
 
 ### Accessing Services
 
-- **Supabase Studio**: via Kong at http://wsl.ymbihq.local:8000 (catch-all route, behind dashboard basic-auth) — Studio publishes no host port of its own
-- **API Gateway (Kong)**: http://wsl.ymbihq.local:8000
-- **Database**: localhost:5432 (through supavisor pooler)
-- **Analytics**: http://localhost:4000
+- **Supabase Studio**: *not deployed* on k8s (`decision-018` §4) — there is no
+  Studio UI on the running cluster
+- **API Gateway (Kong)**: http://wsl.ymbihq.local:8000 (NodePort 30800 → host
+  8000; edge fns via `/functions/v1/*`)
+- **Database**: localhost:5432 → the **direct primary** `supabase-db:5432`
+  (NodePort 30543; no supavisor pooler, no :6543)
+- **Analytics**: *not deployed* on k8s (`decision-018` §4)
 
 ## Configuration
 
 ### Environment Variables
 
-All configuration is in the `.env` file. Key variables:
+Configuration is delivered to the pods as the `supabase-env` k8s Secret
+(`envFrom`), created from `secrets/supabase.enc.env` by
+`deploy/kind/bootstrap.sh make_secrets`. Key variables:
 
-> Note: real secret values live encrypted in `secrets/supabase.enc.env` (SOPS+age, decision-014). Render the plaintext `.env` with `just secrets-render` or `tools/secrets/secrets.sh render supabase`.
+> Note: real secret values live encrypted in `secrets/supabase.enc.env` (SOPS+age, decision-014).
+> To change an env/secret var: edit the SOPS store (`just secrets-edit supabase`),
+> re-run `deploy/kind/bootstrap.sh secrets` to refresh the `supabase-env` Secret,
+> then `kubectl -n iotgw rollout restart deploy/<name>` so the consumer picks it up.
 
 **Security** (must change for production):
 - JWT_SECRET: JWT signing key (min 32 chars)
 - POSTGRES_PASSWORD: Database password
 - ANON_KEY / SERVICE_ROLE_KEY: API keys (generate with JWT_SECRET)
-- DASHBOARD_USERNAME / DASHBOARD_PASSWORD: Studio login credentials
+- DASHBOARD_USERNAME / DASHBOARD_PASSWORD: Studio login credentials (Studio is
+  not deployed on k8s; these are inert on the running stack)
 
 **Database**:
-- POSTGRES_HOST=db (internal Docker network)
+- POSTGRES_HOST=supabase-db (the StackGres primary Service in the `iotgw` namespace)
 - POSTGRES_DB=postgres
-- POSTGRES_PORT=5432
+- POSTGRES_PORT=5432 (direct primary; no pooler)
 
 **API Configuration**:
 - KONG_HTTP_PORT=8000
 - KONG_HTTPS_PORT=8443
-- PGRST_DB_SCHEMAS=public,storage,graphql_public
+- PGRST_DB_SCHEMAS=public (storage/graphql_public schemas dropped with their
+  not-deployed services)
 
 **Authentication**:
 - SITE_URL: Frontend application URL
@@ -204,10 +235,9 @@ All configuration is in the `.env` file. Key variables:
 - ENABLE_EMAIL_SIGNUP / ENABLE_PHONE_SIGNUP
 - SMTP configuration for email auth
 
-**Studio**:
-- STUDIO_PORT=3000
+**Studio** (not deployed on k8s — `decision-018` §4; these keys are inert):
 - SUPABASE_PUBLIC_URL: Public URL for API access
-- OPENAI_API_KEY: Optional, enables SQL Editor Assistant
+- OPENAI_API_KEY: Optional, would enable the SQL Editor Assistant
 
 **Edge Functions**:
 - FUNCTIONS_VERIFY_JWT=false (applies to all functions)
@@ -217,39 +247,51 @@ All configuration is in the `.env` file. Key variables:
 
 ### Kong Configuration
 
-API gateway routes are defined in volumes/api/kong.yml. This file uses environment variable substitution for ANON_KEY, SERVICE_ROLE_KEY, DASHBOARD_USERNAME, and DASHBOARD_PASSWORD.
+API gateway routes are defined in volumes/api/kong.yml. The k8s manifest renders
+this file with secret substitution (ANON_KEY, SERVICE_ROLE_KEY, DASHBOARD_USERNAME,
+DASHBOARD_PASSWORD) via an `envsubst` initContainer before Kong starts.
 
 ### Pooler Configuration
 
-Connection pooler settings in volumes/pooler/pooler.exs:
-- POOLER_DEFAULT_POOL_SIZE=20
-- POOLER_MAX_CLIENT_CONN=100
-- POOLER_POOL_MODE=transaction
+*Not applicable on k8s.* The supavisor connection pooler is **not deployed**
+(`decision-018` §4): the StackGres SGCluster runs with `disableConnectionPooling:
+true` and clients connect to the direct primary `supabase-db:5432`. The compose
+`volumes/pooler/pooler.exs` settings are no longer used.
 
 ## Development Workflow
 
 ### Making Changes to Edge Functions
 
+The function code is **baked into the `iotgw-functions:local` image**, so a code
+change requires a rebuild + rollout (there is no bind-mounted restart-to-deploy):
+
 1. Edit function code in volumes/functions/<function-name>/index.ts
-2. Restart the functions container: `docker compose restart functions`
+2. Rebuild + load the image: `deploy/kind/bootstrap.sh functions` (docker build +
+   `kind load`), then `kubectl -n iotgw rollout restart deploy/functions`
+   (`just k8s-deploy` does this as part of a full apply)
 3. Test the function via HTTP requests to http://localhost:8000/functions/v1/<function-name>
-4. Check logs: `docker compose logs -f supabase-edge-functions`
+4. Check logs: `kubectl -n iotgw logs -f deploy/functions`
 
 ### Database Schema Changes
 
-1. Add SQL migration files to volumes/db/ with appropriate naming (e.g., 100-my-migration.sql)
-2. SQL files are executed in alphanumeric order during database initialization
-3. For running schema changes, either:
-   - Connect to database and run SQL manually
-   - Or use Supabase Studio SQL Editor
-   - Or use PostgREST schema cache refresh: POST to http://localhost:8000/rest/v1/
+Migrations apply to the **cluster DB** (the StackGres SGCluster). The schema
+source is `iotgw-ui/supabase/migrations/`.
+
+1. Add/modify migration files under `iotgw-ui/supabase/migrations/`
+2. Apply them idempotently: `deploy/kind/bootstrap.sh migrate` (execs into the
+   StackGres primary's `patroni` container as the superuser and runs the set)
+3. For ad-hoc schema changes, either:
+   - Connect to the primary and run SQL manually (see Database Operations above)
+   - Or refresh the PostgREST schema cache:
+     `kubectl -n iotgw rollout restart deploy/rest`
+     (the `migrate` step already does this after applying)
 
 ### Debugging
 
-- All services log to stdout/stderr, viewable with `docker compose logs`
-- Use `docker compose logs -f <service>` to tail specific service logs
-- Check service health: `docker compose ps` (shows health status)
-- Connect to containers: `docker exec -it <container-name> bash`
+- All pods log to stdout/stderr, viewable with `kubectl -n iotgw logs`
+- Use `kubectl -n iotgw logs -f deploy/<name>` to tail a specific Deployment's logs
+- Check pod health: `kubectl -n iotgw get pods` (and `kubectl -n iotgw describe pod <pod>`)
+- Exec into a pod: `kubectl -n iotgw exec -it deploy/<name> -- sh`
 - Edge function logs include request IDs and transaction IDs for tracing
 
 ### Testing
@@ -261,11 +303,20 @@ No automated test suite is currently configured in package.json. Consider adding
 
 ## Important Notes
 
-1. **Security**: The .env file contains actual credentials and API keys. Never commit this file to version control. Use .env.example as a template.
+1. **Security**: Real credentials and API keys live encrypted in
+   `secrets/supabase.enc.env` (SOPS+age, decision-014) and reach the pods only as
+   the `supabase-env` k8s Secret. Never commit a plaintext `.env` or hardcode a
+   secret in tracked source.
 
-2. **External Database**: To use an external PostgreSQL database instead of the bundled one, comment out the db service and dependencies in docker-compose.yml and update POSTGRES_HOST in .env.
+2. **External Database**: The DB tier is the StackGres `SGCluster` `supabase-db`
+   (`decision-018`); the app tier connects via the `POSTGRES_HOST=supabase-db`
+   Service. Pointing the app tier at a different Postgres would mean changing the
+   StackGres cluster / app-tier manifests under `deploy/k8s/` — there is no
+   compose `db` service to comment out. Running fully external Postgres is out of
+   scope for the kind deployment.
 
-3. **S3 Storage**: To use S3 instead of local file storage, use docker-compose.s3.yml overlay file and configure S3 credentials in environment.
+3. **S3 Storage**: Not applicable on k8s — the storage service is **not deployed**
+   (`decision-018` §4), so there is no S3 backend to configure here.
 
 4. **JWT Keys**: ANON_KEY and SERVICE_ROLE_KEY must be generated using the JWT_SECRET. These are JWT tokens with specific role claims.
 
@@ -273,7 +324,7 @@ No automated test suite is currently configured in package.json. Consider adding
 
 6. **Package Manager**: This project uses pnpm (version 10.17.0) as specified in package.json packageManager field.
 
-7. **Custom Host**: The deployment is configured for wsl.ymbihq.local as the public URL. Update SUPABASE_PUBLIC_URL in .env for different environments.
+7. **Custom Host**: The deployment is configured for wsl.ymbihq.local as the public URL. Update SUPABASE_PUBLIC_URL in `secrets/supabase.enc.env` (then re-run `deploy/kind/bootstrap.sh secrets` + roll the consumers) for different environments.
 
 ## References
 

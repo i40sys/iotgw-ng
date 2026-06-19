@@ -5,6 +5,11 @@ date: '2026-06-12 21:00'
 status: accepted
 ---
 
+> **Forward note (2026-06-18):** `decision-017` supersedes the "co-equal parallel
+> paths (compose + kind)" framing here — Kubernetes is now the sole supported
+> runtime; the docker-compose stacks are being decommissioned (milestone
+> `TASK-062`).
+
 ## Context
 
 `decision-012` (status *proposed/interim*) recorded that the seven nested git

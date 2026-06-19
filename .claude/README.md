@@ -7,8 +7,8 @@ from the repo root (`/home/oriol/iotgw-ng`) so these agents/skills/settings load
 
 | Agent | Model | Use for |
 |---|---|---|
-| **stack-operator** | sonnet | docker-compose stacks: up/down/restart/recreate, status, logs, env (supabase, kestra, kms) |
-| **k8s-operator** | sonnet | the kind cluster + `deploy/` kustomize: create/deploy/smoke/debug, SOPS→Secret bridge |
+| **k8s-operator** | sonnet | **the sole stack operator** — the kind cluster + `deploy/` kustomize: create/deploy/smoke/debug, SOPS→Secret bridge, rollouts |
+| ~~stack-operator~~ | sonnet | **RETIRED** (tombstone) — docker-compose was decommissioned (`decision-017`); folded into k8s-operator |
 | **kestra-expert** | sonnet | authoring/debugging Kestra flows + config against the exact installed version |
 | **supabase-function-developer** | sonnet | Deno edge functions + DB-side verification (netmaker-call is live; kestra-call legacy) |
 | **task-implementer** | sonnet | implement a backlog task end-to-end |
@@ -18,7 +18,7 @@ from the repo root (`/home/oriol/iotgw-ng`) so these agents/skills/settings load
 | **github-repo-manager** | haiku | git/gh operations (note: the monorepo has no remote yet — see decision-013 Q4) |
 | **docs-writer-codex** | sonnet | author/refresh README/CLAUDE/docs via the codex CLI |
 
-Operating split: **stack-operator = docker-compose**, **k8s-operator = kubernetes/kind**. They share the same foreign-workload safety discipline (only touch iotgw-ng-owned resources).
+Operations: **k8s-operator** is the single stack-operations agent (the platform runs entirely on the kind cluster; docker-compose was decommissioned in the task-062 milestone, `decision-017`). The former `stack-operator` is a retired tombstone pointing at it. It keeps the foreign-workload safety discipline (only touch iotgw-ng-owned resources, scoped to context `kind-iotgw` / namespace `iotgw`).
 
 ## Skills (`.claude/skills/`)
 
@@ -27,7 +27,7 @@ Generic frontend/TS skill packs (react-19, trpc-v11, tailwind-css-v4, vitest, pn
 ## Settings
 
 - `settings.json` — codegraph MCP tool allowlist (the codegraph server itself is declared in `iotgw-ui/.mcp.json`).
-- `settings.local.json` — Bash command allowlist (pnpm/backlog/git + now `just`, `kubectl`, `kind`, `helm`, `sops`, `age`, `docker compose`, `secrets.sh`, `verify.sh`, `bootstrap.sh`) to reduce permission prompts. Gitignored.
+- `settings.local.json` — Bash command allowlist (pnpm/backlog/git + `just`, `kubectl`, `kind`, `helm`, `sops`, `age`, `docker build`/`kind load` for image bakes, `secrets.sh`, `verify.sh`, `bootstrap.sh`) to reduce permission prompts. Gitignored.
 
 ## Duplication note
 

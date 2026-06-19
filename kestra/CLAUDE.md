@@ -1,10 +1,12 @@
 # Kestra — Workflow Orchestration
 
-Self-hosted Kestra instance that runs the `install` / `provisioning` / `connectivity-check` flows (OpenWRT config; these **fetch** device SSH keys from Cosmian KMS to deploy them). Device/network provisioning moved to the Supabase `netmaker-call` edge function (direct Netmaker REST), and SSH-key **generation** moved to the iotgw-ui backend (direct Cosmian KMS, `task-060`); the `devices` / `networks` flows here were **removed** (`task-060.04`). Flows execute Ansible playbooks inside `cytopia/ansible:latest-tools` Docker runners.
+Self-hosted Kestra instance that runs the `install` / `provisioning` / `connectivity-check` flows (OpenWRT config; these **fetch** device SSH keys from Cosmian KMS to deploy them). Device/network provisioning moved to the Supabase `netmaker-call` edge function (direct Netmaker REST), and SSH-key **generation** moved to the iotgw-ui backend (direct Cosmian KMS, `task-060`); the `devices` / `networks` flows here were **removed** (`task-060.04`). Flows execute Ansible playbooks via Kestra's **Kubernetes task runner** (`io.kestra.plugin.kubernetes.core.PodCreate`), which spawns `cytopia/ansible` pods in-cluster (the host Docker-socket runner is gone — `task-054`).
+
+Kestra runs as a Deployment on the kind cluster (`deploy/k8s/base/kestra/`); docker-compose was decommissioned (`decision-017`). Bring the platform up with `just bootstrap`; roll Kestra after a config change with `kubectl -n iotgw rollout restart deploy/kestra`.
 
 ## Layout
 
-- `docker-compose.yml` — Kestra server + PostgreSQL backing store.
+- `deploy/k8s/base/kestra/` — Kestra server Deployment + its PostgreSQL backing store + the k8s task-runner RBAC (the platform's deployment manifests).
 - `data/main/iotgw-ng/` — namespace workspace (Kestra 1.2+ stores files in DB, not filesystem; this dir is the *source* synced to the DB).
 - `data/main/iotgw-ng/_files/` — **NOT** the authoritative flow source. Flows live in Kestra's PostgreSQL DB; this dir is a write-through side effect of the local-storage driver (only the `provisioning` `Flow.yaml` is actually on disk). See its own [CLAUDE.md](data/main/iotgw-ng/_files/CLAUDE.md). (task-049 tracks fixing this.)
 - `data/main/iotgw-ng/{devices,networks,install,provisioning,connectivity-check}/executions/` — runtime execution state (do not edit).

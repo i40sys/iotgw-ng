@@ -1,172 +1,162 @@
 ---
-description: Manage Supabase Docker services (start, stop, restart, logs, health)
+description: Manage Supabase k8s services (start, stop, restart, logs, health)
 ---
 
 # Manage Services Skill
 
-You are helping manage Supabase Docker services. Follow these steps:
+You are helping manage the Supabase services on the local `kind`/k8s cluster
+(`decision-017` made k8s the sole supported runtime; the old compose stack is
+decommissioned). All workloads live in the `iotgw` namespace. Follow these steps:
 
 1. **Understand the request**:
    - What service(s) need management?
    - What action: start, stop, restart, view logs, check health, rebuild?
 
-2. **Available services**:
-   - `studio` - Supabase Studio UI (port 3000)
-   - `kong` - API Gateway (ports 8000, 8443)
+2. **Available services** (Deployments in the `iotgw` namespace, unless noted):
+   - `kong` - API Gateway (NodePort 30800 → host 8000)
    - `auth` - Authentication service (GoTrue)
    - `rest` - REST API (PostgREST)
-   - `realtime` - Realtime subscriptions
-   - `storage` - Object storage
    - `functions` - Edge functions (Deno runtime)
-   - `db` - PostgreSQL database
-   - `supavisor` - Connection pooler
-   - `analytics` - Logflare analytics
    - `meta` - Database metadata API
-   - `imgproxy` - Image transformations
-   - `vector` - Log collection
+   - `cosmian-kms` - Cosmian KMS (device SSH keys)
+   - `kestra` - workflow orchestration
+   - `supabase-db` - PostgreSQL, a **StackGres `SGCluster`** (not a Deployment;
+     see Database below)
+   - *Not deployed* (`decision-018` §4): `studio`, `realtime`, `storage`,
+     `supavisor`, `analytics`, `imgproxy`, `vector` — these are intentionally
+     dropped from the k8s stack.
 
 3. **Common operations**:
 
-   **Start all services**:
+   **Start the whole platform** (create cluster + deploy + smoke):
    ```bash
-   docker compose up -d
+   just bootstrap   # = just kind-up + just k8s-deploy + just k8s-smoke
    ```
 
-   **Start with dev helpers**:
+   **Tear the cluster down** (removes the cluster and all its data):
    ```bash
-   docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml up -d
-   ```
-
-   **Stop all services**:
-   ```bash
-   docker compose down
+   just kind-down
    ```
 
    **Restart specific service**:
    ```bash
-   docker compose restart <service-name>
+   kubectl -n iotgw rollout restart deploy/<service-name>
    ```
 
    **View logs**:
    ```bash
-   # All services
-   docker compose logs -f
-
    # Specific service
-   docker compose logs -f <service-name>
+   kubectl -n iotgw logs -f deploy/<service-name>
 
    # Last N lines
-   docker compose logs --tail=100 <service-name>
+   kubectl -n iotgw logs --tail=100 deploy/<service-name>
    ```
 
    **Check health**:
    ```bash
-   docker compose ps
+   kubectl -n iotgw get pods
    ```
 
-   **Rebuild service**:
+   **Rebuild + redeploy a service**:
    ```bash
-   docker compose up -d --build <service-name>
+   # Re-apply the kind overlay (rebuilds the functions/iotgw-ui images and
+   # applies the manifests).
+   just k8s-deploy
    ```
 
 4. **Service-specific operations**:
 
-   **Database (db)**:
+   **Database (supabase-db)** — a StackGres SGCluster; psql runs inside the
+   primary pod's `patroni` container:
    ```bash
+   # Resolve the StackGres primary pod
+   PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
+          -o jsonpath='{.items[0].metadata.name}')
+
    # Connect to database
-   docker exec -it supabase-db psql -U postgres -d postgres
+   kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres
 
    # View database logs
-   docker compose logs -f db
+   kubectl -n iotgw logs -f "$PG" -c patroni
 
-   # Restart database (careful - may affect other services)
-   docker compose restart db
+   # Apply the iotgw-ui migration set (careful - schema change)
+   deploy/kind/bootstrap.sh migrate
    ```
 
    **Edge Functions (functions)**:
    ```bash
-   # Restart after code changes
-   docker compose restart functions
+   # Redeploy after code changes (code is baked into iotgw-functions:local)
+   deploy/kind/bootstrap.sh functions
+   kubectl -n iotgw rollout restart deploy/functions
 
    # View function logs
-   docker compose logs -f supabase-edge-functions
+   kubectl -n iotgw logs -f deploy/functions
 
    # Check if functions are loaded
-   docker compose logs supabase-edge-functions | grep "started"
+   kubectl -n iotgw logs deploy/functions | grep "started"
    ```
 
    **API Gateway (kong)**:
    ```bash
    # Restart Kong
-   docker compose restart kong
+   kubectl -n iotgw rollout restart deploy/kong
 
    # View routing logs
-   docker compose logs -f kong
+   kubectl -n iotgw logs -f deploy/kong
    ```
 
    **Studio UI (studio)**:
-   ```bash
-   # Restart Studio
-   docker compose restart studio
-
-   # Check if accessible
-   curl http://localhost:3000
-   ```
+   - *Not deployed* on k8s (`decision-018` §4) — there is no Studio UI on the
+     running cluster. Use psql / PostgREST directly instead.
 
 5. **Health checks**:
    ```bash
-   # Check all services status
-   docker compose ps
+   # Check all pods' status (Ready/Running)
+   kubectl -n iotgw get pods
 
-   # Check specific service health
-   docker inspect --format='{{.State.Health.Status}}' <container-name>
+   # Check a specific Deployment's rollout
+   kubectl -n iotgw rollout status deploy/<service-name>
 
-   # Example for database
-   docker inspect --format='{{.State.Health.Status}}' supabase-db
+   # Describe a pod for events/probe failures
+   kubectl -n iotgw describe pod -l app=<service-name>
    ```
 
 6. **Complete reset** (destructive):
    ```bash
-   # Interactive reset script
-   ./reset.sh
-
-   # Or manual reset
-   docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down -v --remove-orphans
-   rm -rf volumes/db/data
+   # Delete the cluster (and all its data), then bring it back up clean
+   just kind-down
+   just bootstrap
    ```
 
 7. **Troubleshooting**:
 
    **Service won't start**:
-   - Check logs: `docker compose logs <service-name>`
-   - Check dependencies: Ensure db and analytics are healthy
-   - Check ports: Ensure no conflicts with other services
-   - Check .env: Verify environment variables are set
+   - Check logs: `kubectl -n iotgw logs deploy/<service-name>`
+   - Check events/probes: `kubectl -n iotgw describe pod -l app=<service-name>`
+   - Check the DB tier is Ready (the app tier depends on `supabase-db`)
+   - Check the `supabase-env` Secret has the expected vars (`envFrom`)
 
    **Service unhealthy**:
-   - Check health check logs
-   - Verify dependencies are running
-   - Check network connectivity between services
-   - Restart dependent services
+   - Check readiness/liveness probe failures in `describe`
+   - Verify dependencies (the StackGres primary) are Ready
+   - Check in-cluster connectivity (Service names) between pods
+   - Roll the deployment: `kubectl -n iotgw rollout restart deploy/<service-name>`
 
    **Out of sync**:
-   - Pull latest images: `docker compose pull`
-   - Recreate containers: `docker compose up -d --force-recreate`
+   - Re-apply the overlay: `just k8s-deploy`
+   - Re-publish Secrets after a change: `deploy/kind/bootstrap.sh secrets`
 
 8. **Monitoring**:
    ```bash
-   # Resource usage
-   docker stats
+   # Per-pod resource usage (needs metrics-server)
+   kubectl -n iotgw top pods
 
-   # Disk usage
-   docker system df
-
-   # Network inspection
-   docker network inspect supabase_default
+   # Recent namespace events
+   kubectl -n iotgw get events --sort-by=.lastTimestamp
    ```
 
 9. **After operations**:
-   - Verify services are healthy: `docker compose ps`
+   - Verify pods are healthy: `kubectl -n iotgw get pods`
    - Check logs for errors
    - Test critical functionality
    - Report status to user
@@ -174,9 +164,10 @@ You are helping manage Supabase Docker services. Follow these steps:
 ## Service Dependencies
 
 Remember the dependency chain:
-- Most services depend on `db` and `analytics` being healthy
-- `studio` depends on `analytics`
-- `storage` depends on `db`, `rest`, and `imgproxy`
-- `kong` depends on `analytics`
+- The app-tier Deployments (`auth`, `rest`, `meta`, `functions`, `kong`) depend
+  on the StackGres `supabase-db` primary being Ready
+- k8s manages ordering/readiness via probes (no compose `depends_on`); a pod
+  that comes up before the DB is Ready will restart until its probes pass
 
-When restarting services, consider restarting dependent services if issues persist.
+When a service stays unhealthy, check that `supabase-db` is Ready first, then
+roll the dependent Deployment.

@@ -31,8 +31,12 @@ metadata:
   labels: { app.kubernetes.io/part-of: iotgw-ng }
 spec:
   type: NodePort
+  # StackGres 1.x labels the primary pod with role=primary (not master).
+  # stackgres.io/cluster-name scopes to this cluster; role=primary ensures
+  # the NodePort routes to the primary only (not a future replica).
   selector:
-    app.kubernetes.io/name: supabase-db
+    stackgres.io/cluster-name: supabase-db
+    role: primary
   ports:
     - { name: postgres, port: 5432, targetPort: 5432, nodePort: 30543 }
 ---
@@ -48,3 +52,33 @@ spec:
     app.kubernetes.io/name: kong
   ports:
     - { name: proxy, port: 8000, targetPort: 8000, nodePort: 30800 }
+---
+# iotgw-ui frontend NodePort: maps host :5173 (via cluster.yaml containerPort 30517).
+# NOTE: a future clean `kind-up` exposes this on host :5173 once cluster.yaml is
+# updated (see the extraPortMappings comments there). On the live cluster, use
+# the Ingress (iotgw-ui.wsl.ymbihq.local) or kubectl port-forward instead.
+apiVersion: v1
+kind: Service
+metadata:
+  name: iotgw-ui-frontend-nodeport
+  labels: { app.kubernetes.io/part-of: iotgw-ng }
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: iotgw-ui-frontend
+  ports:
+    - { name: http, port: 80, targetPort: 80, nodePort: 30517 }
+---
+# iotgw-ui backend NodePort: maps host :4444 (via cluster.yaml containerPort 30444).
+# Same caveat as above — live cluster uses Ingress or port-forward.
+apiVersion: v1
+kind: Service
+metadata:
+  name: iotgw-ui-backend-nodeport
+  labels: { app.kubernetes.io/part-of: iotgw-ng }
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: iotgw-ui-backend
+  ports:
+    - { name: http, port: 4444, targetPort: 4444, nodePort: 30444 }

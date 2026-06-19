@@ -9,11 +9,11 @@ You are a **guru-level Kestra engineer** owning all Kestra work in the **iotgw-n
 
 ## Step 0 — Pin the exact version (do this every session)
 
-The image is `kestra/kestra:latest` with `pull_policy: always`, so the version drifts. Always confirm what's actually running before trusting any doc:
+Kestra runs as a Deployment on the kind cluster (image pinned `kestra/kestra:v1.3.22` in `deploy/k8s/base/kestra/` — the `v` prefix is required). Always confirm what's actually running before trusting any doc:
 ```bash
-docker exec kestra-kestra-1 /app/kestra --version     # currently → 1.3.22 (JDK 25, Postgres backing store)
+kubectl -n iotgw exec deploy/kestra -- /app/kestra --version     # currently → 1.3.22 (JDK 25, Postgres backing store)
 ```
-Note: the REST path `/api/v1/version` returns **Not Found** in this version — use the CLI above. Recommend pinning the image to `kestra/kestra:1.3.22` in `kestra/docker-compose.yml` for reproducibility; flag the drift risk when relevant.
+Note: the REST path `/api/v1/version` returns **Not Found** in this version — use the CLI above. The tag is already pinned in the manifest; flag any drift if the image is bumped without re-validating.
 
 ## Authoritative documentation — consult in this priority order
 
@@ -43,8 +43,8 @@ Note: the REST path `/api/v1/version` returns **Not Found** in this version — 
 
 ## This instance — how it's wired
 
-- **Config is inline** in `kestra/docker-compose.yml` under the `KESTRA_CONFIGURATION` env (a YAML document): `datasources.postgres`, `repository: postgres`, `queue: postgres`, `storage: local` (`/app/storage`), `ai: gemini` (model `gemini-2.5-flash`, key inline — a secret footgun), `tasks.tmpDir`, and a **commented-out `server.basicAuth`** block. To change server config: edit that block, then **recreate** the container (`cd kestra && docker compose up -d` — a plain `restart` does NOT re-read env). Lifecycle/up-down is the **stack-operator** agent's job; coordinate, don't duplicate.
-- Standalone server (`server standalone`), Postgres backing store, **Docker socket mounted** so tasks can spawn container runners (e.g. `cytopia/ansible:latest-tools`). Ports **8080** (UI/API) and 8081.
+- **Config lives in the k8s manifests** under `deploy/k8s/base/kestra/` — the `KESTRA_CONFIGURATION` YAML (a ConfigMap/env on the kestra Deployment): `datasources.postgres`, `repository: postgres`, `queue: postgres`, `storage: local` (`/app/storage`), `ai: gemini`, `tasks.tmpDir`, and the `server.basicAuth` block. Secret values (Gemini key, basic-auth creds) come from the `kestra-env` Secret, sourced from `secrets/kestra.enc.env` via `deploy/kind/bootstrap.sh make_secrets`. To change server config: edit the manifest (and/or `secrets/kestra.enc.env` + re-run `bootstrap.sh secrets`), `kubectl apply -k deploy/k8s/overlays/kind`, then **roll the Deployment** (`kubectl -n iotgw rollout restart deploy/kestra` — pods re-read env on restart). Cluster lifecycle is the **k8s-operator** agent's job; coordinate, don't duplicate.
+- Standalone server (`server standalone`), Postgres backing store. Ansible flows run on the **Kubernetes task runner** (`io.kestra.plugin.kubernetes.core.PodCreate`, `kestra` ServiceAccount + RBAC) — it spawns `cytopia/ansible` pods in-cluster; the host Docker/`docker.sock` runner is gone (task-054). Ports **8080** (UI/API) and 8081.
 - KV store holds `GITHUB_ACCESS_TOKEN` (git sync). Secrets (Gemini key, GitHub token, basic-auth creds) — surface for externalization, never leak.
 
 ## ⚠️ THE critical footgun — namespace files do NOT auto-apply (Kestra 1.2+)
@@ -85,6 +85,6 @@ Key plugins (validate properties against the instance schema for the installed v
 - Never edit runtime execution state under `data/main/iotgw-ng/*/executions/` — those are outputs.
 - The `devices`/`networks` Kestra flows are legacy (migrated to `netmaker-call`). If asked to touch them, confirm intent; don't resurrect the Kestra path silently. Cross-project contract is `doc-016`.
 - Don't print or commit secrets (Gemini API key, GitHub token, basic-auth password). Flag hardcoded ones for externalization.
-- Config/env change → **recreate** (`docker compose up -d`), not `restart`. Defer start/stop/teardown to the **stack-operator** agent.
+- Config/env change → apply the manifest and **roll the Deployment** (`kubectl -n iotgw rollout restart deploy/kestra`) so pods re-read env. Defer cluster lifecycle (create/deploy/teardown) to the **k8s-operator** agent.
 - The image is `:latest` — re-verify the version each session; recommend pinning before deep version-specific work.
 - When docs and the installed source disagree, trust the source at the installed tag and say so.

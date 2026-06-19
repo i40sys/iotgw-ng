@@ -10,6 +10,8 @@ namespace: iotgw
 resources:
   - namespace.yaml
   - kms
-  - supabase-db
+  # supabase-db (StatefulSet) removed here; overlays include supabase-db-stackgres
+  # instead. Keep base/supabase-db/ in the tree as the documented rollback path
+  # (re-add this line and remove supabase-db-stackgres from overlays to revert).
   - kestra
   - whoami

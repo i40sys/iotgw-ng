@@ -2,14 +2,19 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: iotgw
 
-# Local kind overlay: the validated core (KMS, Supabase DB, Kestra, whoami)
-# plus the Supabase app tier (kong/auth/rest/meta/functions), exposed via
-# NodePorts that the kind cluster maps to host ports
-# (see deploy/kind/cluster.yaml). Secrets (supabase-env, kestra-env) are
-# created out-of-band by deploy/kind/bootstrap.sh from the SOPS store.
+# Local kind overlay: the validated core (KMS, Kestra, whoami) plus the
+# StackGres-managed Supabase DB tier and the Supabase app tier
+# (kong/auth/rest/meta/functions), exposed via NodePorts that the kind cluster
+# maps to host ports (see deploy/kind/cluster.yaml).
+# Secrets (supabase-env, kestra-env, supabase-db-initdb) are created out-of-band
+# by deploy/kind/bootstrap.sh from the SOPS store.
+# ROLLBACK: remove supabase-db-stackgres here, re-add supabase-db to base
+# kustomization.yaml, and re-add the patch-db-listen-all.yaml patch below.
 resources:
   - ../../base
+  - ../../base/supabase-db-stackgres
   - ../../base/supabase-app
+  - ../../base/iotgw-ui
   - nodeports.yaml
 
 images:
@@ -29,9 +34,6 @@ patches:
         path: /spec/template/spec/volumes
       - op: remove
         path: /spec/template/spec/containers/0/volumeMounts
-  # Ensure Postgres listens on all interfaces (not just localhost) so Services
-  # can route to the pod.
-  - path: patch-db-listen-all.yaml
-    target:
-      kind: StatefulSet
-      name: supabase-db
+  # NOTE: patch-db-listen-all.yaml (listen_addresses=* on the StatefulSet) is
+  # intentionally dropped — StackGres manages listen_addresses via patroni and
+  # the StatefulSet no longer exists in this overlay.

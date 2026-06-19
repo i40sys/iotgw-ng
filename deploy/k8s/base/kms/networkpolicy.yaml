@@ -1,0 +1,67 @@
+# NetworkPolicy for Cosmian KMS (task-057 AC#2, decision-015 KMS hardening).
+#
+# The KMS holds every device's SSH private key, so default-deny all ingress to
+# port 9998 and allow ONLY the in-namespace KMS clients:
+#   - iotgw-ui-backend  : mints/fetches device SSH keys (KMIP 2.1 REST)
+#   - kestra            : the orchestrator (and any direct KMS calls it makes)
+#   - kestra-spawned Ansible runner pods : the install/provisioning/
+#     connectivity-check flows fetch device SSH keys from the KMS. The
+#     io.kestra.plugin.kubernetes.core.PodCreate task stamps these pods with
+#     `app.kubernetes.io/managed-by: kestra` (see the flow YAML under
+#     kestra/data/main/iotgw-ng/_files/*-flow.yaml).
+#
+# ──────────────────────────────────────────────────────────────────────────────
+# ENFORCEMENT / kindnet note (task-057 finding — IMPORTANT, supersedes the
+# original assumption that kindnet ignores NetworkPolicy):
+#
+#   The recent `kindnet` CNI shipped with this kind cluster DOES enforce
+#   NetworkPolicy. Verified live (2026-06-18): with this policy applied, a pod
+#   NOT in the allow-list (e.g. `whoami`) is denied access to cosmian-kms:9998,
+#   while the backend / kestra pods are allowed. So this is real enforcement on
+#   kind, not just render-validation.
+#
+#   CONSEQUENCE for the host NodePort smoke: host traffic hitting the
+#   `kms-nodeport` NodePort (`curl localhost:9998/version`) is SNAT'd and reaches
+#   the pod with a source kindnet evaluates as the node-host link CIDR
+#   (10.222.8.0/24 on this host) — NOT an in-namespace pod — so it is DENIED.
+#   We intentionally do NOT carve out that host CIDR here: it is
+#   environment-specific (kind's docker subnet) and would not belong in a prod
+#   policy. Instead the smoke checks (deploy/kind/bootstrap.sh smoke,
+#   tools/verify.sh) fall back to an in-cluster `/version` check from the
+#   NP-allowed backend pod — the path this policy actually governs.
+#
+#   PROD: a policy-capable CNI (Calico/Cilium) enforces this identically.
+#   In-cluster clients reach the KMS via the ClusterIP Service `cosmian-kms`,
+#   which this policy governs. Documented in decision-015 and kms/CLAUDE.md.
+# ──────────────────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cosmian-kms
+  labels:
+    app.kubernetes.io/name: cosmian-kms
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  # Applies to the KMS pod(s).
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: cosmian-kms
+  policyTypes:
+    - Ingress
+  ingress:
+    # Default-deny is implicit (an Ingress policy with these rules denies all
+    # other sources). Allow only the three in-namespace client classes on 9998.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: iotgw-ui-backend
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kestra
+        # Kestra-spawned Ansible runner pods (PodCreate-stamped).
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/managed-by: kestra
+      ports:
+        - protocol: TCP
+          port: 9998

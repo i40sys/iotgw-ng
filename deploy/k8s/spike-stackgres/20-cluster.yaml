@@ -1,0 +1,29 @@
+# SPIKE artifact for TASK-062.16 — the SGCluster (PG15, 1 instance) with pg_net
+# declared as an extension and the Supabase initdb SGScript wired in via
+# managedSql. StackGres downloads the pg_net .so at pod start from
+# extensions.stackgres.io (egress verified) and should auto-add it to
+# shared_preload_libraries because the extension metadata flags it as a
+# bgworker. The spike verifies that post-boot.
+---
+apiVersion: stackgres.io/v1
+kind: SGCluster
+metadata:
+  name: supabase-db
+  namespace: sg-spike
+spec:
+  instances: 1
+  postgres:
+    version: "15"
+    extensions:
+      - name: pg_net
+  sgInstanceProfile: size-xs
+  pods:
+    persistentVolume:
+      size: 5Gi
+  configurations:
+    sgPostgresConfig: pgconfig15
+  managedSql:
+    scripts:
+      - sgScript: supabase-initdb
+  nonProductionOptions:
+    disableClusterPodAntiAffinity: true

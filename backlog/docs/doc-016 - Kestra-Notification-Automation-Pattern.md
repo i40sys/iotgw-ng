@@ -15,6 +15,13 @@ updated_date: "2026-06-17"
 > current pattern. Kestra is still used for the OpenWRT flows — see
 > [kestra/CLAUDE.md](../../kestra/CLAUDE.md) and the note at the end.
 
+> **Runtime forward-note (2026-06-18):** docker-compose was decommissioned in the
+> `TASK-062` milestone — the platform runs on **k8s/kind** (`decision-017`). The
+> trigger→edge-function→Netmaker pattern is unchanged; only the runtime moved.
+> Any `docker exec supabase-db …` below maps to a `kubectl exec` into the
+> StackGres primary (`decision-018`), and the webhook posts to the in-cluster Kong
+> Service (`TASK-055`). See [deploy/README.md](../../deploy/README.md).
+
 ## Context
 
 This is a **self-hosted** Supabase stack (`supabase/`, host `wsl.ymbihq.local`).

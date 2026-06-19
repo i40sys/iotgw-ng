@@ -106,13 +106,12 @@ just delete-device sensor-01 # Delete specific device
 The master key is the recommended authentication method for automation. To find it:
 
 ```bash
-# SSH to your Netmaker server
+# SSH to the Netmaker server (the external Netmaker host — not this platform,
+# which runs on k8s/kind; the Netmaker server keeps its own config there)
 ssh your-netmaker-server
 
-# Look for MASTER_KEY in your configuration
-grep MASTER_KEY docker-compose.yml
-# or
-grep MASTER_KEY netmaker.env
+# Look for MASTER_KEY in the Netmaker server's own configuration
+grep MASTER_KEY netmaker.env       # (or wherever that host stores its env)
 ```
 
 ## Understanding Netmaker Architecture
@@ -538,11 +537,11 @@ validate_certs: false
 
 **Symptom:** `Authentication failed` or `401 Unauthorized`
 
-**Solution:** Verify your master key:
+**Solution:** Verify your master key on the external Netmaker host:
 ```bash
-# On Netmaker server
+# On the Netmaker server (the external Netmaker host's own config)
 ssh your-netmaker-server
-grep MASTER_KEY docker-compose.yml
+grep MASTER_KEY netmaker.env
 ```
 
 ### No Ingress Gateway Found

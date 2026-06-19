@@ -18,6 +18,7 @@ spec:
         app.kubernetes.io/name: kestra
         app.kubernetes.io/part-of: iotgw-ng
     spec:
+      serviceAccountName: kestra
       containers:
         - name: kestra
           image: kestra/kestra:v1.3.22   # pinned (compose was :latest)
@@ -25,11 +26,11 @@ spec:
           env:
             # Secrets injected from the kestra-env Secret. KESTRA_CONFIGURATION
             # is a YAML doc; Kestra/Micronaut resolves ${KESTRA_POSTGRES_PASSWORD},
-            # ${KESTRA_BASIC_AUTH_USERNAME}, and ${KESTRA_BASIC_AUTH_PASSWORD}
-            # from the environment at startup (k8s leaves ${...} untouched).
-            # NOTE: the Docker task runner used by the Ansible flows does NOT
-            # work here — those flows must move to Kestra's Kubernetes task
-            # runner (decision-015). The webserver/scheduler run fine.
+            # ${KESTRA_BASIC_AUTH_USERNAME}, ${KESTRA_BASIC_AUTH_PASSWORD} and
+            # ${KESTRA_GEMINI_API_KEY} from the environment at startup (k8s leaves
+            # ${...} untouched). The Ansible flows run on Kestra's Kubernetes task
+            # runner (PodCreate) using the `kestra` ServiceAccount — task-054
+            # (decision-015); the host Docker task runner is no longer used.
             - name: KESTRA_POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef: { name: kestra-env, key: KESTRA_POSTGRES_PASSWORD }
@@ -39,6 +40,10 @@ spec:
             - name: KESTRA_BASIC_AUTH_PASSWORD
               valueFrom:
                 secretKeyRef: { name: kestra-env, key: KESTRA_BASIC_AUTH_PASSWORD }
+            # Gemini AI key for the kestra.ai block below (task-062.06, compose parity).
+            - name: KESTRA_GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef: { name: kestra-env, key: KESTRA_GEMINI_API_KEY }
             - name: KESTRA_CONFIGURATION
               value: |
                 datasources:
@@ -48,6 +53,13 @@ spec:
                     username: kestra
                     password: ${KESTRA_POSTGRES_PASSWORD}
                 kestra:
+                  # Gemini AI assistant — compose parity (task-062.06). Key from
+                  # the kestra-env Secret via ${KESTRA_GEMINI_API_KEY}.
+                  ai:
+                    type: gemini
+                    gemini:
+                      api-key: ${KESTRA_GEMINI_API_KEY}
+                      model-name: gemini-2.5-flash
                   repository:
                     type: postgres
                   queue:
@@ -56,6 +68,10 @@ spec:
                     type: local
                     local:
                       basePath: /app/storage
+                  # Task working/temp dir — compose parity (mounted emptyDir below).
+                  tasks:
+                    tmpDir:
+                      path: /tmp/kestra-wd/tmp
                   url: http://localhost:8080/
                   server:
                     basic-auth:
@@ -63,10 +79,16 @@ spec:
                       password: ${KESTRA_BASIC_AUTH_PASSWORD}
           ports:
             - { name: http, containerPort: 8080 }
+            # 8081 = Micronaut management/health endpoint. Intentionally
+            # probes-only (liveness/readiness below) — NOT published on the
+            # kestra Service / NodePort (task-062.06 decision; nothing off-pod
+            # needs /health or /prometheus today).
             - { name: mgmt, containerPort: 8081 }
           volumeMounts:
             - name: storage
               mountPath: /app/storage
+            - name: kestra-wd
+              mountPath: /tmp/kestra-wd
           readinessProbe:
             httpGet: { path: /health, port: 8081 }
             initialDelaySeconds: 30
@@ -80,6 +102,8 @@ spec:
       volumes:
         - name: storage
           persistentVolumeClaim: { claimName: kestra-storage }
+        - name: kestra-wd
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

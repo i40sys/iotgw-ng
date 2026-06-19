@@ -24,17 +24,17 @@ There are **two `supabase` directories**, and they are not the same thing:
 
 | Path | What it is |
 |---|---|
-| `supabase/` | The **running stack**: `docker-compose.yml`, `.env`, and `volumes/functions/` (the live function code, bind-mounted into the edge-runtime container). Run all `docker compose` commands from here. |
-| `iotgw-ui/supabase/migrations/` | The **schema source of truth**: SQL migrations (incl. the DB **triggers/webhooks** that invoke your functions) and `seed.sql`. Applied to the running stack's DB. |
+| `supabase/volumes/functions/` | The **function source** (the live `index.ts` files). On k8s this tree is **baked into the `iotgw-functions:local` image** (`deploy/k8s/base/supabase-app/Dockerfile.functions`); the functions Deployment serves it. |
+| `iotgw-ui/supabase/migrations/` | The **schema source of truth**: SQL migrations (incl. the DB **triggers/webhooks** that invoke your functions) and `seed.sql`. Applied to the cluster's StackGres Postgres. |
 
-So: a function's **code** lives in `supabase/volumes/functions/<name>/`, but the **trigger that calls it** lives in an `iotgw-ui/supabase/migrations/*.sql` file. A new webhook-driven function needs BOTH — the folder and a migration that points a table's trigger at `http://wsl.ymbihq.local:8000/functions/v1/<name>`.
+So: a function's **code** lives in `supabase/volumes/functions/<name>/`, but the **trigger that calls it** lives in an `iotgw-ui/supabase/migrations/*.sql` file. A new webhook-driven function needs BOTH — the folder and a migration that points a table's trigger at the in-cluster Kong Service URL for `/functions/v1/<name>` (task-055; not `wsl.ymbihq.local:8000`).
 
-The running stack may be **down**. Bring it up before debugging anything:
+The platform runs on the local **kind** cluster (docker-compose was decommissioned — `decision-017`). Bring it up before debugging anything:
 ```bash
-cd supabase && docker compose up -d        # whole stack
-docker compose ps                            # health
+just bootstrap                               # kind-up + k8s-deploy + k8s-smoke
+kubectl -n iotgw get pods                    # health
 ```
-The iotgw-ui backend (:4444) talks to this same DB via Kong (:8000); the frontend is :5173.
+The iotgw-ui backend (:4444) talks to this same DB via Kong (:8000); the frontend is :5173 (host ports mapped by the kind cluster).
 
 ## Runtime & Conventions (non-negotiable)
 
@@ -42,13 +42,14 @@ Self-hosted `supabase/edge-runtime:v1.69.6` — NOT the hosted platform, NOT `su
 - **One folder per function**, `index.ts` with a top-level `serve()`. Folder name = route name.
 - **URL imports**, no `package.json`/`node_modules`/import map: `serve` from `https://deno.land/std@<ver>/http/server.ts` (match the std version already in the file you edit; kestra-call/netmaker-call use `@0.131.0`), `createClient` from `https://esm.sh/@supabase/supabase-js@2`, JWT from `https://deno.land/x/jose@v4.14.4/index.ts`.
 - **`Deno` and `EdgeRuntime` are ambient globals** — `declare const` them locally (mirror existing files) rather than reaching for `@types`.
-- **Env comes from docker-compose**, forwarded to every worker by the dispatcher. Available: `SUPABASE_URL` (=`http://kong:8000` internally), `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `JWT_SECRET`, `VERIFY_JWT`, plus per-function vars (`KESTRA_BASE_URL`, `KESTRA_USER`, `KESTRA_PASSWORD`, `NETMAKER_BASE_URL`, `NETMAKER_MASTER_KEY`). Read via `Deno.env.get('NAME')`.
-- **Secrets are not hardcoded.** Credential vars (`KESTRA_USER`/`KESTRA_PASSWORD`, `NETMAKER_MASTER_KEY`, service-role/JWT keys) come from `supabase/.env`, which is **rendered from `secrets/supabase.enc.env` (SOPS+age, decision-014)** — there are no in-code fallback defaults for secrets. Fail loudly (throw / 500) if a required secret env var is missing; never inline a real credential. See decision-014 for the rotation runbook.
+- **Env comes from the `supabase-env` Secret** (`envFrom` on the functions Deployment), forwarded to every worker by the dispatcher. Available: `SUPABASE_URL` (=`http://kong:8000` internally), `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`, `JWT_SECRET`, `VERIFY_JWT`, plus per-function vars (`NETMAKER_BASE_URL`, `NETMAKER_MASTER_KEY`, …). Read via `Deno.env.get('NAME')`.
+- **Secrets are not hardcoded.** Credential vars (`NETMAKER_MASTER_KEY`, service-role/JWT keys) live in **`secrets/supabase.enc.env` (SOPS+age, decision-014)**, which `deploy/kind/bootstrap.sh make_secrets` turns into the `supabase-env` Secret — there are no in-code fallback defaults for secrets. Fail loudly (throw / 500) if a required secret env var is missing; never inline a real credential. See decision-014 for the rotation runbook.
 - Use `SUPABASE_SERVICE_ROLE_KEY` for server-side writes that bypass RLS; anon key only for user-scoped access.
 
-### Adding/changing an env var — restart ≠ recreate (this bites people)
-- **Code edit** → `docker compose restart functions` (the runtime caches modules; a restart clears it).
-- **New/changed env var or compose change** → you must edit **both** `supabase/docker-compose.yml` (the `functions:` `environment:` block) **and** `supabase/.env`, then **recreate**: `docker compose up -d functions`. A plain `restart` does **not** re-read env. (`.env` is gitignored and **rendered from `secrets/supabase.enc.env`** — for a new *secret* var, add it there too; do **not** add a real-credential fallback in code. Document the var in the function's CLAUDE.md.)
+### Shipping a code change or a new env var (on k8s)
+The functions code is **baked into an image**, not bind-mounted, so a code edit needs a rebuild:
+- **Code edit** → `deploy/kind/bootstrap.sh functions` (re-builds `iotgw-functions:local` + `kind load`s it), then `kubectl -n iotgw rollout restart deploy/functions`.
+- **New/changed env var** → edit `secrets/supabase.enc.env` (`just secrets-edit supabase`), then re-create the Secret and roll the deployment: `deploy/kind/bootstrap.sh secrets && kubectl -n iotgw rollout restart deploy/functions`. For a new *secret* var, add it to `secrets/supabase.enc.env` only — do **not** add a real-credential fallback in code. Document the var in the function's CLAUDE.md.
 
 ## The `main` Dispatcher
 
@@ -76,35 +77,39 @@ When a function must call an external service (Netmaker, KMS, Kestra), do **not*
 
 ## Verify Like This — the DB is the source of truth (NEVER trust the 202)
 
-A function returning 202 only means the request was accepted. To actually confirm it worked, trace the chain in the DB. `psql` into the running container (use `docker exec -i` when piping a file/heredoc — without `-i`, stdin is dropped and it silently no-ops):
+A function returning 202 only means the request was accepted. To actually confirm it worked, trace the chain in the DB. The Postgres tier is a **StackGres** SGCluster (`supabase-db`, decision-018) — `psql` into the primary pod's `patroni` container (resolve it once; use `kubectl exec -i` when piping a file/heredoc — without `-i`, stdin is dropped and it silently no-ops):
 
 ```bash
+# Resolve the StackGres primary pod (role=master in 1.x; falls back to supabase-db-0)
+PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' -o jsonpath='{.items[0].metadata.name}')
+
 # 1. Did the trigger even fire, and what did the function reply? (pg_net response log)
-docker exec supabase-db psql -U postgres -d postgres -x -c \
+kubectl -n iotgw exec "$PG" -c patroni -- psql -U postgres -d postgres -x -c \
   "select id,status_code,left(coalesce(content::text,error_msg),200),created from net._http_response order by created desc limit 5;"
 
 # 2. Which function does the table's webhook currently point at?
-docker exec supabase-db psql -U postgres -d postgres -tAc \
+kubectl -n iotgw exec "$PG" -c patroni -- psql -U postgres -d postgres -tAc \
   "select tgname, pg_get_triggerdef(oid) from pg_trigger where tgrelid='public.devices'::regclass and not tgisinternal;"
 
 # 3. Job lifecycle + the failure reason
-docker exec supabase-db psql -U postgres -d postgres -x -c \
+kubectl -n iotgw exec "$PG" -c patroni -- psql -U postgres -d postgres -x -c \
   "select execution_id,status,error_message,started_at,completed_at from device_jobs where device_id='<uuid>' order by started_at desc;"
 
 # 4. Did the write-back land? (keys/IP on the row, the external resource)
-docker exec supabase-db psql -U postgres -d postgres -x -c \
+kubectl -n iotgw exec "$PG" -c patroni -- psql -U postgres -d postgres -x -c \
   "select name,ip_address,(private_key is not null) as has_keys from devices where id='<uuid>';"
 
 # Function logs (transaction-id prefixed)
-docker compose logs -f supabase-edge-functions
+kubectl -n iotgw logs -f deploy/functions
 ```
 A `device_jobs.status = FAILED` with a clear `error_message` means the chain is wired correctly and the failure is downstream (often the external service) — distinguish that from "no job row / no `net._http_response`," which means the trigger never fired (wrong/disabled trigger, function not reachable, stack down).
 
-### Applying a migration to the running DB
+### Applying a migration to the cluster DB
 ```bash
-docker exec -i supabase-db psql -U postgres -d postgres < iotgw-ui/supabase/migrations/<file>.sql
+PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' -o jsonpath='{.items[0].metadata.name}')
+kubectl -n iotgw exec -i "$PG" -c patroni -- psql -U postgres -d postgres -v ON_ERROR_STOP=1 < iotgw-ui/supabase/migrations/<file>.sql
 ```
-(or `pnpm db:migrate` from `iotgw-ui/`). Add the migration file as the source of truth AND apply it so your change takes effect.
+(`deploy/kind/bootstrap.sh migrate` applies the full migration set idempotently and nudges PostgREST.) Add the migration file as the source of truth AND apply it so your change takes effect.
 
 ### Testing against real external services — self-cleaning
 Edge functions hit the **real** Kestra/KMS/Netmaker dev services; a careless test creates real WireGuard extclients or KMS keys. Prefer a synthetic webhook via curl with a throwaway UUID, then **clean up**:
@@ -129,4 +134,4 @@ Mark test rows obviously (`zz-…`), delete them and their `device_jobs` rows, a
 - **`netmaker-call/`** — the **LIVE** target for the `devices` **and** `networks` webhooks: direct-external-API template (webhook → Netmaker REST → write back). This is the template to copy for new provisioning seams. **`kestra-call/`** — **LEGACY** for device/network provisioning (that hop moved to `netmaker-call`); kept as the orchestration template (webhook → Kestra → Ansible, poll logs, write back) and still the pattern for Kestra-driven flows (install/provisioning/connectivity — OpenWRT + SSH keys via Cosmian KMS). Confirm the table's current trigger before assuming which one fires (see the `pg_get_triggerdef` check above). **`main/`** — dispatcher. **`vpn/`** — TOTP. Copy the closest one's skeleton.
 - Never edit `kestra-call.old/` (deprecated) or anything under `supabase-2025-10-20/` (snapshot/backup).
 - Don't change a webhook contract or the 202-immediate-return without confirming downstream UI polling + DB triggers still align (doc-016, doc-010, doc-013).
-- Run `docker compose` only from `supabase/`. Don't fabricate the network/job-table shapes — read the migration or `\d <table>` first.
+- Operate the stack via the k8s workflow (`just bootstrap`, `deploy/kind/bootstrap.sh functions` + `kubectl rollout restart deploy/functions`) — there is no compose runtime. Don't fabricate the network/job-table shapes — read the migration or `\d <table>` first.

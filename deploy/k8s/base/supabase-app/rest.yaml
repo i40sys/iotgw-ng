@@ -36,8 +36,11 @@ spec:
             # k8s expands $(PGRST_PW) using a var defined earlier in this list.
             - name: PGRST_DB_URI
               value: postgres://authenticator:$(PGRST_PW)@supabase-db:5432/postgres
+            # Trimmed to `public` (decision-018): storage + graphql_public
+            # services/schemas are not deployed (grep-confirmed unused), and
+            # leaving them here makes PostgREST warn/fail resolving them.
             - name: PGRST_DB_SCHEMAS
-              value: public,storage,graphql_public
+              value: public
             - name: PGRST_DB_ANON_ROLE
               value: anon
             - name: PGRST_JWT_SECRET

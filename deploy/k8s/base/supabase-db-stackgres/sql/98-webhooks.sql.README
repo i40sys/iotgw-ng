@@ -1,0 +1,5 @@
+98-webhooks.sql here is a COPY of ../../supabase-db/initdb/98-webhooks.sql
+(kustomize configMapGenerator cannot reference files outside its own directory
+under the default load restrictor). Keep the two in sync until the supabase-db
+StatefulSet (the NO-GO fallback, decision-018) is removed, after which this
+becomes the single source.

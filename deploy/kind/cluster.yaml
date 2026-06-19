@@ -1,9 +1,10 @@
-# kind cluster for local iotgw-ng testing.
+# kind cluster for local iotgw-ng testing. This is the platform's only runtime —
+# docker-compose was decommissioned (decision-017).
 # One control-plane node. Host ports are mapped so the platform is reachable on
-# wsl.ymbihq.local exactly like the docker-compose stacks were:
-#   80/443  -> ingress-nginx (Kong/Studio/whoami via Ingress)
-#   30000+  -> NodePorts for raw-TCP services (supavisor, kestra, kms)
-# All compose stacks are DOWN before using kind so these host ports are free.
+# wsl.ymbihq.local on the conventional ports:
+#   80/443  -> ingress-nginx (whoami/iotgw-ui via Ingress)
+#   30000+  -> NodePorts for raw-TCP services (Kong :8000, StackGres Postgres
+#              :5432, kestra :8080, kms :9998)
 apiVersion: kind.x-k8s.io/v1alpha4
 kind: Cluster
 name: iotgw
@@ -43,4 +44,12 @@ nodes:
       # Cosmian KMS (NodePort 30998)
       - containerPort: 30998
         hostPort: 9998
+        protocol: TCP
+      # iotgw-ui frontend (NodePort 30517) — host :5173
+      - containerPort: 30517
+        hostPort: 5173
+        protocol: TCP
+      # iotgw-ui backend / tRPC+WS (NodePort 30444) — host :4444
+      - containerPort: 30444
+        hostPort: 4444
         protocol: TCP

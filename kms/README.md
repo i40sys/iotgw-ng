@@ -6,8 +6,7 @@ A comprehensive Proof of Concept demonstrating key management capabilities using
 
 - **SSH Key Management** - Generate, store, export, and convert Ed25519/RSA keys
 - **X.509 PKI** - Complete certificate lifecycle: CA creation, server/client certificates, PKCS#12 bundles
-- **Docker-Based Deployment** - Containerized KMS with persistent SQLite storage
-- **Automated Testing** - Isolated Docker environment for SSH authentication validation
+- **Kubernetes Deployment** - The KMS runs on the kind cluster (`deploy/k8s/base/kms/`) with persistent SQLite storage on a PVC; docker-compose was decommissioned (`decision-017`)
 - **Format Conversion** - Bidirectional PKCS8 ↔ OpenSSH key format conversion
 
 ## Architecture
@@ -16,8 +15,7 @@ A comprehensive Proof of Concept demonstrating key management capabilities using
 kms/
 ├── pyproject.toml              # Python project (uv) with dependencies
 ├── .pre-commit-config.yaml     # Git hooks (ruff + commitizen)
-├── docker-compose.yml          # Main KMS service orchestration
-├── kms.toml                    # KMS server configuration
+├── kms.toml                    # KMS server configuration (mounted via the k8s ConfigMap)
 ├── .env.example                # Environment variables template
 ├── VERSION                     # Project version
 ├── data/                       # Persistent KMS database
@@ -30,16 +28,6 @@ kms/
 ├── contrib/                    # CLI binaries and tools
 │   ├── README.md               # CLI documentation and upgrade guide
 │   └── cosmian                 # Cosmian CLI (v1.9.0)
-│
-├── ssh-test/                   # SSH Key Management PoC
-│   ├── README.md               # SSH workflow documentation
-│   └── docker-test/            # Automated SSH testing
-│       ├── README.md           # SSH test documentation
-│       ├── docker-compose.yml  # SSH server/client services
-│       ├── Dockerfile.sshd     # SSH server image
-│       ├── Dockerfile.client   # SSH client image
-│       ├── test-ssh-keys.sh    # Test orchestration script
-│       └── keys/               # Generated SSH keys
 │
 └── pki-test/                   # X.509 Certificate PoC
     ├── README.md               # PKI workflow documentation
@@ -54,45 +42,41 @@ kms/
 | Document | Description |
 |----------|-------------|
 | [contrib/README.md](contrib/README.md) | CLI binaries, upgrade instructions, command reference |
-| [ssh-test/README.md](ssh-test/README.md) | SSH key management workflow and examples |
-| [ssh-test/docker-test/README.md](ssh-test/docker-test/README.md) | Automated SSH authentication testing |
 | [pki-test/README.md](pki-test/README.md) | X.509 PKI certificate lifecycle guide |
 
 ## Prerequisites
 
-- Docker 20.10+
-- Docker Compose 2.0+
+- A running kind cluster with the platform deployed (`just bootstrap` from the repo root) — the KMS runs on it
+- Docker + kubectl + kind (for the cluster)
 - Python 3.10+ (for SSH key conversion tools)
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
 
 ## Quick Start
 
-### 1. Setup Environment
+### 1. Bring the KMS up on the cluster
+
+The KMS is deployed as part of the platform (it is not a standalone compose stack
+anymore — `decision-017`):
 
 ```bash
-cd kms
-cp .env.example .env
-# Edit .env if needed
+# from the repo root
+just bootstrap                                       # kind-up + k8s-deploy + k8s-smoke
+kubectl -n iotgw rollout status deploy/cosmian-kms   # KMS Ready?
 ```
 
-### 2. Start the KMS Service
+### 2. Verify the Service
 
 ```bash
-docker-compose up -d
-```
-
-### 3. Verify the Service
-
-```bash
-# Health check
-curl http://localhost:9998/health
-
-# View logs
-docker-compose logs -f cosmian-kms
-
-# Check server version via CLI
+# Health check / logs / version
+kubectl -n iotgw logs -f deploy/cosmian-kms
 cosmian kms server-version
 ```
+
+> **Auth + NetworkPolicy (task-057):** on the cluster the KMS requires an
+> API-token bearer and a NetworkPolicy restricts `:9998` to in-namespace clients,
+> so the host `:9998` NodePort is blocked — the KMS is reached in-cluster (see the
+> security note in [CLAUDE.md](CLAUDE.md)). CLI calls below assume an in-cluster /
+> port-forwarded path with the token presented as `Authorization: Bearer <token>`.
 
 > **Note**: Add `contrib/` to your PATH or use `./contrib/cosmian` for CLI commands.
 
@@ -152,7 +136,9 @@ cosmian kms locate -t ssh-key
 
 ## SSH Key Management
 
-Generate and manage SSH keys using KMS with full format conversion support. See [ssh-test/README.md](ssh-test/README.md) for complete documentation.
+Generate and manage SSH keys using the KMS with full format conversion support.
+In the platform, the iotgw-ui backend mints per-device SSH keys directly in the
+KMS (decision-010 / task-060); the CLI flow below is for manual/local use.
 
 ### Quick Example
 
@@ -164,17 +150,8 @@ cosmian kms ec keys create -t ssh-key-ed25519 --curve ed25519 my_ssh_key
 cosmian kms ec keys export -t ssh-key-ed25519 -f pem ed25519_pkcs8.pem
 
 # Convert to OpenSSH format (using uv)
-uv run convert-keys pkcs8-to-ssh ed25519_pkcs8.pem ./ssh-test/docker-test/keys/id_ed25519
+uv run convert-keys pkcs8-to-ssh ed25519_pkcs8.pem ./id_ed25519
 ```
-
-### Run SSH Tests
-
-```bash
-cd ssh-test/docker-test
-./test-ssh-keys.sh test
-```
-
-See [ssh-test/docker-test/README.md](ssh-test/docker-test/README.md) for test details.
 
 ## X.509 Certificate Management
 
@@ -226,12 +203,15 @@ sqlite_path = "/cosmian-kms/sqlite-data/kms.db"
 
 ### Modify Configuration
 
+`kms.toml` is delivered to the pod via the k8s ConfigMap (`deploy/k8s/base/kms/`):
+
 ```bash
 # Edit configuration
 vim kms.toml
 
-# Restart service
-docker-compose restart cosmian-kms
+# Re-apply the manifests and roll the deployment so the pod picks up the change
+kubectl apply -k deploy/k8s/overlays/kind
+kubectl -n iotgw rollout restart deploy/cosmian-kms
 ```
 
 ## Supported Algorithms
@@ -244,47 +224,22 @@ docker-compose restart cosmian-kms
 
 ## Service Management
 
-```bash
-# Start service
-docker-compose up -d
-
-# Stop service
-docker-compose down
-
-# Stop and remove data
-docker-compose down -v
-
-# View logs
-docker-compose logs -f cosmian-kms
-
-# Restart service
-docker-compose restart cosmian-kms
-```
-
-## Testing Infrastructure
-
-The project includes Docker-based testing for SSH authentication. See [ssh-test/docker-test/README.md](ssh-test/docker-test/README.md) for details.
+The KMS is managed as a k8s workload on the kind cluster (use the **k8s-operator**
+agent for cluster ops):
 
 ```bash
-cd ssh-test/docker-test
+# Bring the platform (incl. KMS) up / tear it down
+just bootstrap                                       # up
+just kind-down                                       # tear the whole cluster down
 
-# Run full test suite (generate keys, build containers, test SSH)
-./test-ssh-keys.sh test
-
-# Individual commands
-./test-ssh-keys.sh generate  # Generate keys only
-./test-ssh-keys.sh start     # Start test containers
-./test-ssh-keys.sh stop      # Stop and cleanup
-./test-ssh-keys.sh clean     # Full cleanup including images
+# Status / logs / restart
+kubectl -n iotgw get pods -l app=cosmian-kms
+kubectl -n iotgw logs -f deploy/cosmian-kms
+kubectl -n iotgw rollout restart deploy/cosmian-kms
 ```
 
-### Test Scenarios
-
-1. **Ed25519 Authentication** - SSH login using Ed25519 key
-2. **RSA Authentication** - SSH login using RSA 4096 key
-3. **Remote Command Execution** - Execute commands via SSH
-4. **File Transfer** - SCP file operations
-5. **Invalid Key Rejection** - Security validation
+> The KMS SQLite data lives on a PVC; deleting the cluster (`just kind-down`)
+> discards it (kind storage is throwaway).
 
 ## Security Considerations
 
@@ -319,14 +274,14 @@ jwt_issuer = "https://your-auth-provider.com"
 
 ## Troubleshooting
 
-### Container Won't Start
+### Pod Won't Start
 
 ```bash
-# Check if port is in use
-netstat -tuln | grep 9998
+# Inspect scheduling / image-pull / mount events
+kubectl -n iotgw describe pod -l app=cosmian-kms
 
 # Check logs
-docker-compose logs cosmian-kms
+kubectl -n iotgw logs deploy/cosmian-kms
 ```
 
 ### Permission Issues
@@ -418,7 +373,7 @@ Current version: **0.2.0**
 
 | Component | Version |
 |-----------|---------|
-| Cosmian KMS Server | 5.9.0 (Docker) |
+| Cosmian KMS Server | 5.20.0 (`ghcr.io/cosmian/kms:5.20.0`, on kind) |
 | Cosmian CLI | 1.9.0 |
 
 ## Upgrading CLI

@@ -43,7 +43,7 @@ Use your own tools (Read, Glob, Grep, Bash) — not codex — to collect:
 - The relevant `CLAUDE.md` (root + subproject + nested as applicable).
 - `package.json` / `pyproject.toml` / `Cargo.toml` / `go.mod` for stack, scripts, deps.
 - Entry points: `src/server.ts`, `src/main.*`, `index.*`, route files.
-- Config files: `.env.example`, `docker-compose.yml`, `Dockerfile`, `vite.config.*`, `tsconfig.json`.
+- Config files: `.env.example`, `Dockerfile`, k8s manifests (`deploy/k8s/**`), `vite.config.*`, `tsconfig.json`.
 - Existing docs in the same subproject (`backlog/docs/`, `backlog/decisions/` for `iotgw-ui`).
 - The existing README if present (so codex can refresh, not duplicate, content).
 - Recent commits in that subproject (`git -C <subproject> log --oneline -n 20`) for what shipped recently.

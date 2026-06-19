@@ -1,0 +1,32 @@
+# SGCluster — the StackGres-managed Postgres that replaces the supabase-db
+# StatefulSet (decision-018). Named `supabase-db` so its primary Service is
+# `supabase-db` — the app tier's existing `supabase-db:5432` references resolve
+# to the StackGres primary with no change.
+#
+# - disableConnectionPooling: true → :5432 hits Postgres DIRECTLY (decision-018:
+#   the app tier uses the direct primary; PgBouncer/transaction-pooling is opt-in
+#   only and would change prepared-statement / SET ROLE semantics).
+# - pg_net declared as an extension (StackGres downloads the .so at pod start).
+# - prod: bump `instances` to >=2 (HA) and wire backups (see backup.yaml).
+apiVersion: stackgres.io/v1
+kind: SGCluster
+metadata:
+  name: supabase-db
+spec:
+  instances: 1
+  postgres:
+    version: "15"
+    extensions:
+      - name: pg_net
+  sgInstanceProfile: supabase-db-profile
+  pods:
+    persistentVolume:
+      size: 10Gi
+    disableConnectionPooling: true
+  configurations:
+    sgPostgresConfig: supabase-db-pgconfig
+  managedSql:
+    scripts:
+      - sgScript: supabase-initdb
+  nonProductionOptions:
+    disableClusterPodAntiAffinity: true
