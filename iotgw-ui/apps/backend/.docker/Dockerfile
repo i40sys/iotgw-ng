@@ -10,14 +10,16 @@ WORKDIR /app
 # Copy root package.json and workspace files
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 
-# Copy the backend package.json
+# Copy workspace package.json files (needed for pnpm workspaces resolution)
 COPY apps/backend/package.json ./apps/backend/
+COPY packages/supabase-contract/package.json ./packages/supabase-contract/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy backend source code
+# Copy backend source code and the supabase-contract package source (needed at build)
 COPY apps/backend ./apps/backend/
+COPY packages/supabase-contract ./packages/supabase-contract/
 COPY tsconfig.json ./
 
 # Build the application
@@ -35,6 +37,7 @@ RUN corepack enable && corepack prepare pnpm@10.6.3 --activate
 # Copy package.json files
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/backend/package.json ./apps/backend/
+COPY packages/supabase-contract/package.json ./packages/supabase-contract/
 
 # Install only production dependencies
 RUN pnpm install --frozen-lockfile

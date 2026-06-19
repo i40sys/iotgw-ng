@@ -3,12 +3,33 @@ id: decision-010
 title: SSH Key Management with Cosmian KMS
 type: other
 created_date: '2026-02-26 06:16'
+updated_date: '2026-06-17'
 ---
 # SSH Key Management with Cosmian KMS
 
 ## Status
 
-**Proposed** | Date: 2026-02-26
+**Accepted (amended)** | Date: 2026-02-26 | Amended: 2026-06-17
+
+> **Amendment (2026-06-17, task-060).** The original design placed SSH-key
+> **generation** in the Kestra `devices` workflow (triggered via the
+> `kestra-call` edge function). That hop is gone: device/network provisioning
+> moved to the `netmaker-call` edge function, and the legacy Kestra
+> `devices`/`networks` flows were removed. **SSH-key generation now happens
+> directly in the iotgw-ui backend** (`apps/backend/src/services/kms.ts`),
+> which talks to Cosmian KMS over its **KMIP 2.1 JSON REST API**
+> (`POST <KMS_URL>/kmip/2_1`) and derives the OpenSSH public key locally with
+> `node:crypto` — no `cosmian` CLI binary and no Python `convert_keys.py` in the
+> backend runtime. Generation runs **automatically when a device is created**
+> (`createDevice`, best-effort: a KMS failure leaves the device without a key
+> rather than failing creation) and on demand via `generateMissingSshKey`
+> (backfill / `force` regenerate). `KMS_URL` is env-sourced from `secrets/`
+> (decision-014); the KMS has no auth in dev (the client is auth-header-ready).
+> Key **deployment** to the device (export → OpenSSH → push) is **unchanged** —
+> it stays in the install/provisioning Kestra flows (Ansible to the gateway).
+> The "Key Generation (Kestra Workflow)" section below is therefore superseded
+> for the generation step; the tagging convention and `device_ssh_<id>` id
+> format are retained.
 
 ## Context
 

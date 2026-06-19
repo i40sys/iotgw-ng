@@ -4,6 +4,13 @@ description: Set up real-time subscriptions for database tables
 
 # Setup Realtime Subscriptions Skill
 
+> **Note:** Supabase **realtime is intentionally not deployed** in the current
+> k8s stack (decision-018 §4) — there is no `realtime` Deployment to talk to, so
+> the live subscription path below will not work as-is on the deployed cluster.
+> The conceptual content (publications, RLS, client patterns) is kept for
+> reference and for the case where realtime is later deployed. Wherever a command
+> would have targeted the realtime service, that is called out inline.
+
 You are helping set up real-time subscriptions for Supabase tables. Follow these steps:
 
 1. **Understand requirements**:
@@ -14,9 +21,10 @@ You are helping set up real-time subscriptions for Supabase tables. Follow these
 
 2. **Enable realtime for table**:
 
-   Connect to database:
+   Connect to database (StackGres SGCluster `supabase-db`):
    ```bash
-   docker exec -it supabase-db psql -U postgres -d postgres
+   PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' -o jsonpath='{.items[0].metadata.name}')
+   kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres
    ```
 
    Enable realtime publication:
@@ -253,22 +261,26 @@ You are helping set up real-time subscriptions for Supabase tables. Follow these
 9. **Test realtime**:
 
    ```bash
-   # In one terminal, tail the realtime logs
-   docker compose logs -f realtime-dev.supabase-realtime
+   # In one terminal, tail the realtime logs.
+   # NOTE: realtime is NOT deployed on this cluster (decision-018 §4). If it
+   # were deployed, its logs would be: kubectl -n iotgw logs -f deploy/realtime
 
    # In another terminal, insert data
-   docker exec -it supabase-db psql -U postgres -d postgres -c \
+   PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' -o jsonpath='{.items[0].metadata.name}')
+   kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres -c \
      "INSERT INTO public.your_table (name) VALUES ('test');"
 
-   # Check if the change is broadcasted
+   # Check if the change is broadcasted (only once realtime is deployed)
    ```
 
 10. **Debugging realtime**:
 
     Check realtime service:
     ```bash
-    docker compose ps realtime-dev.supabase-realtime
-    docker compose logs realtime-dev.supabase-realtime
+    # realtime is NOT deployed on this cluster (decision-018 §4). If it were
+    # deployed, you would inspect it with:
+    #   kubectl -n iotgw get pods -l app=realtime
+    #   kubectl -n iotgw logs deploy/realtime
     ```
 
     Verify publication:

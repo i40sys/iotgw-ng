@@ -1,0 +1,38 @@
+# SPIKE artifact for TASK-062.16 — an in-cluster HTTP target for net.http_post.
+# Uses traefik/whoami (already present in the cluster, no egress needed). A POST
+# to http://echo.sg-spike.svc.cluster.local/ returns 200, which pg_net records
+# in net._http_response — proving the bgworker can egress to an in-cluster
+# Service (the same path the real webhook uses to reach kong/functions).
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo
+  namespace: sg-spike
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: echo
+  template:
+    metadata:
+      labels:
+        app: echo
+    spec:
+      containers:
+        - name: whoami
+          image: traefik/whoami:v1.10.2
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo
+  namespace: sg-spike
+spec:
+  selector:
+    app: echo
+  ports:
+    - port: 80
+      targetPort: 80

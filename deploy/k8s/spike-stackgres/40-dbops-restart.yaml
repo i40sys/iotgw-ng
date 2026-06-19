@@ -1,0 +1,13 @@
+# SPIKE artifact for TASK-062.16 — roll the cluster so the updated
+# shared_preload_libraries (now incl. pg_net) takes effect. InPlace because the
+# spike runs a single instance.
+apiVersion: stackgres.io/v1
+kind: SGDbOps
+metadata:
+  name: restart-pgnet
+  namespace: sg-spike
+spec:
+  sgCluster: supabase-db
+  op: restart
+  restart:
+    method: InPlace

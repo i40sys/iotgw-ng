@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Supabase application tier (the API path) — the trimmed stateless set:
+# kong (API gateway), rest (PostgREST), auth (GoTrue), meta, functions (edge).
+# Validated on kind by TASK-062.04 against the StackGres SGCluster (decision-018).
+# Pulled in by both the kind and prod overlays. Requires the supabase-env Secret
+# and the StackGres-managed `supabase-db` primary Service (direct primary; the
+# PgBouncer/supavisor pooler is opt-in and NOT deployed — clients use :5432).
+# The remaining data-plane services (realtime/storage/imgproxy/studio/analytics/
+# supavisor/vector) are intentionally NOT deployed (decision-018 §4: grep-confirmed
+# unused) — PGRST_DB_SCHEMAS is trimmed to `public` accordingly (rest.yaml).
+resources:
+  - meta.yaml
+  - rest.yaml
+  - auth.yaml
+  - kong.yaml
+  - functions.yaml
+  - ingress-kong.yaml

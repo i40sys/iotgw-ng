@@ -1,0 +1,148 @@
+# SPIKE artifact for TASK-062.16 — the Supabase initdb ported to an SGScript,
+# run by StackGres as the cluster superuser BEFORE the app connects. This is the
+# proof that our privileged init (roles, pg_net, supabase_functions schema +
+# SECURITY DEFINER trigger fn + event trigger, jwt GUC) reproduces under a
+# StackGres-managed Patroni runtime. task-056 will harden this from the real
+# supabase/volumes/db/*.sql; here it is a faithful, self-contained subset.
+---
+apiVersion: stackgres.io/v1
+kind: SGScript
+metadata:
+  name: supabase-initdb
+  namespace: sg-spike
+spec:
+  managedVersions: true
+  continueOnError: false
+  scripts:
+    - name: 00-roles
+      script: |
+        -- Supabase application roles. StackGres stock PG does not bake them
+        -- (only the supabase/postgres image does), so the SGScript must create
+        -- them. Reconcile exact attributes against supabase/volumes/db/roles.sql
+        -- in task-056; this is the spike shape.
+        DO $$ BEGIN
+          IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='anon') THEN
+            CREATE ROLE anon NOLOGIN NOINHERIT; END IF;
+          IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='authenticated') THEN
+            CREATE ROLE authenticated NOLOGIN NOINHERIT; END IF;
+          IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='service_role') THEN
+            CREATE ROLE service_role NOLOGIN NOINHERIT BYPASSRLS; END IF;
+          IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='supabase_admin') THEN
+            CREATE ROLE supabase_admin LOGIN CREATEROLE CREATEDB REPLICATION BYPASSRLS; END IF;
+          IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='supabase_functions_admin') THEN
+            CREATE ROLE supabase_functions_admin NOLOGIN CREATEROLE; END IF;
+        END $$;
+        -- authenticator: StackGres's managed PgBouncer pre-provisions a role of
+        -- this name. Reset it to the Supabase shape: NOINHERIT, LOGIN,
+        -- low-privilege (NOT superuser — the OnGres example wrongly grants
+        -- SUPERUSER; we deliberately do not).
+        DO $$ BEGIN
+          IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='authenticator') THEN
+            CREATE ROLE authenticator LOGIN NOINHERIT PASSWORD 'spike-authenticator-pw';
+          ELSE
+            ALTER ROLE authenticator WITH LOGIN NOINHERIT NOSUPERUSER;
+          END IF;
+        END $$;
+        GRANT anon, authenticated, service_role TO authenticator;
+    - name: 10-extensions
+      script: |
+        CREATE SCHEMA IF NOT EXISTS extensions;
+        CREATE EXTENSION IF NOT EXISTS pg_net SCHEMA extensions;
+    - name: 20-supabase-functions-webhooks
+      script: |
+        -- Ported from supabase/volumes/db/webhooks.sql (the pg_net webhook
+        -- plumbing the device/network -> netmaker-call chain depends on).
+        CREATE SCHEMA IF NOT EXISTS supabase_functions AUTHORIZATION supabase_admin;
+        GRANT USAGE ON SCHEMA supabase_functions TO postgres, anon, authenticated, service_role;
+        -- SPIKE FINDING: the SECURITY DEFINER http_request() runs as
+        -- supabase_functions_admin, so that role needs full access to its own
+        -- schema/objects (the real webhooks.sql achieves this via ownership).
+        GRANT ALL ON SCHEMA supabase_functions TO supabase_functions_admin;
+
+        -- Re-grant access to pg_net's net.http_* to the supabase roles.
+        GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+        GRANT EXECUTE ON FUNCTION net.http_get(text, jsonb, jsonb, integer)
+          TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+        GRANT EXECUTE ON FUNCTION net.http_post(text, jsonb, jsonb, jsonb, integer)
+          TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+        -- SPIKE FINDING (critical): net.http_get/http_post MUST be SECURITY
+        -- DEFINER so the INSERT into net.http_request_queue runs as pg_net's
+        -- owner. Without this the webhook trigger fails 'permission denied for
+        -- table http_request_queue'. This is in the real webhooks.sql.
+        ALTER FUNCTION net.http_get(text, jsonb, jsonb, integer) SECURITY DEFINER;
+        ALTER FUNCTION net.http_get(text, jsonb, jsonb, integer) SET search_path = net;
+        ALTER FUNCTION net.http_post(text, jsonb, jsonb, jsonb, integer) SECURITY DEFINER;
+        ALTER FUNCTION net.http_post(text, jsonb, jsonb, jsonb, integer) SET search_path = net;
+
+        CREATE OR REPLACE FUNCTION supabase_functions.http_request()
+          RETURNS trigger
+          LANGUAGE plpgsql
+          SECURITY DEFINER
+          SET search_path = supabase_functions
+          AS $function$
+            DECLARE
+              request_id bigint;
+              payload jsonb;
+              url text := TG_ARGV[0]::text;
+              method text := TG_ARGV[1]::text;
+              headers jsonb DEFAULT '{}'::jsonb;
+              params jsonb DEFAULT '{}'::jsonb;
+              timeout_ms integer DEFAULT 1000;
+            BEGIN
+              IF url IS NULL OR url = 'null' THEN RAISE EXCEPTION 'url argument is missing'; END IF;
+              IF method IS NULL OR method = 'null' THEN RAISE EXCEPTION 'method argument is missing'; END IF;
+              IF TG_ARGV[2] IS NULL OR TG_ARGV[2] = 'null' THEN headers = '{"Content-Type":"application/json"}'::jsonb; ELSE headers = TG_ARGV[2]::jsonb; END IF;
+              IF TG_ARGV[3] IS NULL OR TG_ARGV[3] = 'null' THEN params = '{}'::jsonb; ELSE params = TG_ARGV[3]::jsonb; END IF;
+              IF TG_ARGV[4] IS NULL OR TG_ARGV[4] = 'null' THEN timeout_ms = 1000; ELSE timeout_ms = TG_ARGV[4]::integer; END IF;
+              IF method = 'GET' THEN
+                SELECT net.http_get(url, params, headers, timeout_ms) INTO request_id;
+              ELSIF method = 'POST' THEN
+                payload = jsonb_build_object('old_record', OLD, 'record', NEW, 'type', TG_OP, 'table', TG_TABLE_NAME, 'schema', TG_TABLE_SCHEMA);
+                SELECT net.http_post(url, payload, params, headers, timeout_ms) INTO request_id;
+              ELSE
+                RAISE EXCEPTION 'method argument % is invalid', method;
+              END IF;
+              INSERT INTO supabase_functions.hooks (hook_table_id, hook_name, request_id)
+                VALUES (TG_RELID, TG_NAME, request_id);
+              RETURN NEW;
+            END
+          $function$;
+        ALTER FUNCTION supabase_functions.http_request() OWNER TO supabase_functions_admin;
+
+        CREATE TABLE IF NOT EXISTS supabase_functions.hooks (
+          id bigserial PRIMARY KEY,
+          hook_table_id integer NOT NULL,
+          hook_name text NOT NULL,
+          created_at timestamptz NOT NULL DEFAULT now(),
+          request_id bigint
+        );
+        GRANT EXECUTE ON FUNCTION supabase_functions.http_request() TO postgres, anon, authenticated, service_role;
+        GRANT ALL ON ALL TABLES IN SCHEMA supabase_functions TO supabase_functions_admin;
+        GRANT ALL ON ALL SEQUENCES IN SCHEMA supabase_functions TO supabase_functions_admin;
+
+        -- Event trigger that re-grants net.http_* whenever pg_net is (re)created
+        -- (issue_pg_net_access, ported from webhooks.sql).
+        CREATE OR REPLACE FUNCTION extensions.grant_pg_net_access()
+          RETURNS event_trigger
+          LANGUAGE plpgsql
+          AS $$
+          BEGIN
+            IF EXISTS (SELECT 1 FROM pg_event_trigger_ddl_commands() AS ev
+                       JOIN pg_extension AS ext ON ev.objid = ext.oid
+                       WHERE ext.extname = 'pg_net') THEN
+              GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+              GRANT EXECUTE ON FUNCTION net.http_get(text, jsonb, jsonb, integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+              GRANT EXECUTE ON FUNCTION net.http_post(text, jsonb, jsonb, jsonb, integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+            END IF;
+          END;
+          $$;
+        DROP EVENT TRIGGER IF EXISTS issue_pg_net_access;
+        CREATE EVENT TRIGGER issue_pg_net_access ON ddl_command_end
+          WHEN TAG IN ('CREATE EXTENSION')
+          EXECUTE PROCEDURE extensions.grant_pg_net_access();
+    - name: 30-jwt-guc
+      script: |
+        -- Ported from supabase/volumes/db/jwt.sql (literal values for the spike;
+        -- task-056 sources these from the SOPS-rendered Secret).
+        ALTER DATABASE postgres SET "app.settings.jwt_secret" TO 'spike-jwt-secret-change-me';
+        ALTER DATABASE postgres SET "app.settings.jwt_exp" TO '3600';

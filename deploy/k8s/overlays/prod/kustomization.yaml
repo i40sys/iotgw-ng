@@ -1,0 +1,57 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: iotgw
+
+# Production overlay (SKETCH). Differences from kind:
+#   - includes the full Supabase application tier (supabase-app)
+#   - real Ingress hostnames + TLS instead of NodePorts (add ingress.yaml)
+#   - external/HA Postgres, image registry, resource limits (add patches)
+#   - Secrets re-keyed to a cluster/KMS age recipient (sops updatekeys), then
+#     created the same way: tools/secrets/secrets.sh k8s <name> iotgw <secret>
+# For the full Supabase data plane (realtime/storage/imgproxy/analytics/
+# supavisor/vector) prefer the supabase-kubernetes Helm chart fed from SOPS.
+resources:
+  - ../../base
+  - ../../base/supabase-db-stackgres
+  - ../../base/supabase-app
+  - ../../base/iotgw-ui
+
+# Edge functions: in prod the baked image is published by CI from
+# deploy/k8s/base/supabase-app/Dockerfile.functions to the registry below, with
+# the tag PINNED per release (never :latest). This replaces the base emptyDir
+# placeholder (removed by the patch) — same mechanism as the kind overlay, but a
+# registry pull instead of `kind load`.
+# TODO(task-062.03): set the real registry (Gitea git.oriolrius.cat or
+# ghcr.io/i40sys) and wire the CI build+push. Until then this is
+# authored-not-validated.
+images:
+  - name: supabase/edge-runtime:v1.74.0
+    newName: registry.invalid/iotgw-functions   # <-- set real registry + CI push
+    newTag: REPLACE_WITH_RELEASE_TAG
+
+patches:
+  # Remove the emptyDir placeholder so the baked-in /home/deno/functions is used.
+  - target:
+      kind: Deployment
+      name: functions
+    patch: |-
+      - op: remove
+        path: /spec/template/spec/volumes
+      - op: remove
+        path: /spec/template/spec/containers/0/volumeMounts
+
+  # TLS patches: add wildcard TLS + ssl-redirect to all three Ingresses.
+  # The iotgw-wildcard-tls Secret must exist before deploying this overlay.
+  # Source: kms/pki-test/ certs stored in secrets/traefik-tls.enc.yaml.
+  # Create it out-of-band:
+  #   sops -d secrets/traefik-tls.enc.yaml | python3 -c "
+  #   import sys,yaml; d=yaml.safe_load(sys.stdin)['tls']
+  #   open('/tmp/tls.crt','w').write(d['server_crt'])
+  #   open('/tmp/tls.key','w').write(d['server_key'])" && \
+  #   kubectl create secret tls iotgw-wildcard-tls -n iotgw \
+  #     --cert=/tmp/tls.crt --key=/tmp/tls.key
+  - path: ingress-prod.yaml
+
+# patches (optional — uncomment as layers are added):
+#   - path: patches/resources.yaml         # requests/limits
+#   - path: patches/external-postgres.yaml # point supabase-db/kestra at managed PG

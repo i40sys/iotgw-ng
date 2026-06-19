@@ -1,0 +1,24 @@
+---
+# Small profile for kind; prod overlay should patch to larger requests/limits.
+apiVersion: stackgres.io/v1
+kind: SGInstanceProfile
+metadata:
+  name: supabase-db-profile
+spec:
+  cpu: "500m"
+  memory: "1Gi"
+---
+apiVersion: stackgres.io/v1
+kind: SGPostgresConfig
+metadata:
+  name: supabase-db-pgconfig
+spec:
+  postgresVersion: "15"
+  postgresql.conf:
+    shared_buffers: "256MB"
+    max_connections: "200"
+    # pg_net is a background worker — it must be preloaded. StackGres does NOT
+    # auto-add it (TASK-062.16 spike finding), so we declare it here (retaining
+    # the auto-managed pg_stat_statements + auto_explain). Set at create time so
+    # the bgworker is live on first boot (no SGDbOps restart needed).
+    shared_preload_libraries: "pg_stat_statements, auto_explain, pg_net"

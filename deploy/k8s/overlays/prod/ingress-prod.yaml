@@ -1,0 +1,64 @@
+---
+# ingress-prod.yaml — strategic merge patches that add TLS to the base Ingresses.
+#
+# Applied by the prod overlay as: patches: - path: ingress-prod.yaml
+# These patch the three base Ingress objects (kong, iotgw-ui-frontend,
+# iotgw-ui-backend) to add:
+#   - TLS termination using the iotgw-wildcard-tls Secret
+#   - ssl-redirect annotation (HTTP → HTTPS)
+#
+# TLS source: wildcard cert *.wsl.ymbihq.local minted by kms/pki-test/
+#   Root CA:  kms/pki-test/root_ca.pem
+#   Leaf cert: kms/pki-test/server_cert.pem (SANs: *.wsl.ymbihq.local, localhost, 127.0.0.1)
+#   Private key + cert stored encrypted: secrets/traefik-tls.enc.yaml
+#     keys: tls.server_crt (leaf cert PEM), tls.server_key (private key PEM)
+#   Cert expiry: 2026-10-09 — regenerate via kms/pki-test/create_ca.sh before that date.
+#
+# Provision the TLS Secret before deploying this overlay:
+#   sops -d secrets/traefik-tls.enc.yaml | python3 -c "
+#   import sys, yaml
+#   d = yaml.safe_load(sys.stdin)['tls']
+#   open('/tmp/tls.crt','w').write(d['server_crt'])
+#   open('/tmp/tls.key','w').write(d['server_key'])" && \
+#   kubectl create secret tls iotgw-wildcard-tls -n iotgw \
+#     --cert=/tmp/tls.crt --key=/tmp/tls.key
+
+---
+# Patch: kong Ingress — add TLS
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kong
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  tls:
+    - hosts:
+        - api.wsl.ymbihq.local
+      secretName: iotgw-wildcard-tls
+---
+# Patch: iotgw-ui frontend Ingress — add TLS
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: iotgw-ui-frontend
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  tls:
+    - hosts:
+        - iotgw-ui.wsl.ymbihq.local
+      secretName: iotgw-wildcard-tls
+---
+# Patch: iotgw-ui backend Ingress — add TLS
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: iotgw-ui-backend
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  tls:
+    - hosts:
+        - iotgw-ui-backend.wsl.ymbihq.local
+      secretName: iotgw-wildcard-tls

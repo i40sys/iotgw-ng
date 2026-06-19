@@ -2,7 +2,7 @@
 id: decision-012
 title: Workspace Git Consolidation into a Single Root Repository
 date: '2026-06-08 04:26'
-status: proposed
+status: superseded
 ---
 
 > **⚠️ This is an OPEN / INTERIM decision record, not a finalized ADR.**
@@ -10,6 +10,11 @@ status: proposed
 > captures the unresolved trade-offs that must still be settled before a
 > **final** decision is taken on the workspace's long-term VCS topology.
 > The "Open Questions" section is the part that still needs a human call.
+
+> **Note (superseded):** This interim decision has since been **FINALIZED by
+> decision-013** (monorepo organization, Outcome A) — all 7 open questions are
+> answered there. Secrets handling is covered by decision-014 (SOPS+age) and the
+> Kubernetes migration by decision-015. The content below is retained for history.
 
 ## Context
 
@@ -75,6 +80,12 @@ safety net were produced before any deletion.
 **Current state:** one local repo, 510 files, clean tree, no remote.
 All prior subproject remotes are untouched on their servers.
 
+> **Update (2026-06-17):** a canonical remote now exists — the private Gitea
+> repo `oriolrius/iotgw-ng` (`ssh://git@git.oriolrius.cat:222/oriolrius/iotgw-ng.git`,
+> default branch `main`). All branches were pushed; this resolves open
+> question 4 below in favour of "push it to private Gitea". `BACKUP/git-archives/`
+> remains the reversibility net.
+
 ## Decision (interim)
 
 Adopt — **provisionally** — a single flat root repository at `~/iotgw-ng`
@@ -115,6 +126,8 @@ These are the "worth flagging" items. Each needs an explicit call.
 4. **Root repo has no remote.** The consolidated repo is local-only.
    *Decide:* push it somewhere (GitHub `i40sys/iotgw-ng`? private Gitea?) or
    intentionally keep it local.
+   **Resolved (2026-06-17):** pushed to private Gitea `oriolrius/iotgw-ng`
+   (see the "Current state" update above).
 
 5. **Kestra flow source is outside the root repo.** `kestra/data/.../_files`
    is a root-owned Docker volume and was excluded; its source lives only at

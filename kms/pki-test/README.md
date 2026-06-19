@@ -29,16 +29,19 @@ pki-test/
 
 ### Step 1: Start the Cosmian KMS Service
 
+The KMS runs on the kind cluster (docker-compose was decommissioned — `decision-017`).
+From the repo root:
 ```bash
-cd ..  # Go to kms directory
-docker compose up -d
+just bootstrap                                       # brings the platform (incl. KMS) up
+kubectl -n iotgw rollout status deploy/cosmian-kms
 ```
 
-Verify the service is running:
+Verify the service is running (reach the KMS in-cluster — the host `:9998` is
+blocked by the task-057 NetworkPolicy; port-forward or exec from an allowed pod):
 
 ```bash
-curl http://localhost:9998/version
-# Output: "5.9.0 (OpenSSL 3.2.0 23 Nov 2023)"
+kubectl -n iotgw exec deploy/cosmian-kms -- /bin/sh -c 'curl -s http://localhost:9998/version'
+# Output: e.g. "5.20.0 (...)"
 ```
 
 ### Step 2: Setup CLI

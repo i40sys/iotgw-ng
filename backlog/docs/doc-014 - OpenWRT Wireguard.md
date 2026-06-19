@@ -7,6 +7,8 @@ created_date: "2025-12-04 06:25"
 
 # OpenWRT Wireguard Setup Guide
 
+> **Note:** The `PrivateKey` / `private_key` values below are a redacted placeholder (`REDACTED_EXAMPLE_PRIVATE_KEY_...`). The original was a real device key and is now considered compromised — see `decision-014` (secrets handling/rotation). The example Network ID UUID is illustrative only.
+
 ## wg0.conf
 
 ```bash
@@ -24,7 +26,7 @@ created_date: "2025-12-04 06:25"
 
 [Interface]
 Address = 10.121.101.254/32
-PrivateKey = ***REMOVED-FRAGMENT***5KJmpH7C0EEfMcbDWE/e3gtdncma9kI=
+PrivateKey = REDACTED_EXAMPLE_PRIVATE_KEY_xxxxxxxxxxxxxxxxxxxx=
 MTU = 1420
 
 # DevicePublicKey = FTHRZN/uH/K8VBms86bzGbx6ByLAbHjIIcWLJHx9J0c=
@@ -67,7 +69,7 @@ option masq '1'
 ```bash
 config interface 'wg0'
 option proto 'wireguard'
-option private_key '***REMOVED-FRAGMENT***5KJmpH7C0EEfMcbDWE/e3gtdncma9kI='
+option private_key 'REDACTED_EXAMPLE_PRIVATE_KEY_xxxxxxxxxxxxxxxxxxxx='
 list addresses '10.121.101.254/32'
 option metric '5'
 

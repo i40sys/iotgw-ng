@@ -1,0 +1,30 @@
+---
+# Ingress for the Supabase API gateway (Kong).
+# Routes all /auth/v1/*, /rest/v1/*, /functions/v1/* traffic to kong:8000.
+# Host: api.wsl.ymbihq.local  (kind dev) — the prod overlay patches this.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kong
+  labels:
+    app.kubernetes.io/name: kong
+    app.kubernetes.io/part-of: iotgw-ng
+  annotations:
+    # Kong handles its own TLS termination internally; pass through as plain HTTP
+    # at the ingress layer for kind dev (no TLS here — see prod overlay for TLS).
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.wsl.ymbihq.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kong
+                port:
+                  number: 8000

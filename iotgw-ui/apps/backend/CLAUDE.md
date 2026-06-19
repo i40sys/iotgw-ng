@@ -50,7 +50,11 @@ The helpers auto-wrap with try/catch and log via Pino. For specific Supabase err
 
 ## Kestra Integration
 
-HTTP POST to Kestra API for device operations (SSH key generation, connectivity checks). Uses basic auth, FormData payload, polling for completion with timeout.
+HTTP POST to the Kestra API for OpenWRT gateway operations — **deployment** (`install`/`provisioning` flows, `deployments.ts`) and **connectivity checks** (`devices.ts`). Uses basic auth, FormData payload, polling for completion with timeout. SSH-key generation is **not** a Kestra operation (see below).
+
+## Cosmian KMS Integration (SSH keys)
+
+Device SSH keys are generated **directly in Cosmian KMS** by `src/services/kms.ts` — a `fetch`-based client speaking the KMIP 2.1 JSON REST API (`POST <KMS_URL>/kmip/2_1`), deriving the OpenSSH public key locally with `node:crypto` (no `cosmian` CLI / Python). `ensureDeviceSshKey({deviceId,…})` is idempotent (key id `device_ssh_<deviceId>`) with a `force` regenerate path. It runs automatically in `createDevice` (best-effort — a KMS failure leaves the device without a key rather than failing creation) and on demand via `generateMissingSshKey`. Config: `KMS_URL` (env, from `secrets/`; default the dev host); auth-header-ready for when the KMS gains auth. See [decision-010](../../backlog/decisions/decision-010%20-%20ADR-001-SSH-Key-Management-with-Cosmian-KMS.md).
 
 ## References
 

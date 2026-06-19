@@ -8,7 +8,7 @@ It receives Supabase DB webhook POSTs for BOTH the `devices` and `networks` tabl
 
 ## Purpose
 
-Replaces the `kestra-call` path for both device and network operations:
+Replaces the former `kestra-call` path (since removed) for both device and network operations:
 
 ```
 DB trigger (devices, INSERT or DELETE)
@@ -86,16 +86,19 @@ This mirrors the convention used by the `oriolrius.netmaker` Ansible collection.
 
 | Variable | Default (fallback in code) | Notes |
 |---|---|---|
-| `SUPABASE_URL` | `''` | Injected by docker-compose |
+| `SUPABASE_URL` | `''` | Injected from the `supabase-env` Secret |
 | `SUPABASE_SERVICE_ROLE_KEY` | `''` | Service role — bypasses RLS |
-| `NETMAKER_BASE_URL` | `https://api.netmaker.i40sys.com` | Override in docker-compose env |
-| `NETMAKER_MASTER_KEY` | `***REMOVED-DECOMMISSIONED***` | **Footgun — see below** |
+| `NETMAKER_BASE_URL` | `https://api.netmaker.i40sys.com` | Override via `secrets/supabase.enc.env` |
+| `NETMAKER_MASTER_KEY` | `''` (no fallback) | **Required.** Sourced from the `supabase-env` Secret (decrypted from `secrets/supabase.enc.env`). The function logs FATAL and refuses to operate if unset — no key is baked into source. |
 
-To add or change env vars: edit the `functions:` service `environment:` block in `supabase/docker-compose.yml`.
+The functions Deployment loads these via `envFrom` the `supabase-env` Secret. To
+add or change a var: edit `secrets/supabase.enc.env` (`just secrets-edit supabase`),
+then re-create the Secret and roll the deployment:
+`deploy/kind/bootstrap.sh secrets && kubectl -n iotgw rollout restart deploy/functions`.
 
 ## device_jobs lifecycle
 
-Mirrors kestra-call so the Deployments UI (which calls `get_device_jobs` RPC) requires no changes.
+Mirrors the former kestra-call job-table shape, so the Deployments UI (which calls `get_device_jobs` RPC) required no changes.
 
 | Phase | status | Notes |
 |---|---|---|
@@ -104,7 +107,7 @@ Mirrors kestra-call so the Deployments UI (which calls `get_device_jobs` RPC) re
 | Netmaker call succeeds | `SUCCESS` | For INSERT: also updates `device_ip_address` in the job row |
 | Any thrown error | `FAILED` | `error_message` set to the exception message |
 
-The `network_name` column in `device_jobs` is left `null` on insert — a DB trigger backfills it from `network_id` (same as kestra-call).
+The `network_name` column in `device_jobs` is left `null` on insert — a DB trigger backfills it from `network_id` (same as the former kestra-call).
 
 ## network_jobs lifecycle
 
@@ -149,7 +152,7 @@ DELETE `/networks/{netid}`. Idempotent via the same 404/500-"no result found" ha
 
 ## Known footguns
 
-1. **Master key is hardcoded as a fallback.** `NETMAKER_MASTER_KEY` has a non-empty default value in the source. If the env var is absent the real key is exposed in the source file. Externalise properly before production — ensure the env var is always set in docker-compose and remove the default.
+1. **Master key is environment-only (no fallback).** `NETMAKER_MASTER_KEY` must be supplied via the environment (from `supabase/.env`, decrypted from `secrets/supabase.enc.env`). The source no longer carries a default; if the var is missing the function logs FATAL and every Netmaker call fails. Do not reintroduce an inline default. The previously-committed key is compromised and must be rotated at Netmaker — see `backlog/decisions/decision-014` and `backlog/tasks/task-045`.
 
 2. **Ingress gateway dependency (devices).** The target network must already exist in Netmaker with at least one node configured as an ingress gateway. If there is no ingress gateway the INSERT flow throws `"No ingress gateway found in network <id>"` and the job is set to FAILED. The error message is surfaced in `device_jobs.error_message`.
 
@@ -157,15 +160,19 @@ DELETE `/networks/{netid}`. Idempotent via the same 404/500-"no result found" ha
 
 4. **Read-back after create (devices).** The function never trusts the POST `/extclients/…` response for WireGuard keys. It always does a second GET to find the canonical object. If that second GET still cannot locate the extclient the job is set to FAILED.
 
-5. **No polling / no timeout.** Unlike kestra-call, there is no long-running poll loop. The entire Netmaker operation is synchronous inside the background function and completes in one or two HTTP round-trips. The worker timeout in `main/index.ts` (60s) is far more than enough.
+5. **No polling / no timeout.** Unlike the former kestra-call, there is no long-running poll loop. The entire Netmaker operation is synchronous inside the background function and completes in one or two HTTP round-trips. The worker timeout in `main/index.ts` (60s) is far more than enough.
 
 6. **DELETE uses `old_record`.** Standard Supabase webhook shape for DELETE events has `record: null`. The function reads from `old_record`. A misconfigured webhook that sends DELETE without `old_record` returns 400.
 
-## Restart and verify
+## Deploy and verify
+
+After editing this function, re-bake the image and roll the deployment (the code
+is baked into `iotgw-functions:local`, not bind-mounted):
 
 ```bash
-cd /home/oriol/iotgw-ng/supabase && docker compose restart functions
-docker compose logs -f supabase-edge-functions
+deploy/kind/bootstrap.sh functions          # docker build + kind load iotgw-functions:local
+kubectl -n iotgw rollout restart deploy/functions
+kubectl -n iotgw logs -f deploy/functions
 ```
 
 Smoke-test — device INSERT:

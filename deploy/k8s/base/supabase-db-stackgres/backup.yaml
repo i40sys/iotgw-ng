@@ -1,0 +1,44 @@
+# PROD backups (PITR) — authored, NOT in the kind path (kind has no object store).
+# Wire into prod by: (1) creating the S3/MinIO creds Secret from the SOPS store,
+# (2) including this file in the prod overlay, (3) patching the SGCluster with
+# spec.configurations.backups (snippet at the bottom).
+#
+# Not referenced by this directory's kustomization.yaml (so kind does not require
+# an object store). decision-018 §6.
+---
+apiVersion: stackgres.io/v1
+kind: SGObjectStorage
+metadata:
+  name: supabase-db-backups
+spec:
+  type: s3Compatible
+  s3Compatible:
+    bucket: iotgw-pg-backups
+    # endpoint + region for MinIO or a cloud S3; set per environment.
+    endpoint: https://s3.example.invalid
+    enablePathStyleAddressing: true
+    awsCredentials:
+      secretKeySelectors:
+        accessKeyId:
+          name: supabase-db-backup-s3
+          key: accessKeyId
+        secretAccessKey:
+          name: supabase-db-backup-s3
+          key: secretAccessKey
+---
+# Scheduled base backups (daily) once the SGCluster references the storage.
+apiVersion: stackgres.io/v1
+kind: SGBackup
+metadata:
+  name: supabase-db-base-backup
+spec:
+  sgCluster: supabase-db
+  managedLifecycle: true
+# PROD SGCluster patch to enable continuous WAL archiving + retention:
+#   spec:
+#     configurations:
+#       backups:
+#         - sgObjectStorage: supabase-db-backups
+#           retention: 7
+#           cronSchedule: "0 5 * * *"
+#           compression: lz4

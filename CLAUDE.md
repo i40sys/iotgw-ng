@@ -1,10 +1,22 @@
-# iotgw-ng — Multi-Project Workspace
+# iotgw-ng — Monorepo Workspace
 
-This root is NOT a monorepo. It's a collection of independent projects that together form the IoT Gateway Next Generation platform. Each subproject has its own git repo, tooling, and CLAUDE.md.
+This root **is a single git repository** (a monorepo) holding the whole IoT
+Gateway Next Generation platform. The seven former nested repos were
+consolidated into this one (`decision-012`), and the organization was finalized
+in `decision-013`. There is no per-subproject `.git`. Start with
+[README.md](README.md) for the repo map and `just` orchestrator.
+
+> The platform runs on **Kubernetes (kind locally)** — `docker-compose` was
+> decommissioned in the task-062 milestone (`decision-017`). Operate from the
+> root via `just` (e.g. `just bootstrap`, `just dev`, `just kind-up` +
+> `just k8s-deploy`), or `cd` into a stack before running `kubectl`/`pnpm`.
 
 ## The Real Call Chain
 
-When a user creates/updates a device or network in the UI, this is what actually happens:
+When a user creates/updates a **device or network** in the UI, this is what
+actually happens (devices and networks now provision **directly via the
+`netmaker-call` edge function**, not through Kestra — commits f309e78/124e70e,
+migrations 20260610000000/01):
 
 ```
 1. UI (React)                          iotgw-ui/apps/app/
@@ -12,78 +24,106 @@ When a user creates/updates a device or network in the UI, this is what actually
 2. Backend (Fastify/tRPC, :4444)       iotgw-ui/apps/backend/src/routers/
        ↓ supabase.from().insert()
 3. Supabase PostgreSQL                 supabase/volumes/db/
-       ↓ AFTER INSERT/UPDATE trigger (pg_net)
-4. Webhook: POST /functions/v1/kestra-call
+       ↓ AFTER INSERT/UPDATE/DELETE trigger (pg_net)
+4. Webhook: POST /functions/v1/netmaker-call
        ↓
-5. Edge Function "kestra-call"         supabase/volumes/functions/kestra-call/
+5. Edge Function "netmaker-call"       supabase/volumes/functions/netmaker-call/
        • Creates {device|network}_jobs row (status PENDING)
-       • POST to Kestra: /api/v1/main/executions/iotgw-ng/{devices|networks}
-       • Starts background polling via EdgeRuntime.waitUntil()
-       • Returns 202 Accepted immediately
+       • Calls the Netmaker REST API directly (no Kestra, no Ansible)
+       • Returns 202 Accepted; finishes work in EdgeRuntime.waitUntil()
        ↓
-6. Kestra flow (namespace iotgw-ng)    kestra/data/main/iotgw-ng/_files/
-       ↓ runs ansible-playbook via cytopia/ansible Docker image
-7. Ansible playbook (device_update.yml, network_update.yml, etc.)
-       ↓ uses oriolrius.netmaker collection
-8. Netmaker API (api.netmaker.i40sys.com)
-       • Creates extclient / network
-       • Returns WireGuard keys + IP
+6. Netmaker API (api.netmaker.i40sys.com)
+       • Creates extclient / network → returns WireGuard keys + IP
        ↓
-9. Edge function polls Kestra logs, extracts keys via "Retrieve created device" task output
-       ↓
-10. UPDATE devices SET private_key, public_key, ip_address
-11. UPDATE {device|network}_jobs SET status = SUCCESS/FAILED
-12. UI polls jobs table via tRPC → updates UI
+7. UPDATE devices SET private_key, public_key, ip_address (device INSERT only)
+8. UPDATE {device|network}_jobs SET status = SUCCESS/FAILED
+9. UI polls jobs table via tRPC → updates UI
 ```
 
-**Parallel chains:**
-- **SSH keys**: Kestra `install`/`provisioning` flows call Cosmian KMS (`kms/`) to generate SSH keys; devices table stores only `ssh_key_id`. See `decision-010`.
-- **TLS certs**: `kms/pki-test/` mints certs; `traefik-poc/` consumes them for reverse proxy termination.
+**Kestra is still used** for the OpenWRT side (NOT device/network provisioning):
+- `install` / `provisioning` / `connectivity-check` flows run Ansible
+  (`cytopia/ansible`) against gateways, **fetching** device SSH keys from
+  **Cosmian KMS** (`kms/`) to deploy them onto the gateway.
+- SSH-key **generation** is **not** a Kestra step: the iotgw-ui backend mints
+  keys directly in Cosmian KMS via its KMIP REST API
+  (`apps/backend/src/services/kms.ts`), automatically when a device is created
+  and on demand via `generateMissingSshKey`. Devices store only `ssh_key_id`
+  (`decision-010`, `task-060`).
+- The Kestra `devices` / `networks` flows and the `kestra-call` edge function
+  are **removed** — device/network provisioning runs through `netmaker-call`
+  and SSH-key generation through the backend→KMS path.
+- **TLS certs**: `kms/pki-test/` mints certs, consumed by the k8s Ingress
+  (the former `traefik-poc/` PoC has been removed — see `deploy/`).
 
-## Critical Validated Docs (in iotgw-ui/backlog/)
+## Critical Validated Docs (in `backlog/`)
 
-These are the source of truth for cross-project behavior. Read before modifying any integration point:
+Source of truth for cross-project behavior — read before modifying an
+integration point:
 
-| Doc | Topic | Location |
-|---|---|---|
-| **doc-016** | Kestra notification automation pattern (webhook → edge fn → Kestra) | [iotgw-ui/backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md](iotgw-ui/backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) |
-| **decision-010** | SSH key management via Cosmian KMS (ADR-001) | [iotgw-ui/backlog/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS.md](iotgw-ui/backlog/decisions/decision-010%20-%20ADR-001-SSH-Key-Management-with-Cosmian-KMS.md) |
-| **decision-009** | TOTP authentication for device VPN access | [iotgw-ui/backlog/decisions/decision-009 - TOTP-Authentication-for-Device-VPN-Access.md](iotgw-ui/backlog/decisions/decision-009%20-%20TOTP-Authentication-for-Device-VPN-Access.md) |
-| **doc-008** | Domains → Networks → Devices hierarchy & data models | [iotgw-ui/backlog/docs/doc-008 - Domains-Networks-and-Devices-Architecture.md](iotgw-ui/backlog/docs/doc-008%20-%20Domains-Networks-and-Devices-Architecture.md) |
-| **doc-010** | DB migration + webhook management (includes the devices/networks webhook setup) | [iotgw-ui/backlog/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide.md](iotgw-ui/backlog/docs/doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md) |
-| **doc-013** | Deployments page behavior spec | [iotgw-ui/backlog/docs/doc-013 - Deployments-Page-Behavior-Specification.md](iotgw-ui/backlog/docs/doc-013%20-%20Deployments-Page-Behavior-Specification.md) |
+| Doc | Topic |
+|---|---|
+| **decision-013** | [Monorepo organization](backlog/decisions/decision-013%20-%20Monorepo-Organization-Single-Repo-with-Logical-Grouping.md) |
+| **decision-014** | [Secrets management (SOPS+age) + rotation runbook](backlog/decisions/decision-014%20-%20Secrets-Management-with-SOPS-and-age.md) |
+| **decision-015** | [Kubernetes migration with kind](backlog/decisions/decision-015%20-%20Kubernetes-Migration-with-local-kind.md) |
+| **doc-016** | [Database-change provisioning automation pattern](backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) (current: DB trigger → `netmaker-call` → Netmaker REST) |
+| **decision-010** | [SSH key management via Cosmian KMS](backlog/decisions/decision-010%20-%20ADR-001-SSH-Key-Management-with-Cosmian-KMS.md) |
+| **decision-009** | [TOTP authentication for device VPN access](backlog/decisions/decision-009%20-%20TOTP-Authentication-for-Device-VPN-Access.md) |
+| **doc-008** | [Domains → Networks → Devices hierarchy](backlog/docs/doc-008%20-%20Domains-Networks-and-Devices-Architecture.md) |
+| **doc-010** | [DB migration + webhook management](backlog/docs/doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md) |
+| **doc-013** | [Deployments page behavior spec](backlog/docs/doc-013%20-%20Deployments-Page-Behavior-Specification.md) |
 
-Backlog tasks (task-034 through task-041) track the in-flight SSH-key-in-KMS work — check those before making changes there.
+In-flight SSH-key-in-KMS work spans **task-032 through task-041**
+(032/036/037/040/041 Done). The network-CRUD epic is task-042..052. Manage
+tasks with the Backlog.md CLI (`backlog task list --plain`).
 
 ## Subprojects
 
-| Folder | Git Remote | Entry CLAUDE.md |
-|--------|-----------|------------------|
-| `iotgw-ui/` | `i40sys/iotgw-ui` | [iotgw-ui/CLAUDE.md](iotgw-ui/CLAUDE.md) |
-| `supabase/` | local only | [supabase/CLAUDE.md](supabase/CLAUDE.md) |
-| `supabase/volumes/functions/` | — | [supabase/volumes/functions/CLAUDE.md](supabase/volumes/functions/CLAUDE.md) |
-| `kestra/` | none (synced via `sync-namespace-files` flow) | [kestra/CLAUDE.md](kestra/CLAUDE.md) |
-| `ansible/netmaker/` | `oriolrius/netmaker-ansible-automation` | [ansible/CLAUDE.md](ansible/CLAUDE.md) → [ansible/netmaker/CLAUDE.md](ansible/netmaker/CLAUDE.md) |
-| `kms/` | `i40sys/iotgw-kms` | [kms/CLAUDE.md](kms/CLAUDE.md) |
-| `traefik-poc/` | none | [traefik-poc/CLAUDE.md](traefik-poc/CLAUDE.md) |
-| `supabase-2025-10-20/` | none | snapshot/backup — do not edit |
+All live in this one repo (no separate remotes). Pre-consolidation `.git`
+archives are in `BACKUP/git-archives/` (the reversibility net).
+
+| Folder | Role | Entry CLAUDE.md |
+|--------|------|------------------|
+| `iotgw-ui/` | React app + Fastify/tRPC backend + contract (pnpm) | [iotgw-ui/CLAUDE.md](iotgw-ui/CLAUDE.md) |
+| `supabase/` | self-hosted Supabase stack | [supabase/CLAUDE.md](supabase/CLAUDE.md) |
+| `supabase/volumes/functions/` | Deno edge functions | [supabase/volumes/functions/CLAUDE.md](supabase/volumes/functions/CLAUDE.md) |
+| `kestra/` | workflow orchestration (flow source in DB + `i40sys/iotgw-kestra`) | [kestra/CLAUDE.md](kestra/CLAUDE.md) |
+| `ansible/netmaker/` | `oriolrius.netmaker` collection (published to Galaxy) | [ansible/netmaker/CLAUDE.md](ansible/netmaker/CLAUDE.md) |
+| `kms/` | Cosmian KMS (device SSH keys + PoC PKI) | [kms/CLAUDE.md](kms/CLAUDE.md) |
+| `deploy/` | Kubernetes (kustomize) + local kind; TLS terminates at the Ingress (replaced the former `traefik-poc/`) | [deploy/README.md](deploy/README.md) |
+| `secrets/` | SOPS+age encrypted secrets | [secrets/README.md](secrets/README.md) |
+| `tools/` | `secrets.sh`, `verify.sh` | — |
+| `backlog/` | ADRs, docs, tasks (Backlog.md CLI) | — |
+
+> A frozen stack snapshot is at `BACKUP/supabase-2025-10-20/` (gitignored —
+> do not edit).
 
 ## Working Instructions
 
-- **Always `cd` into the relevant subproject before running commands.** Do not run build, test, or service commands from this root.
-- Read the subproject's CLAUDE.md before making changes.
-- Cross-project changes follow the call chain top-down: schema (supabase/) → types (iotgw-ui/packages/supabase-contract) → backend/edge function → Kestra flow → Ansible playbook.
-- Task management for `iotgw-ui/` goes through `backlog` CLI (see iotgw-ui/CLAUDE.md).
+- **Secrets**: real values are SOPS-encrypted in `secrets/`. Run
+  `just secrets-render` before bringing up a stack. **Never** commit a
+  plaintext `.env`/key or hardcode a secret in tracked source (`decision-014`).
+- Cross-project changes follow the call chain top-down: schema
+  (`iotgw-ui/supabase/migrations/`) → contract types
+  (`iotgw-ui/packages/supabase-contract`) → backend/edge function → (for
+  OpenWRT) Kestra flow → Ansible.
+- Run `just verify` for a repeatable check (secret hygiene, SOPS round-trip,
+  kustomize render, ui typecheck+tests, kind smoke).
+- Task management goes through the `backlog` CLI against `backlog/`.
 
-## Service Ports (local dev, host `wsl.ymbihq.local`)
+## Service Ports (host `wsl.ymbihq.local`)
 
-| Service | Port |
-|---------|------|
-| Supabase Studio | 3000 |
-| Supabase Kong API (edge fns via `/functions/v1/*`) | 8000 |
-| Supabase DB (via supavisor) | 5432 |
-| iotgw-ui frontend (Vite) | 5173 |
-| iotgw-ui backend (tRPC + WS) | 4444 |
-| Kestra UI/API | 8080 |
-| Cosmian KMS | 9998 |
-| Traefik HTTP / HTTPS | 80 / 443 |
+The kind cluster maps these host ports via NodePorts/ingress (`deploy/kind/cluster.yaml`):
+
+| Service | Port | via |
+|---------|------|-----|
+| Supabase Kong API (edge fns via `/functions/v1/*`) | 8000 | NodePort 30800 |
+| Supabase Postgres (StackGres `supabase-db` primary, direct — no pooler) | 5432 | NodePort 30543 |
+| Kestra UI/API | 8080 | NodePort 30808 |
+| Cosmian KMS | 9998 | NodePort 30998 (host path blocked by the task-057 NetworkPolicy; reached in-cluster) |
+| iotgw-ui frontend (Vite) | 5173 | NodePort / ingress hostname |
+| iotgw-ui backend (tRPC + WS) | 4444 | NodePort / ingress hostname |
+| Ingress (whoami, iotgw-ui, …) HTTP / HTTPS | 80 / 443 | ingress-nginx |
+
+> Supabase Studio, realtime, storage, imgproxy, analytics, supavisor and vector
+> are **intentionally not deployed** (`decision-018`); the app tier connects to
+> the direct primary at `supabase-db:5432`. See `deploy/README.md`.

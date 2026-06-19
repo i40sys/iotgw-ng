@@ -4,11 +4,6 @@
 # KMS data
 data/
 
-# SSH test generated files
-ssh-test/docker-test/keys/
-ssh-test/docker-test/authorized_keys
-ssh-test/docker-test/.last_*
-
 # PKI test generated files (keep .ext files, exclude generated certs)
 pki-test/*.pem
 pki-test/*.p12

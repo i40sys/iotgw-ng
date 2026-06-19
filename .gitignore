@@ -33,12 +33,26 @@ Thumbs.db
 # ── Agent / memory scratch ──
 **/.engram/
 
-# ── Secrets — never commit (files stay on disk) ──
+# ── Secrets — never commit plaintext (files stay on disk) ──
 .env
 *.pem
 *.p12
 *.key
 id_rsa
+
+# SOPS-encrypted secrets ARE committed (they're safe at rest). The matching
+# age PRIVATE key lives at ~/.config/sops/age/keys.txt — never in the repo.
+# Re-allow the encrypted artifacts that the patterns above would otherwise hide:
+!secrets/*.enc.env
+!secrets/*.enc.yaml
+!secrets/*.enc.yml
+!secrets/*.enc.json
+!**/*.enc.env
+!**/*.enc.yaml
+# Rendered/decrypted secret outputs must never be committed:
+secrets/*.plain.*
+secrets/rendered/
+*.dec.env
 
 # ── Binary artifacts ──
 *.deb

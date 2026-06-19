@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cosmian-kms
+  labels:
+    app.kubernetes.io/name: cosmian-kms
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  serviceName: cosmian-kms
+  replicas: 1            # SQLite backend → strictly single replica (see k8sNotes)
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cosmian-kms
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cosmian-kms
+        app.kubernetes.io/part-of: iotgw-ng
+    spec:
+      # No fsGroup: the cosmian image runs as root by default and a recursive
+      # fsGroup chown trips a symlink-escape error on this image. The PVC mount
+      # is root-writable, which is what the SQLite backend needs.
+      containers:
+        - name: kms
+          image: ghcr.io/cosmian/kms:5.20.0   # pinned (was :latest)
+          # No command override — the image's default entrypoint serves the KMS,
+          # configured via COSMIAN_KMS_CONF (same as the compose deployment).
+          env:
+            - name: RUST_LOG
+              value: "info"
+            - name: COSMIAN_KMS_CONF
+              value: /etc/cosmian/kms.toml
+          ports:
+            - name: http
+              containerPort: 9998
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cosmian
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/cosmian-kms/cosmian-kms/sqlite-data
+          readinessProbe:
+            httpGet:
+              path: /version
+              port: 9998
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /version
+              port: 9998
+            initialDelaySeconds: 30
+            periodSeconds: 20
+      volumes:
+        - name: config
+          configMap:
+            name: cosmian-kms-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

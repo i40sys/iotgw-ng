@@ -87,13 +87,18 @@ export type Device = {
 };
 ```
 
+> **SUPERSEDED (see decision-010, ADR-001):** SSH key material is no longer stored in
+> the `devices` table. Devices now store only an `ssh_key_id` reference; the actual
+> private/public keys live in Cosmian KMS. The `private_key`/`public_key` columns above
+> reflect the historical model and are retained for context only.
+
 **Key Characteristics:**
 
 - Child of a network (many-to-one relationship)
 - Unique IP address constraint within a network (not globally)
 - Secure key storage for device authentication
 - Cascade deletion from parent network
-- Supports encrypted private key storage
+- ~~Supports encrypted private key storage~~ **SUPERSEDED (decision-010):** keys are stored in Cosmian KMS; devices hold only `ssh_key_id`
 
 ## Database Schema
 
@@ -268,7 +273,11 @@ WITH CHECK (true);
 
 ### Key Management
 
-- **Private Keys**: Stored encrypted in database
+> **SUPERSEDED (see decision-010, ADR-001):** Device SSH keys are now managed in
+> Cosmian KMS, not the database. The `devices` table stores only `ssh_key_id`; the
+> bullets below describe the historical in-database model and are kept for context.
+
+- **Private Keys**: ~~Stored encrypted in database~~ stored in Cosmian KMS (referenced by `ssh_key_id`)
 - **Public Keys**: Stored in plain text for verification
 - **UI Handling**: Private keys are masked in forms
 - **API Layer**: Keys are handled securely, never logged

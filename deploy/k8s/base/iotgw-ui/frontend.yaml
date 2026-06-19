@@ -1,0 +1,109 @@
+---
+# iotgw-ui frontend: React SPA served by nginx, port 80.
+# VITE_API_URL is baked into the JS bundle at image build time (not a runtime
+# env var). The kind overlay uses ingress hostname iotgw-ui-backend.wsl.ymbihq.local
+# so the browser can reach the backend tRPC endpoint (see nodeports.yaml and
+# the Ingress below for the backend).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iotgw-ui-frontend
+  labels:
+    app.kubernetes.io/name: iotgw-ui-frontend
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: iotgw-ui-frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: iotgw-ui-frontend
+        app.kubernetes.io/part-of: iotgw-ng
+    spec:
+      containers:
+        - name: frontend
+          image: iotgw-ui-frontend:local
+          imagePullPolicy: Never    # kind-loaded local image
+          ports:
+            - { name: http, containerPort: 80 }
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iotgw-ui-frontend
+  labels:
+    app.kubernetes.io/name: iotgw-ui-frontend
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  selector:
+    app.kubernetes.io/name: iotgw-ui-frontend
+  ports:
+    - { name: http, port: 80, targetPort: 80 }
+---
+# Ingress for the frontend SPA (iotgw-ui.wsl.ymbihq.local -> iotgw-ui-frontend:80)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: iotgw-ui-frontend
+  labels:
+    app.kubernetes.io/name: iotgw-ui-frontend
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: iotgw-ui.wsl.ymbihq.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: iotgw-ui-frontend
+                port:
+                  number: 80
+---
+# Ingress for the backend tRPC + WS API (iotgw-ui-backend.wsl.ymbihq.local -> iotgw-ui-backend:4444)
+# The frontend SPA (baked with VITE_API_URL=http://iotgw-ui-backend.wsl.ymbihq.local)
+# calls this from the user's browser.
+# NOTE: WebSocket connections require the nginx ingress proxy-upgrade annotations.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: iotgw-ui-backend
+  labels:
+    app.kubernetes.io/name: iotgw-ui-backend
+    app.kubernetes.io/part-of: iotgw-ng
+  annotations:
+    # ingress-nginx natively forwards WebSocket upgrade headers when proxy-http-version
+    # is 1.1. No configuration-snippet needed (snippet directives are disabled in the
+    # kind ingress-nginx install for security).
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: iotgw-ui-backend.wsl.ymbihq.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: iotgw-ui-backend
+                port:
+                  number: 4444

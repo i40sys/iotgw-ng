@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kestra
+  labels:
+    app.kubernetes.io/name: kestra
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate          # local storage PVC is RWO
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kestra
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kestra
+        app.kubernetes.io/part-of: iotgw-ng
+    spec:
+      serviceAccountName: kestra
+      containers:
+        - name: kestra
+          image: kestra/kestra:v1.3.22   # pinned (compose was :latest)
+          command: ["/bin/bash", "-c", "/app/kestra server standalone"]
+          env:
+            # Secrets injected from the kestra-env Secret. KESTRA_CONFIGURATION
+            # is a YAML doc; Kestra/Micronaut resolves ${KESTRA_POSTGRES_PASSWORD},
+            # ${KESTRA_BASIC_AUTH_USERNAME}, ${KESTRA_BASIC_AUTH_PASSWORD} and
+            # ${KESTRA_GEMINI_API_KEY} from the environment at startup (k8s leaves
+            # ${...} untouched). The Ansible flows run on Kestra's Kubernetes task
+            # runner (PodCreate) using the `kestra` ServiceAccount — task-054
+            # (decision-015); the host Docker task runner is no longer used.
+            - name: KESTRA_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: kestra-env, key: KESTRA_POSTGRES_PASSWORD }
+            - name: KESTRA_BASIC_AUTH_USERNAME
+              valueFrom:
+                secretKeyRef: { name: kestra-env, key: KESTRA_BASIC_AUTH_USERNAME }
+            - name: KESTRA_BASIC_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: kestra-env, key: KESTRA_BASIC_AUTH_PASSWORD }
+            # Gemini AI key for the kestra.ai block below (task-062.06, compose parity).
+            - name: KESTRA_GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef: { name: kestra-env, key: KESTRA_GEMINI_API_KEY }
+            - name: KESTRA_CONFIGURATION
+              value: |
+                datasources:
+                  postgres:
+                    url: jdbc:postgresql://kestra-postgres:5432/kestra
+                    driverClassName: org.postgresql.Driver
+                    username: kestra
+                    password: ${KESTRA_POSTGRES_PASSWORD}
+                kestra:
+                  # Gemini AI assistant — compose parity (task-062.06). Key from
+                  # the kestra-env Secret via ${KESTRA_GEMINI_API_KEY}.
+                  ai:
+                    type: gemini
+                    gemini:
+                      api-key: ${KESTRA_GEMINI_API_KEY}
+                      model-name: gemini-2.5-flash
+                  repository:
+                    type: postgres
+                  queue:
+                    type: postgres
+                  storage:
+                    type: local
+                    local:
+                      basePath: /app/storage
+                  # Task working/temp dir — compose parity (mounted emptyDir below).
+                  tasks:
+                    tmpDir:
+                      path: /tmp/kestra-wd/tmp
+                  url: http://localhost:8080/
+                  server:
+                    basic-auth:
+                      username: ${KESTRA_BASIC_AUTH_USERNAME}
+                      password: ${KESTRA_BASIC_AUTH_PASSWORD}
+          ports:
+            - { name: http, containerPort: 8080 }
+            # 8081 = Micronaut management/health endpoint. Intentionally
+            # probes-only (liveness/readiness below) — NOT published on the
+            # kestra Service / NodePort (task-062.06 decision; nothing off-pod
+            # needs /health or /prometheus today).
+            - { name: mgmt, containerPort: 8081 }
+          volumeMounts:
+            - name: storage
+              mountPath: /app/storage
+            - name: kestra-wd
+              mountPath: /tmp/kestra-wd
+          readinessProbe:
+            httpGet: { path: /health, port: 8081 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 40
+          livenessProbe:
+            httpGet: { path: /health, port: 8081 }
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            failureThreshold: 6
+      volumes:
+        - name: storage
+          persistentVolumeClaim: { claimName: kestra-storage }
+        - name: kestra-wd
+          emptyDir: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kestra-storage
+  labels:
+    app.kubernetes.io/name: kestra
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources: { requests: { storage: 2Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kestra
+  labels:
+    app.kubernetes.io/name: kestra
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  selector:
+    app.kubernetes.io/name: kestra
+  ports:
+    - { name: http, port: 8080, targetPort: 8080 }

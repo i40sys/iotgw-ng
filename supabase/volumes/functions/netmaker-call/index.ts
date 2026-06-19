@@ -13,7 +13,7 @@
 //   networks: netid    = network.id with dashes stripped
 //
 // device_jobs / network_jobs rows are written in the same lifecycle shape
-// as kestra-call so the Deployments UI works without modification.
+// as the former kestra-call so the Deployments UI works without modification.
 
 import { serve } from 'https://deno.land/std@0.131.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -30,9 +30,15 @@ declare const Deno: {
   }
 }
 
-// Netmaker configuration
+// Netmaker configuration — credentials come from the environment ONLY.
+// No hardcoded fallback: a missing master key must fail loudly, never ship a
+// real key baked into source. Set NETMAKER_MASTER_KEY in supabase/.env
+// (sourced from secrets/supabase.enc.env via SOPS).
 const NETMAKER_BASE_URL = Deno.env.get('NETMAKER_BASE_URL') || 'https://api.netmaker.i40sys.com'
-const NETMAKER_MASTER_KEY = Deno.env.get('NETMAKER_MASTER_KEY') || '***REMOVED-DECOMMISSIONED***'
+const NETMAKER_MASTER_KEY = Deno.env.get('NETMAKER_MASTER_KEY') || ''
+if (!NETMAKER_MASTER_KEY) {
+  console.error('FATAL: NETMAKER_MASTER_KEY is not set — refusing to start without it')
+}
 
 // Supabase configuration
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''

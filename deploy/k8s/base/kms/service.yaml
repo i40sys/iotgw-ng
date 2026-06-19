@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cosmian-kms
+  labels:
+    app.kubernetes.io/name: cosmian-kms
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  selector:
+    app.kubernetes.io/name: cosmian-kms
+  ports:
+    - name: http
+      port: 9998
+      targetPort: 9998

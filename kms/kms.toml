@@ -8,7 +8,8 @@ port = 9998
 
 # Database configuration
 # Using default SQLite at /var/lib/cosmian-kms/cosmian-kms/sqlite-data
-# (mounted as volume in docker-compose.yml)
+# (this file is mounted via the k8s ConfigMap; the SQLite dir is a PVC —
+#  see deploy/k8s/base/kms/)
 
 # Logging configuration
 [logging]

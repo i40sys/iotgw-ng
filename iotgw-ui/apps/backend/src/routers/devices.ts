@@ -3,6 +3,11 @@ import { logger } from "../logger";
 import { TRPCError } from "@trpc/server";
 import { createQueryProcedure } from "../utils/query-helper";
 import { createMutationProcedure } from "../utils/mutation-helper";
+import {
+  ensureDeviceSshKey,
+  getDeviceSshPublicKey,
+  destroyDeviceSshKey,
+} from "../services/kms";
 
 // Debug logging for connectivity checks - enabled via LOG_LEVEL=debug environment variable
 const isDebugEnabled = process.env.LOG_LEVEL === "debug";
@@ -147,6 +152,49 @@ export const devicesRouter = {
     },
   ),
 
+  // Fetches the device's OpenSSH public key by round-tripping to Cosmian KMS —
+  // proves the key materially exists there (not just that ssh_key_id is set in
+  // the DB), and lets the UI display/export it.
+  getDeviceSshPublicKey: createQueryProcedure(
+    "get_device_ssh_public_key",
+    z.object({ device_id: z.string().min(1, "Device ID is required") }),
+    async ({ ctx, input }) => {
+      const { supabase } = ctx;
+
+      const { data, error } = await supabase
+        .from("devices")
+        .select("ssh_key_id")
+        .eq("id", input.device_id)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Device with ID ${input.device_id} not found`,
+            cause: error,
+          });
+        }
+        logger.error({ error }, "Error fetching device for SSH public key");
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to fetch device: ${error.message}`,
+          cause: error,
+        });
+      }
+
+      if (!data?.ssh_key_id) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Device ${input.device_id} has no SSH key`,
+        });
+      }
+
+      const publicKey = await getDeviceSshPublicKey(data.ssh_key_id);
+      return { sshKeyId: data.ssh_key_id, publicKey };
+    },
+  ),
+
   generateMissingSshKey: createMutationProcedure(
     "generate_missing_ssh_key",
     z.object({
@@ -154,7 +202,9 @@ export const devicesRouter = {
       force: z.boolean().optional(),
     }),
     async ({ ctx, input }) => {
-      // Trigger Kestra device flow to generate/update ssh_key_id when missing.
+      // Generate/repair the device's SSH key directly in Cosmian KMS
+      // (decision-010). On-demand backfill + force-regenerate path; new devices
+      // get a key automatically at creation time (see createDevice).
       const { supabase } = ctx;
 
       const { data: deviceData, error: deviceError } = await supabase
@@ -206,147 +256,33 @@ export const devicesRouter = {
         });
       }
 
-      const expectedKeyId = `device_ssh_${deviceData.id}`;
-      // Format matches the Kestra workflow's expected input structure
-      const requestBody = {
-        type: "INSERT",
-        table: "devices",
-        record: {
-          id: deviceData.id,
-          name: deviceData.name,
-          network_id: networkData.id,
-        },
-      };
-
-      const kestraUrl =
-        "http://wsl.ymbihq.local:8080/api/v1/main/executions/iotgw-ng/devices";
-
       logger.info(
-        `Starting SSH key generation for device ${deviceData.id} via Kestra`,
+        `Generating SSH key for device ${deviceData.id} in Cosmian KMS`,
       );
 
-      const formData = new FormData();
-      formData.append("json_data", JSON.stringify(requestBody));
-
-      const response = await fetch(kestraUrl, {
-        method: "POST",
-        headers: {
-          Authorization:
-            "Basic " +
-            Buffer.from("oriol@joor.net:***REMOVED-ROTATED-KESTRA-PW***").toString("base64"),
-        },
-        body: formData as unknown as BodyInit,
+      const { sshKeyId } = await ensureDeviceSshKey({
+        deviceId: deviceData.id,
+        networkId: networkData.id,
+        domainId: domainData.id,
+        force: input.force,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.error(
-          { status: response.status, error: errorText },
-          "Kestra SSH key generation workflow failed to start",
-        );
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to start SSH key generation: ${response.status} ${response.statusText}. Error: ${errorText}`,
-        });
-      }
-
-      const executionData = await response.json();
-      const executionId = executionData.id || "unknown";
-
-      // Poll Kestra execution until completion (max 2 minutes)
-      const maxWaitTime = 120000;
-      const pollInterval = 2000;
-      const startTime = Date.now();
-      let finalState: string | null = null;
-
-      while (Date.now() - startTime < maxWaitTime) {
-        const statusUrl = `http://wsl.ymbihq.local:8080/api/v1/executions/${executionId}`;
-        const statusResponse = await fetch(statusUrl, {
-          method: "GET",
-          headers: {
-            Authorization:
-              "Basic " +
-              Buffer.from("oriol@joor.net:***REMOVED-ROTATED-KESTRA-PW***").toString("base64"),
-          },
-        });
-
-        if (!statusResponse.ok) {
-          const errorText = await statusResponse.text();
-          logger.warn(
-            { status: statusResponse.status, error: errorText },
-            "Failed to poll Kestra SSH key generation status",
-          );
-        } else {
-          const statusData = await statusResponse.json();
-          const state =
-            statusData.state?.current?.toLowerCase() ||
-            statusData.state?.toLowerCase();
-
-          if (state) {
-            finalState = state;
-          }
-
-          if (state === "success" || state === "failed" || state === "warning") {
-            break;
-          }
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, pollInterval));
-      }
-
-      if (finalState !== "success") {
-        logger.error(
-          { executionId, finalState },
-          "Kestra SSH key generation did not complete successfully",
-        );
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            finalState === "failed" || finalState === "warning"
-              ? `SSH key generation failed with status ${finalState}`
-              : "SSH key generation timed out",
-        });
-      }
-
-      const { data: updatedDevice, error: reloadError } = await supabase
+      const { error: updateError } = await supabase
         .from("devices")
-        .select("ssh_key_id")
-        .eq("id", deviceData.id)
-        .single();
+        .update({ ssh_key_id: sshKeyId })
+        .eq("id", deviceData.id);
 
-      if (reloadError) {
+      if (updateError) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to reload device SSH key: ${reloadError.message}`,
-          cause: reloadError,
+          message: `Failed to persist SSH key id: ${updateError.message}`,
+          cause: updateError,
         });
-      }
-
-      if (!updatedDevice?.ssh_key_id) {
-        const { error: updateError } = await supabase
-          .from("devices")
-          .update({ ssh_key_id: expectedKeyId })
-          .eq("id", deviceData.id);
-
-        if (updateError) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: `Failed to update device SSH key: ${updateError.message}`,
-            cause: updateError,
-          });
-        }
-
-        return {
-          status: "generated",
-          sshKeyId: expectedKeyId,
-          executionId,
-        };
       }
 
       return {
         status: "generated",
-        sshKeyId: updatedDevice.ssh_key_id,
-        executionId,
+        sshKeyId,
       };
     },
   ),
@@ -416,7 +352,37 @@ export const devicesRouter = {
       logger.info(
         `Successfully created device "${input.name}"${ipInfo} in network ${input.network_id}`,
       );
-      return data;
+
+      // Auto-generate the device's SSH key in Cosmian KMS (decision-010).
+      // Best-effort: a KMS failure must not fail device creation — the device is
+      // left without a key and can be repaired later via generateMissingSshKey.
+      try {
+        const network = (data as { network?: { domain_id?: string } | null })
+          .network;
+        const { sshKeyId } = await ensureDeviceSshKey({
+          deviceId: data.id,
+          networkId: data.network_id,
+          domainId: network?.domain_id ?? undefined,
+        });
+        const { error: keyError } = await supabase
+          .from("devices")
+          .update({ ssh_key_id: sshKeyId })
+          .eq("id", data.id);
+        if (keyError) {
+          logger.error(
+            { error: keyError, deviceId: data.id },
+            "Device created but failed to persist SSH key id",
+          );
+          return data;
+        }
+        return { ...data, ssh_key_id: sshKeyId };
+      } catch (error) {
+        logger.error(
+          { error, deviceId: data.id },
+          "Device created but SSH key generation failed; left without an SSH key",
+        );
+        return data;
+      }
     },
   ),
 
@@ -633,6 +599,20 @@ export const devicesRouter = {
           message: `Failed to delete device: ${error.message}`,
           cause: error,
         });
+      }
+
+      // Best-effort: revoke+destroy the device's SSH key in Cosmian KMS so it
+      // doesn't outlive the device. A KMS failure must not fail the delete.
+      if (data?.ssh_key_id) {
+        try {
+          await destroyDeviceSshKey(data.ssh_key_id);
+          logger.info({ keyId: data.ssh_key_id }, "Revoked device SSH key in KMS");
+        } catch (err) {
+          logger.error(
+            { error: err, keyId: data.ssh_key_id },
+            "Device deleted but failed to revoke its SSH key in KMS",
+          );
+        }
       }
 
       logger.info(`Successfully deleted device with ID ${input.id}`);
@@ -856,7 +836,7 @@ export const devicesRouter = {
           headers: {
             Authorization:
               "Basic " +
-              Buffer.from("oriol@joor.net:***REMOVED-ROTATED-KESTRA-PW***").toString("base64"),
+              Buffer.from(`${process.env.KESTRA_USER}:${process.env.KESTRA_PASSWORD}`).toString("base64"),
           },
           body: formData as unknown as BodyInit,
         });
@@ -915,7 +895,7 @@ export const devicesRouter = {
             headers: {
               Authorization:
                 "Basic " +
-                Buffer.from("oriol@joor.net:***REMOVED-ROTATED-KESTRA-PW***").toString("base64"),
+                Buffer.from(`${process.env.KESTRA_USER}:${process.env.KESTRA_PASSWORD}`).toString("base64"),
             },
           });
 

@@ -31,7 +31,7 @@ network_update.yml uses name='{{ record.id | replace("-","") }}' (UUID-derived, 
 (a) Add real rename support — likely needs collection changes or a delete+recreate dance (with the data loss that implies for clients), OR
 (b) Document that Netmaker netid is opaque/immutable and the user-visible name is Supabase-only; surface this in the UI (banner on the network detail page).
 
-Either way, file an ADR in iotgw-ui/backlog/decisions/ and update doc-008.
+Either way, file an ADR in backlog/decisions/ and update doc-008.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

@@ -13,7 +13,9 @@ You are helping set up or configure Supabase authentication. Follow these steps:
    - Redirect URLs?
    - Custom email templates?
 
-2. **Configure auth in .env**:
+2. **Configure auth env** (set via the `supabase-env` Secret / the auth
+   Deployment's env — `deploy/k8s/base/supabase-app/auth.yaml`; the GoTrue env
+   keys stay the same, only the place you set them changes):
 
    **Email/Password Authentication**:
    ```bash
@@ -49,9 +51,11 @@ You are helping set up or configure Supabase authentication. Follow these steps:
    JWT_EXPIRY=3600  # 1 hour in seconds
    ```
 
-3. **Restart auth service** after .env changes:
+3. **Restart auth service** after env changes (edit `secrets/supabase.enc.env`
+   or the auth manifest, then `deploy/kind/bootstrap.sh secrets` if you changed
+   the Secret):
    ```bash
-   docker compose restart auth
+   kubectl -n iotgw rollout restart deploy/auth
    ```
 
 4. **Create edge function for signup**:
@@ -139,23 +143,25 @@ You are helping set up or configure Supabase authentication. Follow these steps:
 
 6. **Setup OAuth providers** (Google, GitHub, etc.):
 
-   This requires configuration in docker-compose.yml:
+   This is configured via the auth Deployment's env (the `supabase-env` Secret /
+   `deploy/k8s/base/supabase-app/auth.yaml`). The GoTrue env keys are unchanged:
    ```yaml
-   auth:
-     environment:
-       # ... existing config ...
-       # Google OAuth
-       GOTRUE_EXTERNAL_GOOGLE_ENABLED: "true"
-       GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: "your-google-client-id"
-       GOTRUE_EXTERNAL_GOOGLE_SECRET: "your-google-secret"
-       GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: "http://localhost:8000/auth/v1/callback"
-
-       # GitHub OAuth
-       GOTRUE_EXTERNAL_GITHUB_ENABLED: "true"
-       GOTRUE_EXTERNAL_GITHUB_CLIENT_ID: "your-github-client-id"
-       GOTRUE_EXTERNAL_GITHUB_SECRET: "your-github-secret"
-       GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI: "http://localhost:8000/auth/v1/callback"
+   # deploy/k8s/base/supabase-app/auth.yaml — spec.template.spec.containers[].env
+   env:
+     # ... existing config ...
+     # Google OAuth
+     - { name: GOTRUE_EXTERNAL_GOOGLE_ENABLED,      value: "true" }
+     - { name: GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID,    value: "your-google-client-id" }
+     - { name: GOTRUE_EXTERNAL_GOOGLE_SECRET,       value: "your-google-secret" }
+     - { name: GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI, value: "http://localhost:8000/auth/v1/callback" }
+     # GitHub OAuth
+     - { name: GOTRUE_EXTERNAL_GITHUB_ENABLED,      value: "true" }
+     - { name: GOTRUE_EXTERNAL_GITHUB_CLIENT_ID,    value: "your-github-client-id" }
+     - { name: GOTRUE_EXTERNAL_GITHUB_SECRET,       value: "your-github-secret" }
+     - { name: GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI, value: "http://localhost:8000/auth/v1/callback" }
    ```
+   After editing, apply and roll the Deployment:
+   `kubectl -n iotgw rollout restart deploy/auth`.
 
 7. **Create user profile table**:
 
@@ -207,12 +213,12 @@ You are helping set up or configure Supabase authentication. Follow these steps:
 
 8. **Setup custom access token hook** (optional):
 
-   In docker-compose.yml:
+   In the auth Deployment's env (`deploy/k8s/base/supabase-app/auth.yaml`):
    ```yaml
-   auth:
-     environment:
-       GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_ENABLED: "true"
-       GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_URI: "pg-functions://postgres/public/custom_access_token_hook"
+   # spec.template.spec.containers[].env
+   env:
+     - { name: GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_ENABLED, value: "true" }
+     - { name: GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_URI,     value: "pg-functions://postgres/public/custom_access_token_hook" }
    ```
 
    Create the function:
@@ -328,7 +334,7 @@ You are helping set up or configure Supabase authentication. Follow these steps:
 
 ## Auth Checklist
 
-- [ ] Auth method configured in .env
+- [ ] Auth method configured (supabase-env Secret / auth Deployment env)
 - [ ] SMTP configured for email auth
 - [ ] Redirect URLs set correctly
 - [ ] JWT expiry appropriate for use case

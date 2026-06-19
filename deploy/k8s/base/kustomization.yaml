@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: iotgw
+
+# Validated-core platform tiers. The full Supabase application data-plane
+# (kong/auth/rest/meta/studio/functions/realtime/storage/imgproxy/analytics/
+# supavisor/vector) is authored under supabase-app/ and pulled in by overlays
+# that need it (see overlays/prod). The kind overlay deploys this core plus the
+# whoami ingress demo.
+resources:
+  - namespace.yaml
+  - kms
+  # supabase-db (StatefulSet) removed here; overlays include supabase-db-stackgres
+  # instead. Keep base/supabase-db/ in the tree as the documented rollback path
+  # (re-add this line and remove supabase-db-stackgres from overlays to revert).
+  - kestra
+  - whoami

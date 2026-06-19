@@ -16,6 +16,8 @@ This is an Ansible collection that provides infrastructure-as-code management fo
 
 The collection provides a unified, idempotent Ansible module (`netmaker_management`) that handles complete CRUD lifecycle operations for both resource types.
 
+> **Live vs. legacy:** Device/network provisioning now runs via the Supabase `netmaker-call` edge function (direct Netmaker REST) — that is the LIVE implementation. The Kestra `devices`/`networks` flows (and the `kestra-call` edge fn) that consumed this collection are LEGACY. This collection now serves as the reference spec for the netmaker-call edge function. (Kestra still runs install/provisioning/connectivity flows for OpenWRT + SSH keys via Cosmian KMS.)
+
 ## Architecture & Key Components
 
 ### Project Structure
@@ -174,11 +176,15 @@ NETMAKER_MASTER_KEY=your_actual_master_key_here
 
 The justfile automatically loads and passes the master key to all playbook executions.
 
+**Secrets remediation (decision-014, task-045):** The `NETMAKER_MASTER_KEY` was previously hardcoded in playbook vars / `.env`. The local `.env` is now SOPS+age-encrypted in `secrets/netmaker.enc.env`; nothing is committed in plaintext. The previously-exposed key is COMPROMISED and must be rotated at Netmaker (rotation runbook in decision-014).
+
 ## CI/CD Integration
 
-**GitHub Actions:**
+**Status: DEAD.** The subproject `.git` was collapsed into the iotgw-ng monorepo (decision-012), so `.github/workflows/publish-collection.yml` no longer runs — there is no per-subproject GitHub remote to trigger it. **Publishing is currently MANUAL** (`ansible-galaxy collection publish`). A root-level monorepo CI to restore automated publishing is a TODO (decision-013, open-question-2).
+
+**Legacy GitHub Actions workflow (no longer triggered):**
 - Workflow: `.github/workflows/publish-collection.yml`
-- Triggers: On push to main branch
+- Triggered: On push to main branch (of the former standalone repo)
 - Actions:
   1. Verifies version consistency between `galaxy.yml` and `pyproject.toml`
   2. Builds the collection tarball
@@ -244,7 +250,7 @@ When users install `oriolrius.netmaker`, they receive:
    - Validates semantic versioning format (X.Y.Z)
 3. Update CHANGELOG or release notes in README
 4. Commit and push to main branch
-5. GitHub Actions automatically publishes to Galaxy
+5. **Publish manually**: `ansible-galaxy collection publish` (GitHub Actions auto-publish is DEAD post-monorepo consolidation — decision-012; root-level CI is a TODO, decision-013 open-question-2)
 
 **bump-version.sh Details:**
 The script at `scripts/bump-version.sh` is interactive and requires user confirmation:

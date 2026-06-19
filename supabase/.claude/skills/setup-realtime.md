@@ -4,6 +4,16 @@ description: Set up real-time subscriptions for database tables
 
 # Setup Realtime Subscriptions Skill
 
+> **Note:** The Supabase **realtime** service (`realtime-dev.supabase-realtime`)
+> is **intentionally not deployed** on the current k8s/`kind` stack
+> (`decision-018` §4). The conceptual guidance below (publications, RLS,
+> client-side subscription/presence/broadcast APIs) is retained for reference,
+> but there is no realtime service to connect to on the running cluster — the
+> `.on('postgres_changes', ...)` subscriptions will not receive events until a
+> realtime Deployment is added. Wherever this skill would tail/inspect a live
+> realtime service, that step is marked as not-applicable rather than given a
+> runnable command.
+
 You are helping set up real-time subscriptions for Supabase tables. Follow these steps:
 
 1. **Understand requirements**:
@@ -14,9 +24,12 @@ You are helping set up real-time subscriptions for Supabase tables. Follow these
 
 2. **Enable realtime for table**:
 
-   Connect to database:
+   Connect to database (StackGres SGCluster — psql runs in the primary pod's
+   `patroni` container):
    ```bash
-   docker exec -it supabase-db psql -U postgres -d postgres
+   PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
+          -o jsonpath='{.items[0].metadata.name}')
+   kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres
    ```
 
    Enable realtime publication:
@@ -252,24 +265,27 @@ You are helping set up real-time subscriptions for Supabase tables. Follow these
 
 9. **Test realtime**:
 
-   ```bash
-   # In one terminal, tail the realtime logs
-   docker compose logs -f realtime-dev.supabase-realtime
+   > The realtime service is **not deployed** on the current k8s stack
+   > (`decision-018` §4), so there is no realtime log to tail and no broadcast
+   > to observe. The publication/insert side still works against the DB; the
+   > end-to-end broadcast check applies only once a realtime Deployment exists.
 
-   # In another terminal, insert data
-   docker exec -it supabase-db psql -U postgres -d postgres -c \
+   ```bash
+   # Insert data into a published table (StackGres primary)
+   PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
+          -o jsonpath='{.items[0].metadata.name}')
+   kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres -c \
      "INSERT INTO public.your_table (name) VALUES ('test');"
 
-   # Check if the change is broadcasted
+   # (Broadcast verification requires a deployed realtime service — N/A here.)
    ```
 
 10. **Debugging realtime**:
 
-    Check realtime service:
-    ```bash
-    docker compose ps realtime-dev.supabase-realtime
-    docker compose logs realtime-dev.supabase-realtime
-    ```
+    > Not applicable on the current k8s stack: there is no realtime Deployment to
+    > inspect (`decision-018` §4). If realtime is added later, inspect it with
+    > `kubectl -n iotgw get pods -l app=realtime` and
+    > `kubectl -n iotgw logs deploy/realtime`.
 
     Verify publication:
     ```sql
@@ -284,10 +300,9 @@ You are helping set up real-time subscriptions for Supabase tables. Follow these
     ```
 
     Test subscription health:
-    ```bash
-    curl http://localhost:4000/api/tenants/realtime-dev/health \
-      -H "Authorization: Bearer ${ANON_KEY}"
-    ```
+    > N/A on the current k8s stack — the realtime tenant health endpoint
+    > (`:4000/api/tenants/realtime-dev/health`) is served by the realtime service,
+    > which is not deployed (`decision-018` §4).
 
 11. **Performance considerations**:
     - Limit number of subscriptions per client

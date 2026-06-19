@@ -129,7 +129,53 @@ function DevicesPage() {
     public_key: "",
   });
 
-  const devicesQuery = useQuery(trpc.getDevices.queryOptions());
+  // Device provisioning is asynchronous: the SSH key is minted synchronously at
+  // creation, but the WireGuard public/private keys + IP are written by the
+  // background netmaker-call job. Poll the jobs (and devices) while anything is
+  // still provisioning so the Keys column can show a spinner that resolves into
+  // the Public/Private badges without a manual reload.
+  const ACTIVE_JOB = new Set(["PENDING", "RUNNING"]);
+
+  const deviceJobsQuery = useQuery({
+    ...trpc.listDeviceJobs.queryOptions({}),
+    refetchInterval: (query) => {
+      const jobs = (query.state.data ?? []) as { status: string }[];
+      return jobs.some((j) => ACTIVE_JOB.has(j.status)) ? 2000 : false;
+    },
+  });
+
+  const latestJobByDevice = useMemo(() => {
+    // get_device_jobs is ordered by started_at desc, so the first row seen per
+    // device is its most recent job.
+    const map = new Map<string, { status: string }>();
+    for (const job of (deviceJobsQuery.data ?? []) as {
+      device_id: string | null;
+      status: string;
+    }[]) {
+      if (job.device_id && !map.has(job.device_id)) map.set(job.device_id, job);
+    }
+    return map;
+  }, [deviceJobsQuery.data]);
+
+  const isDeviceProvisioning = (device: Device): boolean => {
+    if (device.public_key && device.private_key) return false; // keys ready
+    const job = latestJobByDevice.get(device.id);
+    if (job && ACTIVE_JOB.has(job.status)) return true; // in progress
+    if (job && job.status === "SUCCESS") return true; // keys not synced yet
+    if (!job) {
+      // The job row appears within ~1s of creation — spin briefly until it does.
+      return Date.now() - new Date(device.created_at).getTime() < 30_000;
+    }
+    return false; // FAILED
+  };
+
+  const devicesQuery = useQuery({
+    ...trpc.getDevices.queryOptions(),
+    refetchInterval: (query) => {
+      const devices = (query.state.data ?? []) as Device[];
+      return devices.some((d) => isDeviceProvisioning(d)) ? 2000 : false;
+    },
+  });
   const networksQuery = useQuery(trpc.getNetworks.queryOptions());
   const domainsQuery = useQuery(trpc.getDomains.queryOptions());
 
@@ -138,6 +184,10 @@ function DevicesPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: trpc.getDevices.queryKey(),
+      });
+      // Pick up the new provisioning job so the Keys column starts polling.
+      void queryClient.invalidateQueries({
+        queryKey: trpc.listDeviceJobs.queryKey(),
       });
       setIsCreateDialogOpen(false);
       setFormData({
@@ -685,7 +735,7 @@ function DevicesPage() {
                     {device.description ?? "-"}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
+                    <div className="flex items-center gap-1">
                       {renderSshKeyStatus(device.ssh_key_id ?? null)}
                       {device.public_key && (
                         <Badge variant="outline" className="text-xs">
@@ -697,7 +747,24 @@ function DevicesPage() {
                           Private
                         </Badge>
                       )}
-                      {!device.public_key && !device.private_key && "-"}
+                      {!device.public_key &&
+                        !device.private_key &&
+                        (isDeviceProvisioning(device) ? (
+                          <span className="text-muted-foreground flex items-center gap-1 text-xs">
+                            <span
+                              className="border-primary h-3 w-3 animate-spin rounded-full border-2 border-t-transparent"
+                              aria-hidden="true"
+                            />
+                            Provisioning…
+                          </span>
+                        ) : latestJobByDevice.get(device.id)?.status ===
+                          "FAILED" ? (
+                          <Badge variant="destructive" className="text-xs">
+                            Failed
+                          </Badge>
+                        ) : (
+                          "-"
+                        ))}
                     </div>
                   </TableCell>
                   <TableCell>

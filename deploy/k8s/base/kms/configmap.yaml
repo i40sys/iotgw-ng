@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cosmian-kms-config
+  labels:
+    app.kubernetes.io/name: cosmian-kms
+    app.kubernetes.io/part-of: iotgw-ng
+data:
+  # Mirrors kms/kms.toml. SQLite lives on the cosmian-kms PVC (image default path).
+  #
+  # AUTH (task-057, decision-015 KMS hardening): API-token authentication is
+  # enabled via `[http] api_token_id`. The referenced symmetric key
+  # (`iotgw_api_token`) must already exist in the KMS store — it is provisioned
+  # idempotently by `deploy/kind/bootstrap.sh kms-auth` while the KMS is still
+  # open (chicken-and-egg). The server then fetches that key, base64-encodes its
+  # raw bytes (lowercased) and requires every request to present it as
+  # `Authorization: Bearer <token>` (Cosmian KMS 5.20 middleware
+  # crate/server/src/middlewares/api_token). The token VALUE is a secret: it
+  # lives in the SOPS store (secrets/iotgw-ui-backend.enc.env → KMS_AUTH_TOKEN)
+  # and is injected into the iotgw-ui backend (+ the Kestra/Ansible KMS-fetch
+  # path) from a k8s Secret — never hardcoded here. TLS still terminates at the
+  # Ingress; in-cluster KMS traffic is plaintext but locked down by the
+  # NetworkPolicy in this directory.
+  kms.toml: |
+    default_username = "admin"
+
+    [http]
+    port = 9998
+    hostname = "0.0.0.0"
+    # API-token auth — the bearer token is the base64 of this symmetric key's
+    # raw bytes (lowercased). Provisioned by bootstrap.sh `kms-auth`.
+    api_token_id = "iotgw_api_token"

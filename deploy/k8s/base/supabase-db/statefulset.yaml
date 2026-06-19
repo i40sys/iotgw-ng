@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: supabase-db
+  labels:
+    app.kubernetes.io/name: supabase-db
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  serviceName: supabase-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: supabase-db
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: supabase-db
+        app.kubernetes.io/part-of: iotgw-ng
+    spec:
+      containers:
+        - name: postgres
+          image: supabase/postgres:15.8.1.085
+          args:
+            - postgres
+            - -c
+            - log_min_messages=fatal
+          env:
+            - name: POSTGRES_HOST
+              value: /var/run/postgresql
+            - name: PGPORT
+              value: "5432"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: supabase-env, key: POSTGRES_PASSWORD }
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef: { name: supabase-env, key: JWT_SECRET }
+            - name: JWT_EXP
+              valueFrom:
+                secretKeyRef: { name: supabase-env, key: JWT_EXPIRY }
+          ports:
+            - name: postgres
+              containerPort: 5432
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d/iotgw
+              readOnly: true
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-h", "localhost"]
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-h", "localhost"]
+            initialDelaySeconds: 45
+            periodSeconds: 15
+      volumes:
+        - name: initdb
+          configMap:
+            name: supabase-db-initdb
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi

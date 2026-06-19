@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-db
+  labels:
+    app.kubernetes.io/name: supabase-db
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  selector:
+    app.kubernetes.io/name: supabase-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  # Stable in-cluster name "supabase-db" replaces the compose hostname "db".

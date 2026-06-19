@@ -1,0 +1,18 @@
+# kind overlay patch: ensure Postgres listens on all interfaces.
+# The base StatefulSet passes -c log_min_messages=fatal but not listen_addresses.
+# Without this, the pod-network IP is unreachable and Services can't route to it.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: supabase-db
+spec:
+  template:
+    spec:
+      containers:
+        - name: postgres
+          args:
+            - postgres
+            - -c
+            - log_min_messages=fatal
+            - -c
+            - listen_addresses=*

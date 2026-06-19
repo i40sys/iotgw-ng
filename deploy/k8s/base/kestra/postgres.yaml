@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kestra-postgres
+  labels:
+    app.kubernetes.io/name: kestra-postgres
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  serviceName: kestra-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kestra-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kestra-postgres
+        app.kubernetes.io/part-of: iotgw-ng
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16   # fresh cluster in k8s (compose used PG18 on disk; a new PVC starts empty)
+          env:
+            - name: POSTGRES_DB
+              value: kestra
+            - name: POSTGRES_USER
+              value: kestra
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: kestra-env, key: KESTRA_POSTGRES_PASSWORD }
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - { name: postgres, containerPort: 5432 }
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "kestra", "-d", "kestra"] }
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 2Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kestra-postgres
+  labels:
+    app.kubernetes.io/name: kestra-postgres
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  selector:
+    app.kubernetes.io/name: kestra-postgres
+  ports:
+    - { name: postgres, port: 5432, targetPort: 5432 }

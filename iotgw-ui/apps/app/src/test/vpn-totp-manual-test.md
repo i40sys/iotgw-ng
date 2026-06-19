@@ -91,7 +91,7 @@ echo "{
   \"interface\": \"eth0\",
   \"device_id\": \"${DEVICE_ID}\",
   \"totp_code\": \"${TOTP_CODE}\"
-}" | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:***REMOVED-ROTATED-KESTRA-PW*** > /tmp/vpn-request.enc
+}" | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:"$VPN_TEST_PASS" > /tmp/vpn-request.enc
 
 # Send request to VPN edge function
 curl 'http://localhost:54321/functions/v1/vpn' \
@@ -100,7 +100,7 @@ curl 'http://localhost:54321/functions/v1/vpn' \
   --output /tmp/vpn-response.enc
 
 # Decrypt response
-openssl enc -d -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:***REMOVED-ROTATED-KESTRA-PW*** \
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:"$VPN_TEST_PASS" \
   -in /tmp/vpn-response.enc
 
 # Expected: WireGuard configuration file
@@ -117,7 +117,7 @@ echo "{
   \"interface\": \"eth0\",
   \"device_id\": \"${DEVICE_ID}\",
   \"totp_code\": \"${INVALID_TOTP}\"
-}" | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:***REMOVED-ROTATED-KESTRA-PW*** \
+}" | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:"$VPN_TEST_PASS" \
   | curl 'http://localhost:54321/functions/v1/vpn' \
   --header 'Authorization: Bearer YOUR_ANON_KEY' \
   --data-binary @-
@@ -132,7 +132,7 @@ echo "{
   \"gateway\": \"10.2.0.1\",
   \"interface\": \"eth0\",
   \"device_id\": \"${DEVICE_ID}\"
-}" | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:***REMOVED-ROTATED-KESTRA-PW*** \
+}" | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:"$VPN_TEST_PASS" \
   | curl 'http://localhost:54321/functions/v1/vpn' \
   --header 'Authorization: Bearer YOUR_ANON_KEY' \
   --data-binary @-
@@ -151,7 +151,7 @@ echo "{
   \"interface\": \"eth0\",
   \"device_id\": \"${DEVICE_ID}\",
   \"totp_code\": \"${EXPIRED_CODE}\"
-}" | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:***REMOVED-ROTATED-KESTRA-PW*** \
+}" | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:"$VPN_TEST_PASS" \
   | curl 'http://localhost:54321/functions/v1/vpn' \
   --header 'Authorization: Bearer YOUR_ANON_KEY' \
   --data-binary @-
@@ -176,11 +176,11 @@ echo "{
   \"interface\": \"eth0\",
   \"device_id\": \"${DEVICE_ID}\",
   \"totp_code\": \"${NEW_TOTP_CODE}\"
-}" | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:***REMOVED-ROTATED-KESTRA-PW*** \
+}" | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:"$VPN_TEST_PASS" \
   | curl 'http://localhost:54321/functions/v1/vpn' \
   --header 'Authorization: Bearer YOUR_ANON_KEY' \
   --data-binary @- \
-  | openssl enc -d -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:***REMOVED-ROTATED-KESTRA-PW***
+  | openssl enc -d -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:"$VPN_TEST_PASS"
 
 # Expected: WireGuard configuration
 ```
@@ -196,7 +196,7 @@ echo "{
   \"interface\": \"eth0\",
   \"device_id\": \"${DEVICE_ID}\",
   \"totp_code\": \"${WRONG_COUNTER_CODE}\"
-}" | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:***REMOVED-ROTATED-KESTRA-PW*** \
+}" | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:"$VPN_TEST_PASS" \
   | curl 'http://localhost:54321/functions/v1/vpn' \
   --header 'Authorization: Bearer YOUR_ANON_KEY' \
   --data-binary @-
