@@ -1,12 +1,10 @@
 # iotgw-ng — workspace orchestrator
 # One entry point for the whole monorepo. Run `just` to list recipes.
-# Stacks stay in their own directories (compose-relative bind mounts); this
-# file unifies the cross-stack operations. See README.md and decision-013.
+# The platform runs on Kubernetes (kind locally) — `just bootstrap` brings the
+# whole stack up on kind. See deploy/README.md and decision-015/017/018.
+# iotgw-ui dev servers run via pnpm (`just dev`).
 
 set shell := ["bash", "-uc"]
-
-# Stacks that are docker-compose based (dir name == compose project)
-compose_stacks := "supabase kestra kms"
 
 # default: list recipes
 default:
@@ -14,7 +12,9 @@ default:
 
 # ─────────────────────────── secrets (SOPS+age) ───────────────────────────
 
-# Decrypt all encrypted secrets to their consuming .env files
+# The k8s Secrets are created directly from the SOPS store by the kind bootstrap
+# (deploy/kind/bootstrap.sh make_secrets) — they do not need a rendered .env.
+# Decrypt encrypted secrets to their consuming .env files (pnpm-dev consumers)
 secrets-render *args:
     tools/secrets/secrets.sh render {{args}}
 
@@ -25,33 +25,6 @@ secrets-check:
 # Edit one encrypted secret in $EDITOR (re-encrypts on save)
 secrets-edit name:
     tools/secrets/secrets.sh edit {{name}}
-
-# ─────────────────────────── docker-compose stacks ───────────────────────────
-
-# Bring up one stack (must render its secrets first)
-up stack:
-    cd {{stack}} && docker compose up -d
-
-# Tear down one stack
-down stack:
-    cd {{stack}} && docker compose down
-
-# Bring up every compose stack in dependency order
-up-all: secrets-render
-    cd supabase    && docker compose up -d
-    cd kestra      && docker compose up -d
-    cd kms         && docker compose up -d
-
-# Tear down every compose stack
-down-all:
-    -cd kms         && docker compose down
-    -cd kestra      && docker compose down
-    -cd supabase    && docker compose down
-
-# Cross-stack status (only iotgw-ng containers)
-status:
-    @docker ps --format 'table {{{{.Names}}}}\t{{{{.Image}}}}\t{{{{.Status}}}}' \
-      | grep -E 'supabase|kestra|cosmian-kms|whoami' || echo "no iotgw-ng containers running"
 
 # ─────────────────────────── iotgw-ui (pnpm) ───────────────────────────
 
@@ -65,7 +38,7 @@ ui-check:
 
 # ─────────────────────────── kubernetes (kind) ───────────────────────────
 
-# Create the local kind cluster
+# Create the local kind cluster (+ ingress-nginx + StackGres operator)
 kind-up:
     deploy/kind/bootstrap.sh up
 
@@ -73,7 +46,7 @@ kind-up:
 kind-down:
     deploy/kind/bootstrap.sh down
 
-# Deploy the dev overlay into kind
+# Deploy the platform into kind (secrets, images, kustomize overlay, app schema)
 k8s-deploy:
     deploy/kind/bootstrap.sh deploy
 
@@ -85,6 +58,10 @@ k8s-build:
 k8s-smoke:
     deploy/kind/bootstrap.sh smoke
 
+# Cross-stack status — k8s workloads in the iotgw namespace
+status:
+    @kubectl -n iotgw get pods 2>/dev/null || echo "kind cluster not running (just kind-up && just k8s-deploy)"
+
 # ─────────────────────────── meta ───────────────────────────
 
 # Repeatable verification: secret hygiene, SOPS round-trip, kustomize render,
@@ -92,5 +69,16 @@ k8s-smoke:
 verify:
     tools/verify.sh
 
-# Full local bring-up: secrets -> compose stacks
-bootstrap: secrets-render up-all status
+# End-to-end provisioning cycle against the running kind cluster: backend
+# (HTTP -> network+device -> KMS + Netmaker, asserts the WireGuard config and a
+# KMS round-trip, then teardown) followed by the browser (Playwright UI ->
+# backend, same outcome checks). Asserts the real systems are ready — not a 202.
+# Requires the cluster up (run after `just bootstrap`). Chromium is installed
+# idempotently on first run.
+e2e:
+    cd iotgw-ui && pnpm --filter @iotgw/app run test:e2e:install
+    cd iotgw-ui && pnpm --filter @iotgw/backend test:e2e
+    cd iotgw-ui && pnpm --filter @iotgw/app test:e2e
+
+# Full local bring-up on kind: create the cluster -> deploy -> smoke -> e2e
+bootstrap: kind-up k8s-deploy k8s-smoke e2e

@@ -3,7 +3,11 @@ import { logger } from "../logger";
 import { TRPCError } from "@trpc/server";
 import { createQueryProcedure } from "../utils/query-helper";
 import { createMutationProcedure } from "../utils/mutation-helper";
-import { ensureDeviceSshKey } from "../services/kms";
+import {
+  ensureDeviceSshKey,
+  getDeviceSshPublicKey,
+  destroyDeviceSshKey,
+} from "../services/kms";
 
 // Debug logging for connectivity checks - enabled via LOG_LEVEL=debug environment variable
 const isDebugEnabled = process.env.LOG_LEVEL === "debug";
@@ -145,6 +149,49 @@ export const devicesRouter = {
         hasSshKey: Boolean(data?.ssh_key_id),
         sshKeyId: data?.ssh_key_id ?? null,
       };
+    },
+  ),
+
+  // Fetches the device's OpenSSH public key by round-tripping to Cosmian KMS —
+  // proves the key materially exists there (not just that ssh_key_id is set in
+  // the DB), and lets the UI display/export it.
+  getDeviceSshPublicKey: createQueryProcedure(
+    "get_device_ssh_public_key",
+    z.object({ device_id: z.string().min(1, "Device ID is required") }),
+    async ({ ctx, input }) => {
+      const { supabase } = ctx;
+
+      const { data, error } = await supabase
+        .from("devices")
+        .select("ssh_key_id")
+        .eq("id", input.device_id)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Device with ID ${input.device_id} not found`,
+            cause: error,
+          });
+        }
+        logger.error({ error }, "Error fetching device for SSH public key");
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to fetch device: ${error.message}`,
+          cause: error,
+        });
+      }
+
+      if (!data?.ssh_key_id) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Device ${input.device_id} has no SSH key`,
+        });
+      }
+
+      const publicKey = await getDeviceSshPublicKey(data.ssh_key_id);
+      return { sshKeyId: data.ssh_key_id, publicKey };
     },
   ),
 
@@ -552,6 +599,20 @@ export const devicesRouter = {
           message: `Failed to delete device: ${error.message}`,
           cause: error,
         });
+      }
+
+      // Best-effort: revoke+destroy the device's SSH key in Cosmian KMS so it
+      // doesn't outlive the device. A KMS failure must not fail the delete.
+      if (data?.ssh_key_id) {
+        try {
+          await destroyDeviceSshKey(data.ssh_key_id);
+          logger.info({ keyId: data.ssh_key_id }, "Revoked device SSH key in KMS");
+        } catch (err) {
+          logger.error(
+            { error: err, keyId: data.ssh_key_id },
+            "Device deleted but failed to revoke its SSH key in KMS",
+          );
+        }
       }
 
       logger.info(`Successfully deleted device with ID ${input.id}`);
