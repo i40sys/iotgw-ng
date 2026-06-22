@@ -48,22 +48,24 @@ Host ports (mapped by `kind/cluster.yaml`, same as the compose stacks):
 
 ## Headlamp dashboard (TASK-063)
 
-[Headlamp](https://headlamp.dev) is an in-cluster Kubernetes web UI
-(`base/headlamp/`), exposed through ingress-nginx like the whoami demo. It runs
-with `-in-cluster` and a `headlamp` ServiceAccount bound (ClusterRoleBinding
+[Headlamp](https://headlamp.dev) is an in-cluster Kubernetes web UI in its own
+**dedicated `headlamp` namespace** (`deploy/k8s/headlamp/`, applied standalone —
+*not* through the iotgw overlay, so the `namespace: iotgw` transformer can't
+absorb it). Exposed through ingress-nginx like the whoami demo. It runs with
+`-in-cluster` and a `headlamp` ServiceAccount bound (ClusterRoleBinding
 `headlamp-admin`) to the built-in **`cluster-admin`** ClusterRole — full
-read-write control of the cluster.
+read-write control of the cluster. `just k8s-deploy` applies it automatically;
+to apply on its own: `kubectl apply -k deploy/k8s/headlamp`.
 
 ```bash
-# 1. point the host at the ingress (once)
-echo "127.0.0.1 headlamp.wsl.ymbihq.local" | sudo tee -a /etc/hosts
-
-# 2. open http://headlamp.wsl.ymbihq.local/ and log in with a SA bearer token:
-kubectl -n iotgw create token headlamp
+# open http://headlamp.wsl.ymbihq.local/ (DNS via Pi-hole CNAME → wsl.ymbihq.local)
+# and log in with a short-lived ServiceAccount bearer token:
+kubectl -n headlamp create token headlamp
 ```
 
 To restrict to read-only instead, point the `headlamp-admin` ClusterRoleBinding's
-`roleRef` at a `get`/`list`/`watch` ClusterRole.
+`roleRef` at a `get`/`list`/`watch` ClusterRole. Full deploy + token runbook:
+[`backlog/docs/doc-017`](../backlog/docs/doc-017%20-%20Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md).
 
 ## Postgres tier: StackGres (decision-018)
 
@@ -104,7 +106,7 @@ supersedes the hand-authored `supabase-db` StatefulSet (which is retained in
 | ↳ `pg_net` end-to-end on the SGCluster | ✅ **validated** | shared_preload_libraries has pg_net first-boot; INSERT → `net._http_response` HTTP 202 + `*_jobs` row (`tools/smoke-pgnet.sh`) |
 | Kestra (+ Postgres) | ✅ **validated** | server `1/1 Ready`, HTTP 200 on `:8080` |
 | whoami + ingress-nginx | ✅ **validated** | `curl -H 'Host: whoami.wsl.ymbihq.local' :80` returns whoami |
-| Headlamp dashboard (TASK-063) | ✅ **validated** | pod Ready in `iotgw`; `curl -H 'Host: headlamp.wsl.ymbihq.local' :80` → HTTP 200 + in-cluster `/config`; `headlamp` SA bound to `cluster-admin` (read-write), SSAR `create/delete pods` = yes |
+| Headlamp dashboard (TASK-063) | ✅ **validated** | pod Ready in dedicated **`headlamp`** namespace; `curl http://headlamp.wsl.ymbihq.local/` → HTTP 200 + in-cluster `/config`; `headlamp` SA bound to `cluster-admin` (read-write); Pi-hole CNAME resolves |
 | Secrets from SOPS | ✅ **validated** | `secrets.sh k8s` → `supabase-env`, `kestra-env`, `supabase-db-initdb` Secrets |
 | **Supabase app tier** (kong / rest=PostgREST / auth=GoTrue / meta / functions) | ✅ **validated** | trimmed stateless set up on kind against the SGCluster; `PGRST_DB_SCHEMAS=public`; edge fns served from the baked `iotgw-functions:local` image (`TASK-062.04`) |
 | StackGres backups/PITR (`SGBackup`/`SGObjectStorage`) | 🟡 **authored, not validated** | `base/supabase-db-stackgres/backup.yaml` — needs a real S3/MinIO target + creds Secret; **not** in the kind path (no object store) |

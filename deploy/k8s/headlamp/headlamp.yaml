@@ -1,12 +1,23 @@
 # Headlamp — in-cluster Kubernetes dashboard (https://headlamp.dev) for the
-# iotgw-ng platform. Exposed through ingress-nginx, mirroring the whoami demo.
+# iotgw-ng platform. Lives in its OWN dedicated `headlamp` namespace (not the
+# iotgw app namespace) and is applied as a standalone kustomization, so the
+# iotgw overlay's namespace transformer never pulls it into iotgw. Exposed
+# through ingress-nginx, mirroring the whoami demo.
 #
 # Auth: Headlamp runs with `-in-cluster`; operators log in with a ServiceAccount
 # bearer token. The `headlamp` SA below is bound (ClusterRoleBinding) to the
 # built-in `cluster-admin` ClusterRole, so the dashboard has full read-write
 # control of the cluster. Generate a login token with:
-#   kubectl -n iotgw create token headlamp
+#   kubectl -n headlamp create token headlamp
 # To restrict to read-only, point roleRef at a get/list/watch ClusterRole.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: headlamp
+  labels:
+    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/part-of: iotgw-ng
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -29,8 +40,8 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: headlamp
-    # namespace is set by the kustomize namespace transformer (iotgw)
-    namespace: iotgw
+    # namespace is set by the kustomize namespace transformer (headlamp)
+    namespace: headlamp
 ---
 apiVersion: apps/v1
 kind: Deployment

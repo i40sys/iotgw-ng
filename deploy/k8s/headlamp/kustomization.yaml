@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Dedicated namespace — Headlamp is intentionally isolated from the iotgw app
+# namespace. This kustomization is applied standalone (not via overlays/kind),
+# so this transformer is authoritative and nothing forces it into iotgw.
+namespace: headlamp
+resources:
+  - headlamp.yaml

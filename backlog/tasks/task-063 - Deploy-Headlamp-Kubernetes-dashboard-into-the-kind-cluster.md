@@ -4,11 +4,15 @@ title: Deploy Headlamp Kubernetes dashboard into the kind cluster
 status: Done
 assignee: []
 created_date: '2026-06-22 05:30'
-updated_date: '2026-06-22 05:35'
+updated_date: '2026-06-22 16:11'
 labels:
   - k8s
   - observability
 dependencies: []
+documentation:
+  - >-
+    backlog/docs/doc-017 -
+    Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md
 priority: medium
 ---
 
@@ -35,5 +39,5 @@ Add the Headlamp web UI (https://headlamp.dev) as a kustomize-managed tier so op
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Implemented as base/headlamp/ (SA + ClusterRoleBinding headlamp-admin -> built-in cluster-admin for read-write + Deployment ghcr.io/headlamp-k8s/headlamp:v0.30.0 -in-cluster port 4466 + Service :80->4466 + Ingress host headlamp.wsl.ymbihq.local), wired into base/kustomization.yaml. Image loaded into kind. Validated on kind v1.31.12: pod Ready in iotgw, ingress HTTP 200 + in-cluster /config, SA token authenticates, SSAR confirms read-write (create/delete/update = yes). Login: kubectl -n iotgw create token headlamp. Documented in deploy/README.md.
+Headlamp deployed in its OWN dedicated 'headlamp' namespace (mandatory isolation): manifests moved to deploy/k8s/headlamp/ as a standalone kustomization (Namespace + SA + headlamp-admin CRB -> cluster-admin + Deployment ghcr.io/headlamp-k8s/headlamp:v0.30.0 -in-cluster:4466 + Service :80->4466 + Ingress headlamp.wsl.ymbihq.local). Removed from base/kustomization.yaml; applied via a second 'kubectl apply -k deploy/k8s/headlamp' in bootstrap.sh deploy() so 'just k8s-deploy' provisions it. Pi-hole CNAME headlamp.wsl.ymbihq.local -> wsl.ymbihq.local added. Validated on kind v1.31.12: pod Ready in namespace headlamp (none left in iotgw), CRB subject headlamp/headlamp -> cluster-admin, HTTP 200 via hostname + in-cluster /config, token mints with 'kubectl -n headlamp create token headlamp'. Full runbook: doc-017.
 <!-- SECTION:NOTES:END -->

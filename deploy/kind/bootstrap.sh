@@ -224,6 +224,10 @@ deploy() {
   build_iotgw_ui
   echo "==> applying kustomize overlay deploy/k8s/overlays/kind"
   kubectl apply -k deploy/k8s/overlays/kind
+  # Headlamp dashboard — its own dedicated namespace, applied standalone so the
+  # iotgw overlay's namespace transformer doesn't absorb it (TASK-063, doc-017).
+  echo "==> applying Headlamp dashboard (namespace: headlamp)"
+  kubectl apply -k deploy/k8s/headlamp
   echo "==> waiting for core workloads (best-effort)"
   kubectl -n "$NS" rollout status deploy/cosmian-kms --timeout=120s || true
   # StackGres manages the DB StatefulSet — wait on the primary pod label
