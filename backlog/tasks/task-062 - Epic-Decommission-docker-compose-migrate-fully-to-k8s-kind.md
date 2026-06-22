@@ -10,7 +10,6 @@ labels:
   - compose-removal
   - k8s
   - epic
-milestone: Decommission docker-compose
 dependencies: []
 priority: high
 ---

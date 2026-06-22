@@ -12,7 +12,6 @@ labels:
   - migration
   - supabase
   - compose-removal
-milestone: Decommission docker-compose
 dependencies: []
 parent_task_id: TASK-062
 priority: high

@@ -12,7 +12,6 @@ labels:
   - migration
   - supabase
   - compose-removal
-milestone: Decommission docker-compose
 dependencies:
   - TASK-056
 references:

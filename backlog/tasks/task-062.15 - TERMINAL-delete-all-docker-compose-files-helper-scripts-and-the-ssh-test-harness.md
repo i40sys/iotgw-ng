@@ -11,7 +11,6 @@ labels:
   - migration
   - compose-removal
   - cleanup
-milestone: Decommission docker-compose
 dependencies:
   - TASK-062.11
   - TASK-062.13

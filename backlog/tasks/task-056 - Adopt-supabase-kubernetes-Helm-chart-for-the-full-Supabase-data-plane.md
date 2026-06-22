@@ -10,7 +10,6 @@ updated_date: '2026-06-18 14:04'
 labels:
   - helm
   - data-migration
-milestone: Decommission docker-compose
 dependencies:
   - TASK-062.16
   - TASK-062.17

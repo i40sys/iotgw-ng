@@ -9,7 +9,6 @@ labels:
   - docs
   - migration
   - compose-removal
-milestone: Decommission docker-compose
 dependencies:
   - TASK-062.13
 parent_task_id: TASK-062

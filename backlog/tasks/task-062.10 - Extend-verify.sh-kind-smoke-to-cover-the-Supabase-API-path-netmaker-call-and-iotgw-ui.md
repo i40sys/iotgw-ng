@@ -14,7 +14,6 @@ labels:
   - tooling
   - validation
   - stackgres
-milestone: Decommission docker-compose
 dependencies:
   - TASK-062.04
   - TASK-062.08

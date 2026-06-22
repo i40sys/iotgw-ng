@@ -13,7 +13,6 @@ labels:
   - decision
   - docs
   - supabase
-milestone: Decommission docker-compose
 dependencies:
   - TASK-062.16
 references:

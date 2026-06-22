@@ -10,7 +10,6 @@ labels:
   - migration
   - compose-removal
   - validation
-milestone: Decommission docker-compose
 dependencies:
   - TASK-056
   - TASK-055

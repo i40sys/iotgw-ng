@@ -13,7 +13,6 @@ labels:
   - edge-functions
   - migration
   - architecture
-milestone: Decommission docker-compose
 dependencies:
   - TASK-054
   - TASK-062.04

@@ -11,7 +11,6 @@ labels:
   - k8s
   - migration
   - ingress
-milestone: Decommission docker-compose
 dependencies:
   - TASK-062.08
 parent_task_id: TASK-062
