@@ -15,3 +15,4 @@ resources:
   # (re-add this line and remove supabase-db-stackgres from overlays to revert).
   - kestra
   - whoami
+  - headlamp
