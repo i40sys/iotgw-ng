@@ -11,6 +11,7 @@ labels:
   - k8s
   - migration
   - docs
+milestone: Decommission docker-compose
 dependencies:
   - TASK-062.04
 references:

@@ -12,6 +12,7 @@ labels:
   - compose-removal
   - decision
   - docs
+milestone: Decommission docker-compose
 dependencies: []
 references:
   - >-

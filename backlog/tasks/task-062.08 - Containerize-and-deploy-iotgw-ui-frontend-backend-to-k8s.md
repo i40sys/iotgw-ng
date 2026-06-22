@@ -10,6 +10,7 @@ labels:
   - migration
   - iotgw-ui
   - compose-removal
+milestone: Decommission docker-compose
 dependencies:
   - TASK-062.04
   - TASK-055

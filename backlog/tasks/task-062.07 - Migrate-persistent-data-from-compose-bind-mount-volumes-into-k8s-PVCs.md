@@ -12,6 +12,7 @@ labels:
   - migration
   - data-migration
   - compose-removal
+milestone: Decommission docker-compose
 dependencies:
   - TASK-062.05
   - TASK-056

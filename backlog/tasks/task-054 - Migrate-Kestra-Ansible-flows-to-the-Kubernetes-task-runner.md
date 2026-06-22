@@ -7,6 +7,7 @@ created_date: '2026-06-12 22:15'
 updated_date: '2026-06-18 18:20'
 labels:
   - kestra
+milestone: Decommission docker-compose
 dependencies: []
 ---
 

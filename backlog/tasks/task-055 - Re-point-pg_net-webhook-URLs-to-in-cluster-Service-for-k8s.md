@@ -13,6 +13,7 @@ labels:
   - k8s
   - migration
   - compose-removal
+milestone: Decommission docker-compose
 dependencies: []
 ---
 

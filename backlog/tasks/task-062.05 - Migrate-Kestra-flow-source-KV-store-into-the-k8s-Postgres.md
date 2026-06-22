@@ -11,6 +11,7 @@ labels:
   - kestra
   - compose-removal
   - data-migration
+milestone: Decommission docker-compose
 dependencies:
   - TASK-054
 parent_task_id: TASK-062

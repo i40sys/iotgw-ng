@@ -9,6 +9,7 @@ labels:
   - k8s
   - migration
   - kestra
+milestone: Decommission docker-compose
 dependencies:
   - TASK-062.05
 parent_task_id: TASK-062
