@@ -4,15 +4,15 @@ title: Deploy Headlamp Kubernetes dashboard into the kind cluster
 status: Done
 assignee: []
 created_date: '2026-06-22 05:30'
-updated_date: '2026-06-22 16:11'
+updated_date: '2026-06-22 19:55'
 labels:
   - k8s
   - observability
 dependencies: []
 documentation:
   - >-
-    backlog/docs/doc-017 -
-    Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md
+    backlog/decisions/decision-019 -
+    Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver.md
 priority: medium
 ---
 
@@ -39,5 +39,5 @@ Add the Headlamp web UI (https://headlamp.dev) as a kustomize-managed tier so op
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Headlamp deployed in its OWN dedicated 'headlamp' namespace (mandatory isolation): manifests moved to deploy/k8s/headlamp/ as a standalone kustomization (Namespace + SA + headlamp-admin CRB -> cluster-admin + Deployment ghcr.io/headlamp-k8s/headlamp:v0.30.0 -in-cluster:4466 + Service :80->4466 + Ingress headlamp.wsl.ymbihq.local). Removed from base/kustomization.yaml; applied via a second 'kubectl apply -k deploy/k8s/headlamp' in bootstrap.sh deploy() so 'just k8s-deploy' provisions it. Pi-hole CNAME headlamp.wsl.ymbihq.local -> wsl.ymbihq.local added. Validated on kind v1.31.12: pod Ready in namespace headlamp (none left in iotgw), CRB subject headlamp/headlamp -> cluster-admin, HTTP 200 via hostname + in-cluster /config, token mints with 'kubectl -n headlamp create token headlamp'. Full runbook: doc-017.
+Auth hardened to Keycloak OIDC SSO (decision-019): realm iotgw + confidential client headlamp at iam.joor.net (groups mapper, group k8s-admins, user oriol). kube-apiserver OIDC flags in deploy/kind/cluster.yaml + applied live; RBAC ClusterRoleBinding oidc-k8s-admins binds oidc:k8s-admins->cluster-admin. Headlamp Deployment runs -oidc-* (client secret from SOPS secrets/headlamp-oidc.enc.env -> headlamp-oidc Secret). Validated: /config auth_type=oidc, /oidc 302->iam.joor.net, apiserver SelfSubjectReview maps id_token->oidc:oriol/oidc:k8s-admins, SSAR cluster-admin allowed; SA token fallback retained. Creds in Bitwarden 'Headlamp k8s SSO'. Runbook doc-017.
 <!-- SECTION:NOTES:END -->

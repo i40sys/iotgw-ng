@@ -57,14 +57,19 @@ absorb it). Exposed through ingress-nginx like the whoami demo. It runs with
 read-write control of the cluster. `just k8s-deploy` applies it automatically;
 to apply on its own: `kubectl apply -k deploy/k8s/headlamp`.
 
+**Login is Keycloak OIDC SSO** (realm `iotgw` at `iam.joor.net`,
+`decision-019`) — no tokens to paste. Open
+<http://headlamp.wsl.ymbihq.local/> → **Sign in** → authenticate at Keycloak;
+your `k8s-admins` group maps to `cluster-admin`. The kube-apiserver validates the
+id_token directly (OIDC flags in `kind/cluster.yaml`); RBAC binds the
+`oidc:k8s-admins` group (`headlamp/rbac-oidc.yaml`).
+
 ```bash
-# open http://headlamp.wsl.ymbihq.local/ (DNS via Pi-hole CNAME → wsl.ymbihq.local)
-# and log in with a short-lived ServiceAccount bearer token:
+# Fallback if the IdP is down — the headlamp SA is bound to cluster-admin:
 kubectl -n headlamp create token headlamp
 ```
 
-To restrict to read-only instead, point the `headlamp-admin` ClusterRoleBinding's
-`roleRef` at a `get`/`list`/`watch` ClusterRole. Full deploy + token runbook:
+Full deploy + SSO + token runbook:
 [`backlog/docs/doc-017`](../backlog/docs/doc-017%20-%20Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md).
 
 ## Postgres tier: StackGres (decision-018)
@@ -106,7 +111,7 @@ supersedes the hand-authored `supabase-db` StatefulSet (which is retained in
 | ↳ `pg_net` end-to-end on the SGCluster | ✅ **validated** | shared_preload_libraries has pg_net first-boot; INSERT → `net._http_response` HTTP 202 + `*_jobs` row (`tools/smoke-pgnet.sh`) |
 | Kestra (+ Postgres) | ✅ **validated** | server `1/1 Ready`, HTTP 200 on `:8080` |
 | whoami + ingress-nginx | ✅ **validated** | `curl -H 'Host: whoami.wsl.ymbihq.local' :80` returns whoami |
-| Headlamp dashboard (TASK-063) | ✅ **validated** | pod Ready in dedicated **`headlamp`** namespace; `curl http://headlamp.wsl.ymbihq.local/` → HTTP 200 + in-cluster `/config`; `headlamp` SA bound to `cluster-admin` (read-write); Pi-hole CNAME resolves |
+| Headlamp dashboard (TASK-063) | ✅ **validated** | pod Ready in dedicated **`headlamp`** namespace; HTTP 200 via Pi-hole CNAME; **Keycloak OIDC SSO** (`decision-019`): `/config` `auth_type: oidc`, `/oidc` 302→`iam.joor.net/realms/iotgw`, apiserver maps id_token→`oidc:oriol`/`oidc:k8s-admins`, RBAC→cluster-admin; SA token fallback works |
 | Secrets from SOPS | ✅ **validated** | `secrets.sh k8s` → `supabase-env`, `kestra-env`, `supabase-db-initdb` Secrets |
 | **Supabase app tier** (kong / rest=PostgREST / auth=GoTrue / meta / functions) | ✅ **validated** | trimmed stateless set up on kind against the SGCluster; `PGRST_DB_SCHEMAS=public`; edge fns served from the baked `iotgw-functions:local` image (`TASK-062.04`) |
 | StackGres backups/PITR (`SGBackup`/`SGObjectStorage`) | 🟡 **authored, not validated** | `base/supabase-db-stackgres/backup.yaml` — needs a real S3/MinIO target + creds Secret; **not** in the kind path (no object store) |

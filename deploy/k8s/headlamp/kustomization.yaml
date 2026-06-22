@@ -6,3 +6,4 @@ kind: Kustomization
 namespace: headlamp
 resources:
   - headlamp.yaml
+  - rbac-oidc.yaml

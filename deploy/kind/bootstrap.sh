@@ -228,6 +228,10 @@ deploy() {
   # iotgw overlay's namespace transformer doesn't absorb it (TASK-063, doc-017).
   echo "==> applying Headlamp dashboard (namespace: headlamp)"
   kubectl apply -k deploy/k8s/headlamp
+  # Headlamp OIDC client secret (Keycloak realm iotgw) from the SOPS store into
+  # the headlamp namespace — the Deployment reads it via secretKeyRef (decision-019).
+  tools/secrets/secrets.sh k8s headlamp-oidc headlamp headlamp-oidc \
+    | kubectl apply -f - >/dev/null && echo "  headlamp-oidc Secret applied"
   echo "==> waiting for core workloads (best-effort)"
   kubectl -n "$NS" rollout status deploy/cosmian-kms --timeout=120s || true
   # StackGres manages the DB StatefulSet — wait on the primary pod label
