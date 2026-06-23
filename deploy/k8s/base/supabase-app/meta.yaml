@@ -27,7 +27,8 @@ spec:
             - name: PG_META_PORT
               value: "8080"
             - name: PG_META_DB_HOST
-              value: supabase-db
+              # supabase-db is now in its own namespace (decision-020) — FQDN.
+              value: supabase-db.supabase-db.svc.cluster.local
             - name: PG_META_DB_PORT
               value: "5432"
             - name: PG_META_DB_NAME

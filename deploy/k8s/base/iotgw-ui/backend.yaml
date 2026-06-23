@@ -12,6 +12,8 @@ metadata:
   labels:
     app.kubernetes.io/name: iotgw-ui-backend
     app.kubernetes.io/part-of: iotgw-ng
+    # SUPABASE_URL/KMS_URL/KESTRA_API_URL below use cross-namespace FQDNs
+    # (decision-020): kong→supabase-app, cosmian-kms→kms, kestra→kestra.
 spec:
   replicas: 1
   selector:
@@ -33,14 +35,18 @@ spec:
             - name: NODE_ENV
               value: production
             - name: SUPABASE_URL
-              value: http://kong:8000
+              value: http://kong.supabase-app.svc.cluster.local:8000
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
                   name: supabase-env
                   key: SERVICE_ROLE_KEY
             - name: KMS_URL
-              value: http://cosmian-kms:9998
+              value: http://cosmian-kms.kms.svc.cluster.local:9998
+            # Kestra REST API base for backend-driven flows (connectivity-check,
+            # deployments). Kestra is in its own namespace (decision-020) — FQDN.
+            - name: KESTRA_API_URL
+              value: http://kestra.kestra.svc.cluster.local:8080
             # KMS API-token bearer (task-057): the KMS now requires auth. The
             # token is the base64 of the `iotgw_api_token` symmetric key; it is
             # SOPS-stored (secrets/iotgw-ui-backend.enc.env → KMS_AUTH_TOKEN) and

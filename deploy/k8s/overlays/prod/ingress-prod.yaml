@@ -14,14 +14,18 @@
 #     keys: tls.server_crt (leaf cert PEM), tls.server_key (private key PEM)
 #   Cert expiry: 2026-10-09 — regenerate via kms/pki-test/create_ca.sh before that date.
 #
-# Provision the TLS Secret before deploying this overlay:
+# Provision the TLS Secret before deploying this overlay. An Ingress can only use
+# a TLS Secret in its OWN namespace (decision-020), so create it in BOTH the kong
+# (supabase-app) and the iotgw-ui Ingress namespaces:
 #   sops -d secrets/traefik-tls.enc.yaml | python3 -c "
 #   import sys, yaml
 #   d = yaml.safe_load(sys.stdin)['tls']
 #   open('/tmp/tls.crt','w').write(d['server_crt'])
 #   open('/tmp/tls.key','w').write(d['server_key'])" && \
-#   kubectl create secret tls iotgw-wildcard-tls -n iotgw \
-#     --cert=/tmp/tls.crt --key=/tmp/tls.key
+#   for ns in supabase-app iotgw-ui; do \
+#     kubectl create secret tls iotgw-wildcard-tls -n "$ns" \
+#       --cert=/tmp/tls.crt --key=/tmp/tls.key \
+#       --dry-run=client -o yaml | kubectl apply -f - ; done
 
 ---
 # Patch: kong Ingress — add TLS

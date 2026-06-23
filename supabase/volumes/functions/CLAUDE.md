@@ -34,9 +34,9 @@ Deno-based edge functions served through the Kong gateway at `http://wsl.ymbihq.
 
   ```bash
   deploy/kind/bootstrap.sh functions          # docker build iotgw-functions:local + kind load
-  kubectl -n iotgw rollout restart deploy/functions
+  kubectl -n supabase-app rollout restart deploy/functions
   ```
 
   (`just k8s-deploy` does the same build+load as part of a full apply.) The prod
   overlay pulls a release-pinned tag instead — registry/CI wiring is `task-062.03`.
-- Function logs: `kubectl -n iotgw logs -f deploy/functions` (include transaction IDs).
+- Function logs: `kubectl -n supabase-app logs -f deploy/functions` (include transaction IDs).

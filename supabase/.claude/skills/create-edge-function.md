@@ -99,7 +99,7 @@ You are helping create a new Supabase edge function. Follow these steps:
    # Edge function code is baked into the iotgw-functions:local image, so a code
    # change needs a rebuild + kind load before the rollout picks it up.
    deploy/kind/bootstrap.sh functions
-   kubectl -n iotgw rollout restart deploy/functions
+   kubectl -n supabase-app rollout restart deploy/functions
 
    # Test the function
    curl -X POST http://localhost:8000/functions/v1/<function-name> \
@@ -108,7 +108,7 @@ You are helping create a new Supabase edge function. Follow these steps:
      -d '{"key":"value"}'
 
    # View logs
-   kubectl -n iotgw logs -f deploy/functions
+   kubectl -n supabase-app logs -f deploy/functions
    ```
 
 7. **Important notes**:

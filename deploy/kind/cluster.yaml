@@ -2,7 +2,7 @@
 # docker-compose was decommissioned (decision-017).
 # One control-plane node. Host ports are mapped so the platform is reachable on
 # wsl.ymbihq.local on the conventional ports:
-#   80/443  -> ingress-nginx (whoami/iotgw-ui via Ingress)
+#   80/443  -> ingress-nginx (iotgw-ui via Ingress)
 #   30000+  -> NodePorts for raw-TCP services (Kong :8000, StackGres Postgres
 #              :5432, kestra :8080, kms :9998)
 apiVersion: kind.x-k8s.io/v1alpha4

@@ -1,6 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+# Cosmian KMS gets its own namespace (decision-020). Self-contained: includes its
+# own Namespace + the `namespace:` transformer (Headlamp pattern).
+namespace: kms
 resources:
+  - namespace.yaml
   - configmap.yaml
   - statefulset.yaml
   - service.yaml

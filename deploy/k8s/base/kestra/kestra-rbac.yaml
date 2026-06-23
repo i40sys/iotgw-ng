@@ -44,4 +44,6 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: kestra
-    namespace: iotgw
+    # kestra namespace (decision-020). The base/kestra `namespace:` transformer
+    # also rewrites this, but pin it explicitly so the file is unambiguous.
+    namespace: kestra

@@ -47,6 +47,13 @@ OIDC SSO (Keycloak + kube-apiserver) is the primary auth path — see
 
 ## Why a dedicated `headlamp` namespace (mandatory)
 
+> **Forward-note (`decision-020`):** the self-contained-kustomization pattern
+> Headlamp pioneered here is now the platform-wide topology — there is no longer a
+> single `iotgw` namespace; each subproject (kestra / kms / supabase-db /
+> supabase-app / iotgw-ui) is its own namespace. `iotgw` remains the kind
+> **cluster** name only. The original single-namespace rationale below is kept for
+> history.
+
 The iotgw platform's kustomizations (`base/kustomization.yaml`,
 `overlays/kind/kustomization.yaml`) set `namespace: iotgw`. Kustomize's namespace
 transformer is **unconditional**: any resource routed through those
@@ -71,7 +78,7 @@ overlay, so `just k8s-deploy` provisions it automatically.
 
 `headlamp.wsl.ymbihq.local` resolves network-wide via a **Pi-hole CNAME** →
 `wsl.ymbihq.local` (A → the WSL host), matching the other kind ingress
-hostnames (`whoami`, `iotgw-ui`, …). Pi-hole v6 at `10.2.10.27`, managed with
+hostnames (`iotgw-ui`, …). Pi-hole v6 at `10.2.10.27`, managed with
 the `skill-pihole-dns` skill:
 
 ```bash

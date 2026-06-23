@@ -1,8 +1,8 @@
 # Headlamp — in-cluster Kubernetes dashboard (https://headlamp.dev) for the
-# iotgw-ng platform. Lives in its OWN dedicated `headlamp` namespace (not the
-# iotgw app namespace) and is applied as a standalone kustomization, so the
-# iotgw overlay's namespace transformer never pulls it into iotgw. Exposed
-# through ingress-nginx, mirroring the whoami demo.
+# iotgw-ng platform. Lives in its OWN dedicated `headlamp` namespace and is
+# applied as a standalone kustomization with its own namespace transformer, so no
+# global overlay transformer pulls it elsewhere. Exposed through ingress-nginx,
+# mirroring the per-subproject namespace pattern (decision-020).
 #
 # Auth (two paths):
 #  1. PRIMARY — OIDC SSO via Keycloak (realm `iotgw` at iam.joor.net,

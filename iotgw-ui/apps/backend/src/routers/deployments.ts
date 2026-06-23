@@ -6,6 +6,13 @@ import { createMutationProcedure } from "../utils/mutation-helper";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@iotgw/supabase-contract";
 
+// Kestra REST API base. Kestra runs in its own namespace (decision-020); default
+// to the in-cluster Service FQDN, overridable via KESTRA_API_URL (set on the
+// backend Deployment; for local pnpm dev point it at the host NodePort).
+const KESTRA_API_URL = (
+  process.env.KESTRA_API_URL ?? "http://kestra.kestra.svc.cluster.local:8080"
+).replace(/\/+$/, "");
+
 // JSON schema matching the database Json type
 const jsonSchema: z.ZodType<import("@iotgw/supabase-contract").Json> = z.lazy(
   () =>
@@ -441,7 +448,7 @@ export const deploymentsRouter = {
 
         // Fetch logs from Kestra
         const response = await fetch(
-          `http://wsl.ymbihq.local:8080/api/v1/logs/${input.execution_id}`,
+          `${KESTRA_API_URL}/api/v1/logs/${input.execution_id}`,
           {
             method: "GET",
             headers: {
@@ -508,7 +515,7 @@ export const deploymentsRouter = {
 
         // Check execution status
         const response = await fetch(
-          `http://wsl.ymbihq.local:8080/api/v1/executions/${input.execution_id}`,
+          `${KESTRA_API_URL}/api/v1/executions/${input.execution_id}`,
           {
             method: "GET",
             headers: {
@@ -735,7 +742,7 @@ export const deploymentsRouter = {
 
         // Determine the Kestra flow URL based on flow_type
         const flowName = input.flow_type === "provisioning" ? "provisioning" : "install";
-        const kestraUrl = `http://wsl.ymbihq.local:8080/api/v1/main/executions/iotgw-ng/${flowName}`;
+        const kestraUrl = `${KESTRA_API_URL}/api/v1/main/executions/iotgw-ng/${flowName}`;
 
         // Execute Kestra workflow with configuration input
         const response = await fetch(

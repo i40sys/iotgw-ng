@@ -50,14 +50,13 @@ if kind get clusters 2>/dev/null | grep -qx iotgw; then
   # NP-allowed client (the backend pod) — that is the path the NP governs.
   if curl -fsS -m 6 http://localhost:9998/version >/dev/null 2>&1; then
     pass "KMS :9998/version (host NodePort)"
-  elif kubectl -n iotgw exec deploy/iotgw-ui-backend -- node -e 'fetch("http://cosmian-kms:9998/version").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' >/dev/null 2>&1; then
-    pass "KMS /version (in-cluster, NodePort blocked by NetworkPolicy as expected)"
+  elif kubectl -n iotgw-ui exec deploy/iotgw-ui-backend -- node -e 'fetch("http://cosmian-kms.kms.svc.cluster.local:9998/version").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' >/dev/null 2>&1; then
+    pass "KMS /version (in-cluster cross-ns FQDN, NodePort blocked by NetworkPolicy as expected)"
   else
     fail "KMS :9998/version (neither host NodePort nor in-cluster)"
   fi
   # Kestra '/' 307-redirects to '/ui/'; check the UI returns 200.
   curl -fsS -o /dev/null -w '%{http_code}' http://localhost:8080/ui/ 2>/dev/null | grep -q 200 && pass "Kestra :8080/ui/" || fail "Kestra :8080"
-  curl -fsS -H 'Host: whoami.wsl.ymbihq.local' http://localhost/ >/dev/null 2>&1 && pass "whoami via ingress" || fail "whoami ingress"
   # Supabase API path via Kong (:8000). 401 means "needs apikey" — that still
   # proves Kong routes to a live service; 000/refused means it is down.
   code=$(curl -s -o /dev/null -w '%{http_code}' -m 8 http://localhost:8000/auth/v1/health 2>/dev/null)
@@ -84,7 +83,7 @@ if kind get clusters 2>/dev/null | grep -qx iotgw; then
   # the live cluster AND after a clean kind-up (host ports 5173/4444 only map on
   # a fresh cluster via cluster.yaml). Gate on the Deployment so a host pnpm-dev
   # server cannot give a false PASS.
-  if kubectl -n iotgw get deploy iotgw-ui-frontend >/dev/null 2>&1; then
+  if kubectl -n iotgw-ui get deploy iotgw-ui-frontend >/dev/null 2>&1; then
     curl -fsS -m 8 -H 'Host: iotgw-ui.wsl.ymbihq.local' http://localhost/ >/dev/null 2>&1 \
       && pass "iotgw-ui frontend via ingress" || fail "iotgw-ui frontend via ingress"
     # tRPC backend has no health route; any HTTP response (e.g. 404 NOT_FOUND on /)

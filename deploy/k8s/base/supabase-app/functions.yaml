@@ -51,7 +51,8 @@ spec:
                   name: supabase-env
                   key: POSTGRES_PASSWORD
             - name: SUPABASE_DB_URL
-              value: postgresql://postgres:$(FUNC_PW)@supabase-db:5432/postgres
+              # supabase-db is now in its own namespace (decision-020) — FQDN.
+              value: postgresql://postgres:$(FUNC_PW)@supabase-db.supabase-db.svc.cluster.local:5432/postgres
             - name: NETMAKER_BASE_URL
               valueFrom:
                 secretKeyRef:
@@ -66,8 +67,8 @@ spec:
               # In-cluster Kestra Service. The supabase-env Secret carries the
               # external host URL (wsl.ymbihq.local:8080) from the SOPS store;
               # override it here so edge functions always reach Kestra in-cluster.
-              # task-062.18
-              value: "http://kestra:8080"
+              # Kestra is now in its own namespace (decision-020) — FQDN. task-062.18
+              value: "http://kestra.kestra.svc.cluster.local:8080"
             - name: KESTRA_USER
               valueFrom:
                 secretKeyRef:

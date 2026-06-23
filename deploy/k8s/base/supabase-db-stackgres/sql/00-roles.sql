@@ -25,6 +25,12 @@ BEGIN
     CREATE ROLE supabase_auth_admin LOGIN NOINHERIT CREATEROLE; END IF;
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='supabase_storage_admin') THEN
     CREATE ROLE supabase_storage_admin LOGIN NOINHERIT CREATEROLE; END IF;
+  -- supabase_functions_admin: owns the supabase_functions schema (98-webhooks.sql)
+  -- and is granted CREATE on public below + a password by 90-secrets.sql. It MUST
+  -- be created here or the whole script rolls back on a fresh init (the GRANT to it
+  -- at the bottom fails with 42704 "role does not exist").
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='supabase_functions_admin') THEN
+    CREATE ROLE supabase_functions_admin LOGIN NOINHERIT CREATEROLE; END IF;
 
   -- authenticator: PostgREST connects as this and SET ROLEs. Kept low-privilege
   -- (NOINHERIT, non-superuser). StackGres's managed PgBouncer may pre-provision

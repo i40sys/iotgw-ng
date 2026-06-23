@@ -42,7 +42,7 @@ the function to pick the flow based on the deployment `configuration` payload.
 ## Kestra REST trigger call
 
 ```
-POST http://kestra:8080/api/v1/main/executions/iotgw-ng/{flowId}
+POST http://kestra.kestra.svc.cluster.local:8080/api/v1/main/executions/iotgw-ng/{flowId}
 Authorization: Basic base64(KESTRA_USER:KESTRA_PASSWORD)
 ```
 
@@ -67,20 +67,22 @@ a durable row keyed by the Kestra execution UUID (reconciled by Kestra).
 
 | Variable | Required | Notes |
 |---|---|---|
-| `SUPABASE_URL` | yes | `http://kong:8000` — in-cluster |
+| `SUPABASE_URL` | yes | `http://kong:8000` — intra-namespace (this fn runs in `supabase-app` with Kong) |
 | `SUPABASE_SERVICE_ROLE_KEY` | yes | bypasses RLS for DB writes |
-| `KESTRA_BASE_URL` | yes | **must be `http://kestra:8080`** (in-cluster Service) |
+| `KESTRA_BASE_URL` | yes | **must be `http://kestra.kestra.svc.cluster.local:8080`** (cross-namespace Service FQDN — Kestra is in the `kestra` namespace, `decision-020`) |
 | `KESTRA_USER` | yes | basic-auth username; from `supabase-env` Secret |
 | `KESTRA_PASSWORD` | yes | basic-auth password; from `supabase-env` Secret |
 | `KESTRA_DISPATCH_FLOW_ID` | no | default `k8s-ansible-runner-test` |
 | `KESTRA_TENANT` | no | default `main` |
 | `KESTRA_NAMESPACE` | no | default `iotgw-ng` |
 
-**`KESTRA_BASE_URL` must point to the in-cluster Service (`http://kestra:8080`),
-NOT the external host (`http://wsl.ymbihq.local:8080`).** The `supabase-env`
-Secret's `KESTRA_BASE_URL` key was patched in task-062.18 to the in-cluster URL.
-If you recreate the Secret from the SOPS store without this patch, remember to
-re-patch the Secret key.
+**`KESTRA_BASE_URL` must point to the in-cluster Service FQDN
+(`http://kestra.kestra.svc.cluster.local:8080`), NOT the external host
+(`http://wsl.ymbihq.local:8080`).** Kestra now lives in the `kestra` namespace
+(`decision-020`), so the cross-namespace call needs the fully-qualified name. The
+`supabase-env` Secret's `KESTRA_BASE_URL` key was patched in task-062.18 to the
+in-cluster URL. If you recreate the Secret from the SOPS store without this patch,
+remember to re-patch the Secret key.
 
 ## Kestra write-back (flow side)
 
@@ -89,7 +91,7 @@ via PostgREST to set the status to SUCCESS or FAILED. This is an `http.Request`
 task (or a shell `curl`) against:
 
 ```
-PATCH http://kong:8000/rest/v1/deployment_jobs?execution_id=eq.{{ execution.id }}
+PATCH http://kong.supabase-app.svc.cluster.local:8000/rest/v1/deployment_jobs?execution_id=eq.{{ execution.id }}
 Authorization: Bearer <SERVICE_ROLE_KEY>
 Content-Type: application/json
 Prefer: return=minimal
@@ -108,7 +110,7 @@ write-back task as its final step.
 create trigger deployments_webhook
   after insert on public.deployments
   for each row execute function supabase_functions.http_request(
-    'http://kong:8000/functions/v1/kestra-dispatch',
+    'http://kong.supabase-app.svc.cluster.local:8000/functions/v1/kestra-dispatch',
     'POST',
     '{"Content-Type":"application/json"}',
     '{}',
