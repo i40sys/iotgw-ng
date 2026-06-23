@@ -7,6 +7,9 @@ kind: Kustomization
 # so the browser reaches the backend via ingress-nginx on host port 80.
 # Images are kind-loaded locals (imagePullPolicy: Never); production overlays
 # should override these with real registry references.
+# iotgw-ui gets its own namespace (decision-020).
+namespace: iotgw-ui
 resources:
+  - namespace.yaml
   - backend.yaml
   - frontend.yaml

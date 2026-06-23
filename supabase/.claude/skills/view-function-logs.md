@@ -16,115 +16,115 @@ You are helping view and analyze Supabase edge function logs. Follow these steps
 
    **All function logs (real-time)**:
    ```bash
-   kubectl -n iotgw logs -f deploy/functions
+   kubectl -n supabase-app logs -f deploy/functions
    ```
 
    **Last N lines**:
    ```bash
-   kubectl -n iotgw logs --tail=100 deploy/functions
+   kubectl -n supabase-app logs --tail=100 deploy/functions
    ```
 
    **Specific time range**:
    ```bash
-   kubectl -n iotgw logs --since-time="2024-01-01T10:00:00Z" deploy/functions
+   kubectl -n supabase-app logs --since-time="2024-01-01T10:00:00Z" deploy/functions
    ```
 
    **Save logs to file**:
    ```bash
-   kubectl -n iotgw logs deploy/functions > function-logs.txt
+   kubectl -n supabase-app logs deploy/functions > function-logs.txt
    ```
 
 3. **Filter for specific function**:
    ```bash
    # Filter by function name
-   kubectl -n iotgw logs -f deploy/functions | grep "kestra-call"
+   kubectl -n supabase-app logs -f deploy/functions | grep "kestra-call"
 
    # Filter out function name
-   kubectl -n iotgw logs -f deploy/functions | grep -v "hello"
+   kubectl -n supabase-app logs -f deploy/functions | grep -v "hello"
    ```
 
 4. **Filter by log level**:
    ```bash
    # Errors only
-   kubectl -n iotgw logs -f deploy/functions | grep -i error
+   kubectl -n supabase-app logs -f deploy/functions | grep -i error
 
    # Warnings and errors
-   kubectl -n iotgw logs -f deploy/functions | grep -iE "error|warn"
+   kubectl -n supabase-app logs -f deploy/functions | grep -iE "error|warn"
    ```
 
 5. **Filter by transaction/request ID**:
    ```bash
    # If your functions use transaction IDs
-   kubectl -n iotgw logs -f deploy/functions | grep "TXN:12345678"
+   kubectl -n supabase-app logs -f deploy/functions | grep "TXN:12345678"
 
    # If using request IDs
-   kubectl -n iotgw logs -f deploy/functions | grep "REQUEST abc123"
+   kubectl -n supabase-app logs -f deploy/functions | grep "REQUEST abc123"
    ```
 
 6. **Analyze common patterns**:
 
    **Function startup**:
    ```bash
-   kubectl -n iotgw logs deploy/functions | grep "function started"
+   kubectl -n supabase-app logs deploy/functions | grep "function started"
    ```
 
    **HTTP requests**:
    ```bash
-   kubectl -n iotgw logs deploy/functions | grep -E "POST|GET|PUT|DELETE"
+   kubectl -n supabase-app logs deploy/functions | grep -E "POST|GET|PUT|DELETE"
    ```
 
    **Database errors**:
    ```bash
-   kubectl -n iotgw logs deploy/functions | grep -i "database error"
+   kubectl -n supabase-app logs deploy/functions | grep -i "database error"
    ```
 
    **Timeout issues**:
    ```bash
-   kubectl -n iotgw logs deploy/functions | grep -i timeout
+   kubectl -n supabase-app logs deploy/functions | grep -i timeout
    ```
 
    **CORS issues**:
    ```bash
-   kubectl -n iotgw logs deploy/functions | grep -i cors
+   kubectl -n supabase-app logs deploy/functions | grep -i cors
    ```
 
 7. **Advanced filtering with awk/sed**:
 
    **Show only timestamps and errors**:
    ```bash
-   kubectl -n iotgw logs deploy/functions | grep -i error | awk '{print $1, $2, $3}'
+   kubectl -n supabase-app logs deploy/functions | grep -i error | awk '{print $1, $2, $3}'
    ```
 
    **Count errors per function**:
    ```bash
-   kubectl -n iotgw logs deploy/functions | grep -i error | grep -oP '\w+-\w+ function' | sort | uniq -c
+   kubectl -n supabase-app logs deploy/functions | grep -i error | grep -oP '\w+-\w+ function' | sort | uniq -c
    ```
 
    **Extract JSON logs** (if functions output JSON):
    ```bash
-   kubectl -n iotgw logs deploy/functions | grep -o '{.*}' | jq '.'
+   kubectl -n supabase-app logs deploy/functions | grep -o '{.*}' | jq '.'
    ```
 
 8. **Monitor logs in real-time with highlighting**:
    ```bash
    # Highlight errors in red
-   kubectl -n iotgw logs -f deploy/functions | grep --color=always -iE 'error|$'
+   kubectl -n supabase-app logs -f deploy/functions | grep --color=always -iE 'error|$'
 
    # Highlight multiple patterns
-   kubectl -n iotgw logs -f deploy/functions | grep --color=always -iE 'error|warn|success|$'
+   kubectl -n supabase-app logs -f deploy/functions | grep --color=always -iE 'error|warn|success|$'
    ```
 
 9. **Compare logs before/after change**:
    ```bash
    # Save logs before change
-   kubectl -n iotgw logs deploy/functions > logs-before.txt
+   kubectl -n supabase-app logs deploy/functions > logs-before.txt
 
    # Make changes, then redeploy (function code is baked into the image)
    deploy/kind/bootstrap.sh functions
-   kubectl -n iotgw rollout restart deploy/functions
+   kubectl -n supabase-app rollout restart deploy/functions
 
    # Save logs after
-   kubectl -n iotgw logs deploy/functions > logs-after.txt
+   kubectl -n supabase-app logs deploy/functions > logs-after.txt
 
    # Compare
    diff logs-before.txt logs-after.txt
@@ -134,22 +134,22 @@ You are helping view and analyze Supabase edge function logs. Follow these steps
 
     **Memory issues**:
     ```bash
-    kubectl -n iotgw logs deploy/functions | grep -iE "memory|out of memory|oom"
+    kubectl -n supabase-app logs deploy/functions | grep -iE "memory|out of memory|oom"
     ```
 
     **Timeout issues**:
     ```bash
-    kubectl -n iotgw logs deploy/functions | grep -iE "timeout|timed out|deadline exceeded"
+    kubectl -n supabase-app logs deploy/functions | grep -iE "timeout|timed out|deadline exceeded"
     ```
 
     **Import errors**:
     ```bash
-    kubectl -n iotgw logs deploy/functions | grep -iE "import|module not found|cannot find"
+    kubectl -n supabase-app logs deploy/functions | grep -iE "import|module not found|cannot find"
     ```
 
     **JWT errors**:
     ```bash
-    kubectl -n iotgw logs deploy/functions | grep -iE "jwt|invalid token|unauthorized"
+    kubectl -n supabase-app logs deploy/functions | grep -iE "jwt|invalid token|unauthorized"
     ```
 
 11. **Structured log analysis**:
@@ -157,12 +157,12 @@ You are helping view and analyze Supabase edge function logs. Follow these steps
     If functions log in structured format:
     ```bash
     # Extract and pretty-print JSON logs
-    kubectl -n iotgw logs deploy/functions | \
+    kubectl -n supabase-app logs deploy/functions | \
       grep -o '{.*}' | \
       jq 'select(.level == "error")'
 
     # Group by error type
-    kubectl -n iotgw logs deploy/functions | \
+    kubectl -n supabase-app logs deploy/functions | \
       grep -o '{.*}' | \
       jq -r '.error_type' | \
       sort | uniq -c
@@ -171,13 +171,13 @@ You are helping view and analyze Supabase edge function logs. Follow these steps
 12. **Export logs for analysis**:
     ```bash
     # Export with timestamp
-    kubectl -n iotgw logs --timestamps deploy/functions > logs-$(date +%Y%m%d-%H%M%S).txt
+    kubectl -n supabase-app logs --timestamps deploy/functions > logs-$(date +%Y%m%d-%H%M%S).txt
 
     # Export only errors
-    kubectl -n iotgw logs deploy/functions | grep -i error > errors.txt
+    kubectl -n supabase-app logs deploy/functions | grep -i error > errors.txt
 
     # Export in JSON format (if structured logging)
-    kubectl -n iotgw logs deploy/functions | grep -o '{.*}' | jq -s '.' > logs.json
+    kubectl -n supabase-app logs deploy/functions | grep -o '{.*}' | jq -s '.' > logs.json
     ```
 
 13. **Correlate with other services**:
@@ -185,25 +185,25 @@ You are helping view and analyze Supabase edge function logs. Follow these steps
     run a `kubectl logs -f` per service in separate terminals (or background one):
     ```bash
     # Terminal 1: function logs
-    kubectl -n iotgw logs -f deploy/functions
+    kubectl -n supabase-app logs -f deploy/functions
 
     # Terminal 2: Kong (API gateway)
-    kubectl -n iotgw logs -f deploy/kong
+    kubectl -n supabase-app logs -f deploy/kong
 
     # For database logs, follow the StackGres primary pod's patroni container:
-    PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
+    PG=$(kubectl -n supabase-db get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
            -o jsonpath='{.items[0].metadata.name}')
-    kubectl -n iotgw logs -f "$PG" -c patroni
+    kubectl -n supabase-db logs -f "$PG" -c patroni
     ```
 
 14. **Performance analysis**:
     ```bash
     # Find slow requests (if duration is logged)
-    kubectl -n iotgw logs deploy/functions | grep -E "duration|took|ms" | \
+    kubectl -n supabase-app logs deploy/functions | grep -E "duration|took|ms" | \
       awk '{if ($NF > 1000) print $0}'
 
     # Count requests per minute
-    kubectl -n iotgw logs --timestamps deploy/functions | \
+    kubectl -n supabase-app logs --timestamps deploy/functions | \
       grep "REQUEST" | \
       awk '{print $1}' | \
       uniq -c
@@ -244,23 +244,23 @@ You are helping view and analyze Supabase edge function logs. Follow these steps
 
 ```bash
 # Real-time all functions
-kubectl -n iotgw logs -f deploy/functions
+kubectl -n supabase-app logs -f deploy/functions
 
 # Last 100 lines
-kubectl -n iotgw logs --tail=100 deploy/functions
+kubectl -n supabase-app logs --tail=100 deploy/functions
 
 # Specific function
-kubectl -n iotgw logs -f deploy/functions | grep "function-name"
+kubectl -n supabase-app logs -f deploy/functions | grep "function-name"
 
 # Errors only
-kubectl -n iotgw logs -f deploy/functions | grep -i error
+kubectl -n supabase-app logs -f deploy/functions | grep -i error
 
 # Save to file
-kubectl -n iotgw logs deploy/functions > logs.txt
+kubectl -n supabase-app logs deploy/functions > logs.txt
 
 # Follow with timestamps
-kubectl -n iotgw logs -f --timestamps deploy/functions
+kubectl -n supabase-app logs -f --timestamps deploy/functions
 
 # Since specific time
-kubectl -n iotgw logs --since=10m deploy/functions
+kubectl -n supabase-app logs --since=10m deploy/functions
 ```

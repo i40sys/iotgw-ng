@@ -2,7 +2,7 @@
 
 Self-hosted Kestra instance that runs the `install` / `provisioning` / `connectivity-check` flows (OpenWRT config; these **fetch** device SSH keys from Cosmian KMS to deploy them). Device/network provisioning moved to the Supabase `netmaker-call` edge function (direct Netmaker REST), and SSH-key **generation** moved to the iotgw-ui backend (direct Cosmian KMS, `task-060`); the `devices` / `networks` flows here were **removed** (`task-060.04`). Flows execute Ansible playbooks via Kestra's **Kubernetes task runner** (`io.kestra.plugin.kubernetes.core.PodCreate`), which spawns `cytopia/ansible` pods in-cluster (the host Docker-socket runner is gone — `task-054`).
 
-Kestra runs as a Deployment on the kind cluster (`deploy/k8s/base/kestra/`); docker-compose was decommissioned (`decision-017`). Bring the platform up with `just bootstrap`; roll Kestra after a config change with `kubectl -n iotgw rollout restart deploy/kestra`.
+Kestra runs as a Deployment in the **`kestra` k8s namespace** on the kind cluster (`deploy/k8s/base/kestra/`, `decision-020`); docker-compose was decommissioned (`decision-017`). Bring the platform up with `just bootstrap`; roll Kestra after a config change with `kubectl -n kestra rollout restart deploy/kestra`. The PodCreate-spawned Ansible runner pods now land in the `kestra` namespace too (not a former shared `iotgw` namespace).
 
 ## Layout
 

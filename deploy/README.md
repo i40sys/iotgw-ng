@@ -2,7 +2,9 @@
 
 Kustomize manifests + a local `kind` cluster for the iotgw-ng platform. This is
 the compose → k8s migration target (`backlog/decisions/decision-015`); the
-Postgres tier runs on StackGres (`backlog/decisions/decision-018`).
+Postgres tier runs on StackGres (`backlog/decisions/decision-018`). The platform
+is split into **one k8s namespace per subproject** — `iotgw` is the kind
+**cluster** name, not a namespace (`backlog/decisions/decision-020`).
 
 ```
 deploy/
@@ -19,7 +21,6 @@ deploy/
       supabase-db/          # legacy hand-authored Postgres StatefulSet — RETAINED
                             #   as the documented NO-GO rollback only (not deployed)
       kestra/               # Kestra server + its Postgres
-      whoami/               # demo app behind Ingress (the k8s TLS-termination demo)
       supabase-app/         # Supabase app tier (kong/rest/auth/meta/functions)
     overlays/
       kind/           # local dev: StackGres DB + app tier, NodePorts → host ports
@@ -36,15 +37,47 @@ just k8s-smoke       # smoke checks
 just kind-down       # tear down
 ```
 
-Host ports (mapped by `kind/cluster.yaml`, same as the compose stacks):
+Host ports (mapped by `kind/cluster.yaml`, same as the compose stacks). Each
+NodePort co-locates with its pods in that subproject's namespace (`decision-020`):
 
-| Host port | Service | via |
-|---|---|---|
-| 9998 | Cosmian KMS | NodePort 30998 |
-| 8080 | Kestra UI/API | NodePort 30808 |
-| 8000 | Supabase Kong API (edge fns via `/functions/v1/*`) | NodePort 30800 |
-| 5432 | Supabase Postgres (StackGres primary) | NodePort 30543 |
-| 80 / 443 | Ingress (whoami, …) | ingress-nginx |
+| Host port | Service | Namespace | via |
+|---|---|---|---|
+| 9998 | Cosmian KMS | `kms` | NodePort 30998 |
+| 8080 | Kestra UI/API | `kestra` | NodePort 30808 |
+| 8000 | Supabase Kong API (edge fns via `/functions/v1/*`) | `supabase-app` | NodePort 30800 |
+| 5432 | Supabase Postgres (StackGres primary) | `supabase-db` | NodePort 30543 |
+| 80 / 443 | Ingress (headlamp, iotgw-ui, …) | `headlamp` / `iotgw-ui` / `supabase-app` | ingress-nginx |
+
+> **Cross-namespace** Service references use the FQDN
+> `service.namespace.svc.cluster.local` (e.g. `kong.supabase-app.svc.cluster.local:8000`,
+> `supabase-db.supabase-db.svc.cluster.local:5432`, `cosmian-kms.kms.svc.cluster.local:9998`);
+> **intra-namespace** calls keep the short Service name (`decision-020`).
+
+## Headlamp dashboard (TASK-063)
+
+[Headlamp](https://headlamp.dev) is an in-cluster Kubernetes web UI in its own
+**dedicated `headlamp` namespace** (`deploy/k8s/headlamp/`, applied standalone,
+the reference per-subproject namespace pattern — `decision-020`). Exposed through
+ingress-nginx. It runs with
+`-in-cluster` and a `headlamp` ServiceAccount bound (ClusterRoleBinding
+`headlamp-admin`) to the built-in **`cluster-admin`** ClusterRole — full
+read-write control of the cluster. `just k8s-deploy` applies it automatically;
+to apply on its own: `kubectl apply -k deploy/k8s/headlamp`.
+
+**Login is Keycloak OIDC SSO** (realm `iotgw` at `iam.joor.net`,
+`decision-019`) — no tokens to paste. Open
+<http://headlamp.wsl.ymbihq.local/> → **Sign in** → authenticate at Keycloak;
+your `k8s-admins` group maps to `cluster-admin`. The kube-apiserver validates the
+id_token directly (OIDC flags in `kind/cluster.yaml`); RBAC binds the
+`oidc:k8s-admins` group (`headlamp/rbac-oidc.yaml`).
+
+```bash
+# Fallback if the IdP is down — the headlamp SA is bound to cluster-admin:
+kubectl -n headlamp create token headlamp
+```
+
+Full deploy + SSO + token runbook:
+[`backlog/docs/doc-017`](../backlog/docs/doc-017%20-%20Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md).
 
 ## Postgres tier: StackGres (decision-018)
 
@@ -56,10 +89,11 @@ supersedes the hand-authored `supabase-db` StatefulSet (which is retained in
 
 - **Topology.** `dev+prod` parity on the same SGCluster definition: `instances: 1`
   in kind (set `>=2` in prod for Patroni HA/failover). The cluster is named
-  `supabase-db` so its **primary Service is `supabase-db`** — the app tier's
-  existing `supabase-db:5432` references resolve unchanged.
+  `supabase-db` so its **primary Service is `supabase-db`** (in the `supabase-db`
+  namespace). The app tier reaches it cross-namespace at the FQDN
+  `supabase-db.supabase-db.svc.cluster.local:5432` (`decision-020`).
 - **Direct primary (pooler opt-in).** `disableConnectionPooling: true` →
-  clients hit Postgres **directly** at `supabase-db:5432`. StackGres's
+  clients hit Postgres **directly** at `supabase-db.supabase-db.svc.cluster.local:5432`. StackGres's
   transaction-mode PgBouncer (and the supavisor pooler) is **opt-in only** and
   is **not deployed** — transaction pooling would change prepared-statement /
   `SET ROLE` semantics the app tier has never been tested against (decision-018 §3).
@@ -84,7 +118,7 @@ supersedes the hand-authored `supabase-db` StatefulSet (which is retained in
 | **Supabase Postgres — StackGres SGCluster** `supabase-db` (PG 15.14, dev+prod) | ✅ **validated** | primary pod Ready; SGScript initdb created the supabase roles (incl. NOINHERIT `authenticator`); `supabase-db:5432` reachable directly (`TASK-062.04`/`062.16`) |
 | ↳ `pg_net` end-to-end on the SGCluster | ✅ **validated** | shared_preload_libraries has pg_net first-boot; INSERT → `net._http_response` HTTP 202 + `*_jobs` row (`tools/smoke-pgnet.sh`) |
 | Kestra (+ Postgres) | ✅ **validated** | server `1/1 Ready`, HTTP 200 on `:8080` |
-| whoami + ingress-nginx | ✅ **validated** | `curl -H 'Host: whoami.wsl.ymbihq.local' :80` returns whoami |
+| Headlamp dashboard (TASK-063) | ✅ **validated** | pod Ready in dedicated **`headlamp`** namespace; HTTP 200 via Pi-hole CNAME; **Keycloak OIDC SSO** (`decision-019`): `/config` `auth_type: oidc`, `/oidc` 302→`iam.joor.net/realms/iotgw`, apiserver maps id_token→`oidc:oriol`/`oidc:k8s-admins`, RBAC→cluster-admin; SA token fallback works |
 | Secrets from SOPS | ✅ **validated** | `secrets.sh k8s` → `supabase-env`, `kestra-env`, `supabase-db-initdb` Secrets |
 | **Supabase app tier** (kong / rest=PostgREST / auth=GoTrue / meta / functions) | ✅ **validated** | trimmed stateless set up on kind against the SGCluster; `PGRST_DB_SCHEMAS=public`; edge fns served from the baked `iotgw-functions:local` image (`TASK-062.04`) |
 | StackGres backups/PITR (`SGBackup`/`SGObjectStorage`) | 🟡 **authored, not validated** | `base/supabase-db-stackgres/backup.yaml` — needs a real S3/MinIO target + creds Secret; **not** in the kind path (no object store) |
@@ -105,7 +139,8 @@ supersedes the hand-authored `supabase-db` StatefulSet (which is retained in
   prod pulls a release-pinned tag (registry + CI wiring is `TASK-062.03`). The
   base manifest's emptyDir is a placeholder that both overlays patch out.
 - **pg_net webhook URLs** stored in the DB point at the in-cluster Kong Service
-  URL, not `wsl.ymbihq.local:8000` (`TASK-055`).
+  FQDN `http://kong.supabase-app.svc.cluster.local:8000`, not
+  `wsl.ymbihq.local:8000` (`TASK-055`; cross-namespace FQDN per `decision-020`).
 - The disabled data-plane services above (realtime/storage/imgproxy/studio/
   analytics/supavisor/vector) and their compose-only quirks (realtime tenant
   from hostname, vector scraping the Docker socket) are **moot** — those services
@@ -123,7 +158,8 @@ all-green). The following intentional differences from the compose stack are
 
 - **Data-plane services dropped** (decision-018): realtime, storage, imgproxy,
   studio, analytics/Logflare, **supavisor pooler**, vector. Clients connect to
-  the **direct primary** `supabase-db:5432` (no `:6543` pooler).
+  the **direct primary** `supabase-db.supabase-db.svc.cluster.local:5432`
+  (no `:6543` pooler).
 - **Postgres tier is StackGres** (SGCluster), not the hand StatefulSet; PG15
   vs the compose PG image. Operator pinned 1.17.4.
 - **KMS requires auth** (Cosmian API-token) and a **NetworkPolicy** restricts

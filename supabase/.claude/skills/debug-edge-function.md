@@ -23,16 +23,16 @@ You are helping debug a Supabase edge function. Follow these systematic steps:
 3. **Check recent logs**:
    ```bash
    # Get recent function logs
-   kubectl -n iotgw logs --tail=100 deploy/functions
+   kubectl -n supabase-app logs --tail=100 deploy/functions
 
    # Follow logs in real-time
-   kubectl -n iotgw logs -f deploy/functions
+   kubectl -n supabase-app logs -f deploy/functions
    ```
 
 4. **Verify function is accessible**:
    ```bash
    # Check if the functions pod is running
-   kubectl -n iotgw get pods -l app=functions
+   kubectl -n supabase-app get pods -l app=functions
 
    # Check if function directory exists
    ls -la volumes/functions/<function-name>/
@@ -98,7 +98,7 @@ You are helping debug a Supabase edge function. Follow these systematic steps:
    - Log before external calls
    - Deploy the code edit (the function source is baked into the image):
      `deploy/kind/bootstrap.sh functions` then
-     `kubectl -n iotgw rollout restart deploy/functions`
+     `kubectl -n supabase-app rollout restart deploy/functions`
 
 10. **Test in isolation**:
     - Create a minimal test version
@@ -108,7 +108,7 @@ You are helping debug a Supabase edge function. Follow these systematic steps:
 11. **Check network connectivity** (for external APIs):
     ```bash
     # Execute from within the functions pod
-    kubectl -n iotgw exec -it deploy/functions -- sh
+    kubectl -n supabase-app exec -it deploy/functions -- sh
     curl -v <external-api-url>
     ```
 

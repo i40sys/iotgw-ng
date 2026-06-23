@@ -6,22 +6,26 @@ description: Manage Supabase k8s services (start, stop, restart, logs, health)
 
 You are helping manage the Supabase services on the local `kind`/k8s cluster
 (`decision-017` made k8s the sole supported runtime; the old compose stack is
-decommissioned). All workloads live in the `iotgw` namespace. Follow these steps:
+decommissioned). The app-tier workloads live in the `supabase-app` namespace and
+the DB tier in the `supabase-db` namespace (`decision-020`; `iotgw` is the kind
+cluster, not a namespace). Follow these steps:
 
 1. **Understand the request**:
    - What service(s) need management?
    - What action: start, stop, restart, view logs, check health, rebuild?
 
-2. **Available services** (Deployments in the `iotgw` namespace, unless noted):
+2. **Available services** (Deployments in the `supabase-app` namespace, unless noted):
    - `kong` - API Gateway (NodePort 30800 → host 8000)
    - `auth` - Authentication service (GoTrue)
    - `rest` - REST API (PostgREST)
    - `functions` - Edge functions (Deno runtime)
    - `meta` - Database metadata API
-   - `cosmian-kms` - Cosmian KMS (device SSH keys)
-   - `kestra` - workflow orchestration
-   - `supabase-db` - PostgreSQL, a **StackGres `SGCluster`** (not a Deployment;
-     see Database below)
+   - `supabase-db` - PostgreSQL, a **StackGres `SGCluster`** in the `supabase-db`
+     namespace (not a Deployment; see Database below)
+   - *Other namespaces* (`decision-020`): `cosmian-kms` (Cosmian KMS, device SSH
+     keys) lives in `-n kms`; `kestra` (workflow orchestration) lives in
+     `-n kestra` — manage those with their own namespace flags, not the
+     `supabase-*` ones below.
    - *Not deployed* (`decision-018` §4): `studio`, `realtime`, `storage`,
      `supavisor`, `analytics`, `imgproxy`, `vector` — these are intentionally
      dropped from the k8s stack.
@@ -40,21 +44,21 @@ decommissioned). All workloads live in the `iotgw` namespace. Follow these steps
 
    **Restart specific service**:
    ```bash
-   kubectl -n iotgw rollout restart deploy/<service-name>
+   kubectl -n supabase-app rollout restart deploy/<service-name>
    ```
 
    **View logs**:
    ```bash
    # Specific service
-   kubectl -n iotgw logs -f deploy/<service-name>
+   kubectl -n supabase-app logs -f deploy/<service-name>
 
    # Last N lines
-   kubectl -n iotgw logs --tail=100 deploy/<service-name>
+   kubectl -n supabase-app logs --tail=100 deploy/<service-name>
    ```
 
    **Check health**:
    ```bash
-   kubectl -n iotgw get pods
+   kubectl -n supabase-app get pods
    ```
 
    **Rebuild + redeploy a service**:
@@ -70,14 +74,14 @@ decommissioned). All workloads live in the `iotgw` namespace. Follow these steps
    primary pod's `patroni` container:
    ```bash
    # Resolve the StackGres primary pod
-   PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
+   PG=$(kubectl -n supabase-db get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
           -o jsonpath='{.items[0].metadata.name}')
 
    # Connect to database
-   kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres
+   kubectl -n supabase-db exec -it "$PG" -c patroni -- psql -U postgres -d postgres
 
    # View database logs
-   kubectl -n iotgw logs -f "$PG" -c patroni
+   kubectl -n supabase-db logs -f "$PG" -c patroni
 
    # Apply the iotgw-ui migration set (careful - schema change)
    deploy/kind/bootstrap.sh migrate
@@ -87,22 +91,22 @@ decommissioned). All workloads live in the `iotgw` namespace. Follow these steps
    ```bash
    # Redeploy after code changes (code is baked into iotgw-functions:local)
    deploy/kind/bootstrap.sh functions
-   kubectl -n iotgw rollout restart deploy/functions
+   kubectl -n supabase-app rollout restart deploy/functions
 
    # View function logs
-   kubectl -n iotgw logs -f deploy/functions
+   kubectl -n supabase-app logs -f deploy/functions
 
    # Check if functions are loaded
-   kubectl -n iotgw logs deploy/functions | grep "started"
+   kubectl -n supabase-app logs deploy/functions | grep "started"
    ```
 
    **API Gateway (kong)**:
    ```bash
    # Restart Kong
-   kubectl -n iotgw rollout restart deploy/kong
+   kubectl -n supabase-app rollout restart deploy/kong
 
    # View routing logs
-   kubectl -n iotgw logs -f deploy/kong
+   kubectl -n supabase-app logs -f deploy/kong
    ```
 
    **Studio UI (studio)**:
@@ -112,13 +116,13 @@ decommissioned). All workloads live in the `iotgw` namespace. Follow these steps
 5. **Health checks**:
    ```bash
    # Check all pods' status (Ready/Running)
-   kubectl -n iotgw get pods
+   kubectl -n supabase-app get pods
 
    # Check a specific Deployment's rollout
-   kubectl -n iotgw rollout status deploy/<service-name>
+   kubectl -n supabase-app rollout status deploy/<service-name>
 
    # Describe a pod for events/probe failures
-   kubectl -n iotgw describe pod -l app=<service-name>
+   kubectl -n supabase-app describe pod -l app=<service-name>
    ```
 
 6. **Complete reset** (destructive):
@@ -131,8 +135,8 @@ decommissioned). All workloads live in the `iotgw` namespace. Follow these steps
 7. **Troubleshooting**:
 
    **Service won't start**:
-   - Check logs: `kubectl -n iotgw logs deploy/<service-name>`
-   - Check events/probes: `kubectl -n iotgw describe pod -l app=<service-name>`
+   - Check logs: `kubectl -n supabase-app logs deploy/<service-name>`
+   - Check events/probes: `kubectl -n supabase-app describe pod -l app=<service-name>`
    - Check the DB tier is Ready (the app tier depends on `supabase-db`)
    - Check the `supabase-env` Secret has the expected vars (`envFrom`)
 
@@ -140,7 +144,7 @@ decommissioned). All workloads live in the `iotgw` namespace. Follow these steps
    - Check readiness/liveness probe failures in `describe`
    - Verify dependencies (the StackGres primary) are Ready
    - Check in-cluster connectivity (Service names) between pods
-   - Roll the deployment: `kubectl -n iotgw rollout restart deploy/<service-name>`
+   - Roll the deployment: `kubectl -n supabase-app rollout restart deploy/<service-name>`
 
    **Out of sync**:
    - Re-apply the overlay: `just k8s-deploy`
@@ -149,14 +153,14 @@ decommissioned). All workloads live in the `iotgw` namespace. Follow these steps
 8. **Monitoring**:
    ```bash
    # Per-pod resource usage (needs metrics-server)
-   kubectl -n iotgw top pods
+   kubectl -n supabase-app top pods
 
    # Recent namespace events
-   kubectl -n iotgw get events --sort-by=.lastTimestamp
+   kubectl -n supabase-app get events --sort-by=.lastTimestamp
    ```
 
 9. **After operations**:
-   - Verify pods are healthy: `kubectl -n iotgw get pods`
+   - Verify pods are healthy: `kubectl -n supabase-app get pods`
    - Check logs for errors
    - Test critical functionality
    - Report status to user

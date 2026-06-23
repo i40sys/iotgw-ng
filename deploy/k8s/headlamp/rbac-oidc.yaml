@@ -1,0 +1,22 @@
+# OIDC SSO RBAC — binds the Keycloak `k8s-admins` group (realm `iotgw` at
+# iam.joor.net) to cluster-admin. The kube-apiserver is configured with
+# --oidc-groups-prefix=oidc:, so a member's group arrives as `oidc:k8s-admins`.
+# This is what makes Headlamp's OIDC login actually authorized: the user's
+# id_token identity (oidc:<preferred_username>, groups oidc:<group>) is the
+# bearer the apiserver checks RBAC against — no ServiceAccount token involved.
+# See decision-019 / doc-017.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oidc-k8s-admins
+  labels:
+    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/part-of: iotgw-ng
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: "oidc:k8s-admins"

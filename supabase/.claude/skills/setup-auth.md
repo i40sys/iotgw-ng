@@ -51,7 +51,7 @@ You are helping set up or configure Supabase authentication. Follow these steps:
 
 3. **Restart auth service** after .env changes:
    ```bash
-   kubectl -n iotgw rollout restart deploy/auth
+   kubectl -n supabase-app rollout restart deploy/auth
    ```
 
 4. **Create edge function for signup**:
@@ -155,7 +155,7 @@ You are helping set up or configure Supabase authentication. Follow these steps:
    GOTRUE_EXTERNAL_GITHUB_SECRET="your-github-secret"
    GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI="http://localhost:8000/auth/v1/callback"
    ```
-   After changing, `kubectl -n iotgw rollout restart deploy/auth`.
+   After changing, `kubectl -n supabase-app rollout restart deploy/auth`.
 
 7. **Create user profile table**:
 
@@ -213,7 +213,7 @@ You are helping set up or configure Supabase authentication. Follow these steps:
    GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_ENABLED="true"
    GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_URI="pg-functions://postgres/public/custom_access_token_hook"
    ```
-   After changing, `kubectl -n iotgw rollout restart deploy/auth`.
+   After changing, `kubectl -n supabase-app rollout restart deploy/auth`.
 
    Create the function:
    ```sql

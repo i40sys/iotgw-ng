@@ -1,7 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: iotgw
 
+# NO global namespace transformer (decision-020): each base component sets its
+# own namespace. The TLS Secret must be created in EVERY Ingress namespace
+# (supabase-app for kong; iotgw-ui for the frontend+backend Ingresses).
 # Production overlay (SKETCH). Differences from kind:
 #   - includes the full Supabase application tier (supabase-app)
 #   - real Ingress hostnames + TLS instead of NodePorts (add ingress.yaml)
@@ -41,15 +43,20 @@ patches:
         path: /spec/template/spec/containers/0/volumeMounts
 
   # TLS patches: add wildcard TLS + ssl-redirect to all three Ingresses.
-  # The iotgw-wildcard-tls Secret must exist before deploying this overlay.
+  # The iotgw-wildcard-tls Secret must exist before deploying this overlay. An
+  # Ingress can only use a TLS Secret in its OWN namespace (decision-020), so the
+  # Secret is created in BOTH Ingress namespaces: supabase-app (kong) and
+  # iotgw-ui (frontend + backend).
   # Source: kms/pki-test/ certs stored in secrets/traefik-tls.enc.yaml.
-  # Create it out-of-band:
+  # Create it out-of-band, once per namespace:
   #   sops -d secrets/traefik-tls.enc.yaml | python3 -c "
   #   import sys,yaml; d=yaml.safe_load(sys.stdin)['tls']
   #   open('/tmp/tls.crt','w').write(d['server_crt'])
   #   open('/tmp/tls.key','w').write(d['server_key'])" && \
-  #   kubectl create secret tls iotgw-wildcard-tls -n iotgw \
-  #     --cert=/tmp/tls.crt --key=/tmp/tls.key
+  #   for ns in supabase-app iotgw-ui; do \
+  #     kubectl create secret tls iotgw-wildcard-tls -n "$ns" \
+  #       --cert=/tmp/tls.crt --key=/tmp/tls.key \
+  #       --dry-run=client -o yaml | kubectl apply -f - ; done
   - path: ingress-prod.yaml
 
 # patches (optional — uncomment as layers are added):

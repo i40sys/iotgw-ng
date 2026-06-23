@@ -9,7 +9,10 @@ kind: Kustomization
 # The remaining data-plane services (realtime/storage/imgproxy/studio/analytics/
 # supavisor/vector) are intentionally NOT deployed (decision-018 §4: grep-confirmed
 # unused) — PGRST_DB_SCHEMAS is trimmed to `public` accordingly (rest.yaml).
+# Supabase app tier gets its own namespace (decision-020).
+namespace: supabase-app
 resources:
+  - namespace.yaml
   - meta.yaml
   - rest.yaml
   - auth.yaml

@@ -16,7 +16,7 @@ create trigger deployments_webhook
   after insert on public.deployments
   for each row
   execute function supabase_functions.http_request(
-    'http://kong:8000/functions/v1/kestra-dispatch',
+    'http://kong.supabase-app.svc.cluster.local:8000/functions/v1/kestra-dispatch',
     'POST',
     '{"Content-Type":"application/json"}',
     '{}',

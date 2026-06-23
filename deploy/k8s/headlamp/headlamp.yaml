@@ -1,0 +1,137 @@
+# Headlamp — in-cluster Kubernetes dashboard (https://headlamp.dev) for the
+# iotgw-ng platform. Lives in its OWN dedicated `headlamp` namespace and is
+# applied as a standalone kustomization with its own namespace transformer, so no
+# global overlay transformer pulls it elsewhere. Exposed through ingress-nginx,
+# mirroring the per-subproject namespace pattern (decision-020).
+#
+# Auth (two paths):
+#  1. PRIMARY — OIDC SSO via Keycloak (realm `iotgw` at iam.joor.net,
+#     decision-019). Users log in through the IdP; the id_token is sent to the
+#     OIDC-configured kube-apiserver, and RBAC is bound to the `oidc:k8s-admins`
+#     group (rbac-oidc.yaml). No tokens to paste or rotate.
+#  2. FALLBACK — the `headlamp` SA below is bound (ClusterRoleBinding
+#     `headlamp-admin`) to `cluster-admin`, so a token still works if the IdP is
+#     unreachable:  kubectl -n headlamp create token headlamp
+# To restrict access, point the relevant binding's roleRef at a narrower role.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: headlamp
+  labels:
+    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/part-of: iotgw-ng
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: headlamp
+  labels:
+    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/part-of: iotgw-ng
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: headlamp-admin
+  labels:
+    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/part-of: iotgw-ng
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: headlamp
+    # namespace is set by the kustomize namespace transformer (headlamp)
+    namespace: headlamp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: headlamp
+  labels:
+    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: headlamp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: headlamp
+        app.kubernetes.io/part-of: iotgw-ng
+    spec:
+      serviceAccountName: headlamp
+      containers:
+        - name: headlamp
+          image: ghcr.io/headlamp-k8s/headlamp:v0.30.0
+          args:
+            - "-in-cluster"
+            - "-plugins-dir=/headlamp/plugins"
+            - "-oidc-client-id=$(OIDC_CLIENT_ID)"
+            - "-oidc-client-secret=$(OIDC_CLIENT_SECRET)"
+            - "-oidc-idp-issuer-url=$(OIDC_IDP_ISSUER_URL)"
+            - "-oidc-scopes=$(OIDC_SCOPES)"
+          env:
+            # OIDC SSO via Keycloak (realm `iotgw` at iam.joor.net, decision-019).
+            # The login id_token is what Headlamp sends to the apiserver, which is
+            # OIDC-configured to trust this issuer + client-id. No static tokens.
+            - { name: OIDC_CLIENT_ID, value: headlamp }
+            - { name: OIDC_IDP_ISSUER_URL, value: "https://iam.joor.net/realms/iotgw" }
+            # Headlamp auto-prepends `openid`; do NOT list it here (a duplicate
+            # `openid` makes Keycloak reject the whole request as invalid_scope).
+            # `groups` is NOT a scope — the group-membership claim comes from the
+            # client mapper unconditionally, so requesting it would also 400.
+            - { name: OIDC_SCOPES, value: "profile,email" }
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: headlamp-oidc       # created from SOPS (bootstrap `secrets`)
+                  key: OIDC_CLIENT_SECRET
+          ports:
+            - { name: http, containerPort: 4466 }
+          livenessProbe:
+            httpGet: { path: /, port: 4466 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /, port: 4466 }
+            initialDelaySeconds: 3
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: headlamp
+  labels:
+    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  selector:
+    app.kubernetes.io/name: headlamp
+  ports:
+    - { name: http, port: 80, targetPort: 4466 }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: headlamp
+  labels:
+    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/part-of: iotgw-ng
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: headlamp.wsl.ymbihq.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: headlamp
+                port:
+                  number: 80

@@ -21,7 +21,8 @@ the deployment itself is driven from `deploy/` (see [deploy/README.md](../deploy
 
 ### Core Services
 
-The app tier runs as Deployments in the `iotgw` namespace. Manifests live in
+The app tier runs as Deployments in the `supabase-app` namespace; the DB tier
+lives in its own `supabase-db` namespace (`decision-020`). Manifests live in
 [`deploy/k8s/base/supabase-app/`](../deploy/k8s/base/supabase-app/), applied via
 the kustomize overlays (`deploy/k8s/overlays/{kind,prod}`):
 
@@ -31,7 +32,8 @@ the kustomize overlays (`deploy/k8s/overlays/{kind,prod}`):
     GUCs) is ported from volumes/db/ into a StackGres `SGScript`
   - Data persisted on a StackGres-managed PVC (Patroni-managed)
   - `disableConnectionPooling: true` → clients hit the **direct primary** at
-    `supabase-db:5432`; there is **no supavisor pooler and no :6543**
+    `supabase-db.supabase-db.svc.cluster.local:5432` (cross-namespace FQDN,
+    `decision-020`); there is **no supavisor pooler and no :6543**
   - The hand-authored `supabase-db` StatefulSet under `deploy/k8s/base/supabase-db/`
     is retained only as the documented NO-GO rollback and is not deployed
 
@@ -82,10 +84,13 @@ the kustomize overlays (`deploy/k8s/overlays/{kind,prod}`):
 ### Key Architecture Patterns
 
 1. **Workload model**: the app tier is a set of stateless Deployments in the
-   `iotgw` namespace; the DB tier is a StackGres `SGCluster`. Bring-up,
-   teardown, and readiness are managed by k8s, not compose `depends_on`.
-2. **Internal Networking**: services reach each other by k8s Service name (e.g.
-   `http://kong:8000`, `supabase-db:5432`) within the `iotgw` namespace
+   `supabase-app` namespace; the DB tier is a StackGres `SGCluster` in the
+   `supabase-db` namespace (`decision-020`). Bring-up, teardown, and readiness
+   are managed by k8s, not compose `depends_on`.
+2. **Internal Networking**: app-tier services reach each other **intra-namespace**
+   by short Service name (e.g. `http://kong:8000` inside `supabase-app`); the DB
+   is **cross-namespace** at the FQDN `supabase-db.supabase-db.svc.cluster.local:5432`
+   (`decision-020`)
 3. **Environment Configuration**: provided by the `supabase-env` k8s Secret
    (`envFrom`), generated from `secrets/supabase.enc.env` (SOPS+age, decision-014)
    — JWT_SECRET, POSTGRES_PASSWORD, API keys, etc.
@@ -130,15 +135,15 @@ just kind-down
 ### Service Management
 
 ```bash
-# View logs for a service (Deployment) in the iotgw namespace
-kubectl -n iotgw logs -f deploy/functions
+# View logs for a service (Deployment) in the supabase-app namespace
+kubectl -n supabase-app logs -f deploy/functions
 # Examples: functions, kong, auth, rest, meta
 
 # Restart (roll) a service — picks up new image / Secret values
-kubectl -n iotgw rollout restart deploy/<name>
+kubectl -n supabase-app rollout restart deploy/<name>
 
 # Check service health (pod status)
-kubectl -n iotgw get pods
+kubectl -n supabase-app get pods
 ```
 
 ### Database Operations
@@ -148,20 +153,20 @@ container. Resolve the primary pod first:
 
 ```bash
 # Resolve the StackGres primary pod
-PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
+PG=$(kubectl -n supabase-db get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
        -o jsonpath='{.items[0].metadata.name}')
 
 # Connect to PostgreSQL (interactive)
-kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres
+kubectl -n supabase-db exec -it "$PG" -c patroni -- psql -U postgres -d postgres
 
 # Apply the iotgw-ui migration set (idempotent)
 deploy/kind/bootstrap.sh migrate   # schema source: iotgw-ui/supabase/migrations/
 
 # Backup database
-kubectl -n iotgw exec "$PG" -c patroni -- pg_dump -U postgres postgres > backup.sql
+kubectl -n supabase-db exec "$PG" -c patroni -- pg_dump -U postgres postgres > backup.sql
 
 # Restore database
-kubectl -n iotgw exec -i "$PG" -c patroni -- psql -U postgres postgres < backup.sql
+kubectl -n supabase-db exec -i "$PG" -c patroni -- psql -U postgres postgres < backup.sql
 ```
 
 ### Edge Functions Development
@@ -175,7 +180,7 @@ kubectl -n iotgw exec -i "$PG" -c patroni -- psql -U postgres postgres < backup.
 # 2. Add index.ts with Deno serve() handler
 # 3. Rebuild + load the image, then roll the Deployment:
 deploy/kind/bootstrap.sh functions          # docker build + kind load
-kubectl -n iotgw rollout restart deploy/functions
+kubectl -n supabase-app rollout restart deploy/functions
 # (just k8s-deploy does this build+load as part of a full apply)
 
 # Test edge function (Kong NodePort → host :8000)
@@ -185,7 +190,7 @@ curl -X POST http://localhost:8000/functions/v1/<function-name> \
   -d '{"key":"value"}'
 
 # View function logs
-kubectl -n iotgw logs -f deploy/functions
+kubectl -n supabase-app logs -f deploy/functions
 ```
 
 ### Accessing Services
@@ -194,8 +199,9 @@ kubectl -n iotgw logs -f deploy/functions
   Studio UI on the running cluster
 - **API Gateway (Kong)**: http://wsl.ymbihq.local:8000 (NodePort 30800 → host
   8000; edge fns via `/functions/v1/*`)
-- **Database**: localhost:5432 → the **direct primary** `supabase-db:5432`
-  (NodePort 30543; no supavisor pooler, no :6543)
+- **Database**: localhost:5432 → the **direct primary**
+  `supabase-db.supabase-db.svc.cluster.local:5432` (NodePort 30543; no supavisor
+  pooler, no :6543)
 - **Analytics**: *not deployed* on k8s (`decision-018` §4)
 
 ## Configuration
@@ -209,7 +215,7 @@ Configuration is delivered to the pods as the `supabase-env` k8s Secret
 > Note: real secret values live encrypted in `secrets/supabase.enc.env` (SOPS+age, decision-014).
 > To change an env/secret var: edit the SOPS store (`just secrets-edit supabase`),
 > re-run `deploy/kind/bootstrap.sh secrets` to refresh the `supabase-env` Secret,
-> then `kubectl -n iotgw rollout restart deploy/<name>` so the consumer picks it up.
+> then `kubectl -n supabase-app rollout restart deploy/<name>` so the consumer picks it up.
 
 **Security** (must change for production):
 - JWT_SECRET: JWT signing key (min 32 chars)
@@ -219,7 +225,7 @@ Configuration is delivered to the pods as the `supabase-env` k8s Secret
   not deployed on k8s; these are inert on the running stack)
 
 **Database**:
-- POSTGRES_HOST=supabase-db (the StackGres primary Service in the `iotgw` namespace)
+- POSTGRES_HOST=supabase-db.supabase-db.svc.cluster.local (the StackGres primary Service in the `supabase-db` namespace, reached cross-namespace by the app tier — `decision-020`)
 - POSTGRES_DB=postgres
 - POSTGRES_PORT=5432 (direct primary; no pooler)
 
@@ -255,7 +261,8 @@ DASHBOARD_PASSWORD) via an `envsubst` initContainer before Kong starts.
 
 *Not applicable on k8s.* The supavisor connection pooler is **not deployed**
 (`decision-018` §4): the StackGres SGCluster runs with `disableConnectionPooling:
-true` and clients connect to the direct primary `supabase-db:5432`. The compose
+true` and clients connect to the direct primary
+`supabase-db.supabase-db.svc.cluster.local:5432`. The compose
 `volumes/pooler/pooler.exs` settings are no longer used.
 
 ## Development Workflow
@@ -267,10 +274,10 @@ change requires a rebuild + rollout (there is no bind-mounted restart-to-deploy)
 
 1. Edit function code in volumes/functions/<function-name>/index.ts
 2. Rebuild + load the image: `deploy/kind/bootstrap.sh functions` (docker build +
-   `kind load`), then `kubectl -n iotgw rollout restart deploy/functions`
+   `kind load`), then `kubectl -n supabase-app rollout restart deploy/functions`
    (`just k8s-deploy` does this as part of a full apply)
 3. Test the function via HTTP requests to http://localhost:8000/functions/v1/<function-name>
-4. Check logs: `kubectl -n iotgw logs -f deploy/functions`
+4. Check logs: `kubectl -n supabase-app logs -f deploy/functions`
 
 ### Database Schema Changes
 
@@ -283,15 +290,15 @@ source is `iotgw-ui/supabase/migrations/`.
 3. For ad-hoc schema changes, either:
    - Connect to the primary and run SQL manually (see Database Operations above)
    - Or refresh the PostgREST schema cache:
-     `kubectl -n iotgw rollout restart deploy/rest`
+     `kubectl -n supabase-app rollout restart deploy/rest`
      (the `migrate` step already does this after applying)
 
 ### Debugging
 
-- All pods log to stdout/stderr, viewable with `kubectl -n iotgw logs`
-- Use `kubectl -n iotgw logs -f deploy/<name>` to tail a specific Deployment's logs
-- Check pod health: `kubectl -n iotgw get pods` (and `kubectl -n iotgw describe pod <pod>`)
-- Exec into a pod: `kubectl -n iotgw exec -it deploy/<name> -- sh`
+- All app-tier pods log to stdout/stderr, viewable with `kubectl -n supabase-app logs`
+- Use `kubectl -n supabase-app logs -f deploy/<name>` to tail a specific Deployment's logs
+- Check pod health: `kubectl -n supabase-app get pods` (and `kubectl -n supabase-app describe pod <pod>`)
+- Exec into a pod: `kubectl -n supabase-app exec -it deploy/<name> -- sh`
 - Edge function logs include request IDs and transaction IDs for tracing
 
 ### Testing
@@ -329,6 +336,7 @@ No automated test suite is currently configured in package.json. Consider adding
 ## References
 
 - [decision-003](../backlog/decisions/decision-003%20-%20Database-and-Infrastructure-Supabase-PostgreSQL-Choice.md) — why Supabase was chosen
+- [decision-020](../backlog/decisions/decision-020%20-%20Namespace-per-subproject-topology.md) — namespace-per-subproject split (`supabase-app` / `supabase-db`; `iotgw` is the cluster, not a namespace)
 - [doc-010](../backlog/docs/doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md) — migration + webhook management (devices/networks triggers)
 - [doc-016](../backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) — the DB-trigger → netmaker-call → Netmaker REST provisioning pattern
 - [volumes/functions/CLAUDE.md](volumes/functions/CLAUDE.md) — edge function map

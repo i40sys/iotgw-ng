@@ -1,6 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: iotgw
+# StackGres DB tier gets its own namespace (decision-020). The cluster-scoped
+# StackGres operator (in the `stackgres` ns) reconciles this SGCluster wherever
+# it lands. The SGCluster/SGScript/SGInstanceProfile bare-name CR refs resolve
+# within this namespace.
+namespace: supabase-db
 
 # StackGres-managed Postgres tier (decision-018), replacing the supabase-db
 # StatefulSet. Requires the StackGres operator (CRDs) installed in the cluster
@@ -10,6 +14,7 @@ namespace: iotgw
 #       90-secrets.sql = role passwords (== POSTGRES_PASSWORD) + jwt GUCs)
 # backup.yaml is intentionally NOT included here (prod-only; see that file).
 resources:
+  - namespace.yaml
   - instanceprofile-pgconfig.yaml
   - sgscript.yaml
   - sgcluster.yaml

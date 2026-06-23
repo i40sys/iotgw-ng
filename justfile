@@ -58,9 +58,11 @@ k8s-build:
 k8s-smoke:
     deploy/kind/bootstrap.sh smoke
 
-# Cross-stack status — k8s workloads in the iotgw namespace
+# Cross-stack status — platform workloads across all per-subproject namespaces
+# (decision-020: kms/kestra/supabase-db/supabase-app/iotgw-ui), rolled up by the
+# shared part-of label.
 status:
-    @kubectl -n iotgw get pods 2>/dev/null || echo "kind cluster not running (just kind-up && just k8s-deploy)"
+    @kubectl get pods -A -l app.kubernetes.io/part-of=iotgw-ng 2>/dev/null || echo "kind cluster not running (just kind-up && just k8s-deploy)"
 
 # ─────────────────────────── meta ───────────────────────────
 

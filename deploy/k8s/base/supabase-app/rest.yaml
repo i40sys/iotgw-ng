@@ -34,8 +34,9 @@ spec:
                   name: supabase-env
                   key: POSTGRES_PASSWORD
             # k8s expands $(PGRST_PW) using a var defined earlier in this list.
+            # supabase-db is now in its own namespace (decision-020) — FQDN.
             - name: PGRST_DB_URI
-              value: postgres://authenticator:$(PGRST_PW)@supabase-db:5432/postgres
+              value: postgres://authenticator:$(PGRST_PW)@supabase-db.supabase-db.svc.cluster.local:5432/postgres
             # Trimmed to `public` (decision-018): storage + graphql_public
             # services/schemas are not deployed (grep-confirmed unused), and
             # leaving them here makes PostgREST warn/fail resolving them.

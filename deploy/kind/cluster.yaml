@@ -2,7 +2,7 @@
 # docker-compose was decommissioned (decision-017).
 # One control-plane node. Host ports are mapped so the platform is reachable on
 # wsl.ymbihq.local on the conventional ports:
-#   80/443  -> ingress-nginx (whoami/iotgw-ui via Ingress)
+#   80/443  -> ingress-nginx (iotgw-ui via Ingress)
 #   30000+  -> NodePorts for raw-TCP services (Kong :8000, StackGres Postgres
 #              :5432, kestra :8080, kms :9998)
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -21,6 +21,21 @@ nodes:
         nodeRegistration:
           kubeletExtraArgs:
             node-labels: "ingress-ready=true"
+      # OIDC SSO for the kube-apiserver — Keycloak realm `iotgw` at iam.joor.net
+      # (decision-019). The apiserver validates Headlamp's id_token directly, so
+      # login is real SSO (no static tokens). v1beta3 extraArgs = map form.
+      # Identities land as `oidc:<preferred_username>` / `oidc:<group>`; RBAC
+      # binds `oidc:k8s-admins` -> cluster-admin (deploy/k8s/headlamp/rbac-oidc.yaml).
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            oidc-issuer-url: https://iam.joor.net/realms/iotgw
+            oidc-client-id: headlamp
+            oidc-username-claim: preferred_username
+            oidc-username-prefix: "oidc:"
+            oidc-groups-claim: groups
+            oidc-groups-prefix: "oidc:"
     extraPortMappings:
       # ingress-nginx
       - containerPort: 80

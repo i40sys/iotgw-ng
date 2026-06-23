@@ -94,7 +94,7 @@ This mirrors the convention used by the `oriolrius.netmaker` Ansible collection.
 The functions Deployment loads these via `envFrom` the `supabase-env` Secret. To
 add or change a var: edit `secrets/supabase.enc.env` (`just secrets-edit supabase`),
 then re-create the Secret and roll the deployment:
-`deploy/kind/bootstrap.sh secrets && kubectl -n iotgw rollout restart deploy/functions`.
+`deploy/kind/bootstrap.sh secrets && kubectl -n supabase-app rollout restart deploy/functions`.
 
 ## device_jobs lifecycle
 
@@ -171,8 +171,8 @@ is baked into `iotgw-functions:local`, not bind-mounted):
 
 ```bash
 deploy/kind/bootstrap.sh functions          # docker build + kind load iotgw-functions:local
-kubectl -n iotgw rollout restart deploy/functions
-kubectl -n iotgw logs -f deploy/functions
+kubectl -n supabase-app rollout restart deploy/functions
+kubectl -n supabase-app logs -f deploy/functions
 ```
 
 Smoke-test — device INSERT:

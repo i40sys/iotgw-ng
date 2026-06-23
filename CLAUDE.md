@@ -65,6 +65,7 @@ integration point:
 | **decision-013** | [Monorepo organization](backlog/decisions/decision-013%20-%20Monorepo-Organization-Single-Repo-with-Logical-Grouping.md) |
 | **decision-014** | [Secrets management (SOPS+age) + rotation runbook](backlog/decisions/decision-014%20-%20Secrets-Management-with-SOPS-and-age.md) |
 | **decision-015** | [Kubernetes migration with kind](backlog/decisions/decision-015%20-%20Kubernetes-Migration-with-local-kind.md) |
+| **decision-020** | [Namespace-per-subproject topology (`iotgw` is the cluster, not a namespace)](backlog/decisions/decision-020%20-%20Namespace-per-subproject-topology.md) |
 | **doc-016** | [Database-change provisioning automation pattern](backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) (current: DB trigger → `netmaker-call` → Netmaker REST) |
 | **decision-010** | [SSH key management via Cosmian KMS](backlog/decisions/decision-010%20-%20ADR-001-SSH-Key-Management-with-Cosmian-KMS.md) |
 | **decision-009** | [TOTP authentication for device VPN access](backlog/decisions/decision-009%20-%20TOTP-Authentication-for-Device-VPN-Access.md) |
@@ -112,18 +113,25 @@ archives are in `BACKUP/git-archives/` (the reversibility net).
 
 ## Service Ports (host `wsl.ymbihq.local`)
 
-The kind cluster maps these host ports via NodePorts/ingress (`deploy/kind/cluster.yaml`):
+The kind cluster maps these host ports via NodePorts/ingress (`deploy/kind/cluster.yaml`).
+The platform is split into one k8s **namespace per subproject** (`decision-020`):
 
-| Service | Port | via |
-|---------|------|-----|
-| Supabase Kong API (edge fns via `/functions/v1/*`) | 8000 | NodePort 30800 |
-| Supabase Postgres (StackGres `supabase-db` primary, direct — no pooler) | 5432 | NodePort 30543 |
-| Kestra UI/API | 8080 | NodePort 30808 |
-| Cosmian KMS | 9998 | NodePort 30998 (host path blocked by the task-057 NetworkPolicy; reached in-cluster) |
-| iotgw-ui frontend (Vite) | 5173 | NodePort / ingress hostname |
-| iotgw-ui backend (tRPC + WS) | 4444 | NodePort / ingress hostname |
-| Ingress (whoami, iotgw-ui, …) HTTP / HTTPS | 80 / 443 | ingress-nginx |
+| Service | Namespace | Port | via |
+|---------|-----------|------|-----|
+| Supabase Kong API (edge fns via `/functions/v1/*`) | `supabase-app` | 8000 | NodePort 30800 |
+| Supabase Postgres (StackGres `supabase-db` primary, direct — no pooler) | `supabase-db` | 5432 | NodePort 30543 |
+| Kestra UI/API | `kestra` | 8080 | NodePort 30808 |
+| Cosmian KMS | `kms` | 9998 | NodePort 30998 (host path blocked by the task-057 NetworkPolicy; reached in-cluster) |
+| iotgw-ui frontend (Vite) | `iotgw-ui` | 5173 | NodePort / ingress hostname |
+| iotgw-ui backend (tRPC + WS) | `iotgw-ui` | 4444 | NodePort / ingress hostname |
+| Ingress (iotgw-ui, …) HTTP / HTTPS | `supabase-app` / `iotgw-ui` | 80 / 443 | ingress-nginx |
+
+> **Cross-namespace** service calls use the FQDN
+> `service.namespace.svc.cluster.local` (e.g. `kong.supabase-app.svc.cluster.local:8000`,
+> `cosmian-kms.kms.svc.cluster.local:9998`, `kestra.kestra.svc.cluster.local:8080`);
+> **intra-namespace** calls keep short Service names (`decision-020`). `iotgw` remains the
+> kind **cluster** name (and the Keycloak realm) — it is no longer a namespace.
 
 > Supabase Studio, realtime, storage, imgproxy, analytics, supavisor and vector
 > are **intentionally not deployed** (`decision-018`); the app tier connects to
-> the direct primary at `supabase-db:5432`. See `deploy/README.md`.
+> the direct primary at `supabase-db.supabase-db.svc.cluster.local:5432`. See `deploy/README.md`.
