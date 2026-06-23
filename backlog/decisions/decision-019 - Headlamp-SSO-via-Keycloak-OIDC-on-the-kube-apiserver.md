@@ -60,6 +60,11 @@ RBAC-authorized identity):
   the running cluster. **Gotcha:** values ending in `:` (`oidc:`) must be quoted
   in that manifest's YAML list or the spec becomes invalid and the apiserver
   won't start. A backup is kept at `/etc/kubernetes/kube-apiserver.yaml.pre-oidc.bak`.
+- **Scope gotcha (verified end-to-end via a browser login).** `OIDC_SCOPES`
+  must be `profile,email` — Headlamp auto-prepends `openid` (a second `openid`
+  trips Keycloak's `invalid_scope`), and `groups` is supplied by the client
+  mapper, not a scope. A wrong scope surfaces as the misleading downstream
+  "invalid_grant / Code not valid" because the callback carries no `code`.
 - **Prod parity.** A real cluster sets the same apiserver flags via its control
   plane config; only the issuer URL/redirect host differ. The `prod` overlay
   does not yet ship Headlamp.

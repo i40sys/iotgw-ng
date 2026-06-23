@@ -182,6 +182,14 @@ kubectl delete -k deploy/k8s/headlamp     # also deletes the namespace
 
 ## Troubleshooting
 
+- **`invalid_scope` at Keycloak, then "Failed to exchange token: invalid_grant
+  Code not valid" in Headlamp** — the callback arrived with `error=invalid_scope`
+  and no `code`, so the token exchange fails downstream (red herring). Two rules
+  for `OIDC_SCOPES`: (1) do **not** include `openid` — Headlamp prepends it, and
+  a duplicate `openid` makes Keycloak reject the whole request; (2) do **not**
+  request `groups` — it isn't a client scope (the groups claim comes from the
+  client's group-membership mapper unconditionally). Correct value:
+  `OIDC_SCOPES=profile,email` → request becomes `openid profile email`.
 - **`/oidc` returns 200, not 302 / `auth_type` not `oidc`** — the Headlamp
   container didn't get the OIDC args. Check the `headlamp-oidc` Secret exists in
   the namespace and the env expanded: `docker exec iotgw-control-plane sh -c

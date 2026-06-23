@@ -81,7 +81,11 @@ spec:
             # OIDC-configured to trust this issuer + client-id. No static tokens.
             - { name: OIDC_CLIENT_ID, value: headlamp }
             - { name: OIDC_IDP_ISSUER_URL, value: "https://iam.joor.net/realms/iotgw" }
-            - { name: OIDC_SCOPES, value: "openid,profile,email,groups" }
+            # Headlamp auto-prepends `openid`; do NOT list it here (a duplicate
+            # `openid` makes Keycloak reject the whole request as invalid_scope).
+            # `groups` is NOT a scope — the group-membership claim comes from the
+            # client mapper unconditionally, so requesting it would also 400.
+            - { name: OIDC_SCOPES, value: "profile,email" }
             - name: OIDC_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
