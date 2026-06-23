@@ -26,9 +26,12 @@ Ingress (which replaced the former `traefik-poc/` PoC).
 >   provisioned idempotently by `deploy/kind/bootstrap.sh kms-auth` (run while
 >   the KMS is still open — chicken-and-egg).
 > - **NetworkPolicy** (`deploy/k8s/base/kms/networkpolicy.yaml`) default-denies
->   ingress to `:9998` except from the in-namespace clients: the
->   **iotgw-ui-backend** pod, the **kestra** pod, and **kestra-spawned Ansible
->   runner pods** (`app.kubernetes.io/managed-by: kestra`). The kind cluster's
+>   ingress to `:9998` except from its now **cross-namespace** clients: the
+>   **iotgw-ui-backend** pod (namespace `iotgw-ui`), the **kestra** pod, and
+>   **kestra-spawned Ansible runner pods** (`app.kubernetes.io/managed-by: kestra`,
+>   namespace `kestra`) — each allow rule combines `namespaceSelector` AND
+>   `podSelector` in one `from:` peer (`decision-020`). Clients reach the KMS at
+>   the FQDN `cosmian-kms.kms.svc.cluster.local:9998`. The kind cluster's
 >   `kindnet` CNI **does enforce** this (verified live); host→NodePort traffic is
 >   consequently blocked, so the `/version` smoke falls back to an in-cluster
 >   check. Prod enforces identically via Calico/Cilium.
@@ -51,7 +54,7 @@ Ingress (which replaced the former `traefik-poc/` PoC).
 
 ```bash
 just bootstrap                             # bring the platform (incl. KMS) up on kind
-kubectl -n iotgw rollout status deploy/cosmian-kms   # KMS up?
+kubectl -n kms rollout status deploy/cosmian-kms   # KMS up?
 ./contrib/cosmian kms server-version       # verify (note: :9998 host path is
                                            #   blocked by the task-057 NetworkPolicy;
                                            #   the KMS is reached in-cluster)

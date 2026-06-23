@@ -27,9 +27,9 @@ You are helping set up real-time subscriptions for Supabase tables. Follow these
    Connect to database (StackGres SGCluster — psql runs in the primary pod's
    `patroni` container):
    ```bash
-   PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
+   PG=$(kubectl -n supabase-db get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
           -o jsonpath='{.items[0].metadata.name}')
-   kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres
+   kubectl -n supabase-db exec -it "$PG" -c patroni -- psql -U postgres -d postgres
    ```
 
    Enable realtime publication:
@@ -272,9 +272,9 @@ You are helping set up real-time subscriptions for Supabase tables. Follow these
 
    ```bash
    # Insert data into a published table (StackGres primary)
-   PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
+   PG=$(kubectl -n supabase-db get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
           -o jsonpath='{.items[0].metadata.name}')
-   kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres -c \
+   kubectl -n supabase-db exec -it "$PG" -c patroni -- psql -U postgres -d postgres -c \
      "INSERT INTO public.your_table (name) VALUES ('test');"
 
    # (Broadcast verification requires a deployed realtime service — N/A here.)
@@ -284,8 +284,8 @@ You are helping set up real-time subscriptions for Supabase tables. Follow these
 
     > Not applicable on the current k8s stack: there is no realtime Deployment to
     > inspect (`decision-018` §4). If realtime is added later, inspect it with
-    > `kubectl -n iotgw get pods -l app=realtime` and
-    > `kubectl -n iotgw logs deploy/realtime`.
+    > `kubectl -n supabase-app get pods -l app=realtime` and
+    > `kubectl -n supabase-app logs deploy/realtime`.
 
     Verify publication:
     ```sql

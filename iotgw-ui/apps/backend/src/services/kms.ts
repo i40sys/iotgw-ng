@@ -15,10 +15,12 @@ import { logger } from "../logger";
  * convenience only — the canonical source is the rendered secret.
  */
 
-const KMS_URL = (process.env.KMS_URL ?? "http://wsl.ymbihq.local:9998").replace(
-  /\/+$/,
-  "",
-);
+// Default is the in-cluster KMS Service FQDN (decision-020: cosmian-kms moved to
+// the `kms` namespace). The canonical source is the env (KMS_URL) set on the
+// backend Deployment; this default only applies if the env is unset.
+const KMS_URL = (
+  process.env.KMS_URL ?? "http://cosmian-kms.kms.svc.cluster.local:9998"
+).replace(/\/+$/, "");
 const KMS_AUTH_TOKEN = process.env.KMS_AUTH_TOKEN;
 
 export class KmsError extends Error {

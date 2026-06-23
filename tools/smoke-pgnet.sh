@@ -17,11 +17,15 @@
 # Both the device and the network rows + their *_jobs rows are cleaned up.
 #
 # Usage:  tools/smoke-pgnet.sh           (requires the kind cluster up)
-#         NS=iotgw SMOKE_PGNET_TIMEOUT=30 tools/smoke-pgnet.sh
+#         NS=supabase-db SMOKE_PGNET_TIMEOUT=30 tools/smoke-pgnet.sh
 # Exit 0 = both webhooks fired; non-zero = a silent pg_net failure was caught.
+#
+# NS defaults to the supabase-db namespace (decision-020): the StackGres primary
+# and pg_net live there; the webhook fires cross-namespace to
+# kong.supabase-app.svc.cluster.local:8000.
 set -uo pipefail
 
-NS="${NS:-iotgw}"
+NS="${NS:-supabase-db}"
 TIMEOUT="${SMOKE_PGNET_TIMEOUT:-30}"
 
 # StackGres primary pod label (since 062.04 cutover); fall back to the legacy

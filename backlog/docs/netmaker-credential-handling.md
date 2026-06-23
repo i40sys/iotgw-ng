@@ -39,7 +39,7 @@ that action does not disturb other networks.
 |---|---|---|
 | `netmaker-call` edge function (`supabase/volumes/functions/netmaker-call/index.ts`) | `NETMAKER_MASTER_KEY` env — kind: `supabase-env` Secret; compose: `supabase/.env` | fails loud if unset (no fallback) |
 | `oriolrius.netmaker` Ansible collection (`ansible/netmaker/`) | `ansible/netmaker/.env` (loaded by `ansible/netmaker/justfile`) ← `secrets/netmaker.enc.env` | workstation-only |
-| kind `supabase-env` Secret (ns `iotgw`) | `secrets/supabase.enc.env` via `secrets.sh k8s` | the only kind Secret carrying it |
+| kind `supabase-env` Secret (ns `supabase-app`) | `secrets/supabase.enc.env` via `secrets.sh k8s` | the only kind Secret carrying it (the `netmaker-call` function reads it in `supabase-app`; `decision-020`) |
 | ~~Kestra `device_*/network_*` playbooks~~ | (removed in task-060.04) | no longer a consumer |
 
 > **Footgun:** the credential is duplicated as `NETMAKER_MASTER_KEY` in **both**
@@ -63,11 +63,11 @@ just secrets-render                          # -> supabase/.env, ansible/netmake
 
 # C) refresh the kind Secret (only supabase-env carries it)
 deploy/kind/bootstrap.sh secrets
-#   or: tools/secrets/secrets.sh k8s supabase iotgw supabase-env | kubectl apply -f -
+#   or: tools/secrets/secrets.sh k8s supabase supabase-app supabase-env | kubectl apply -f -
 
 # D) restart the consumer so it re-reads the Secret
-kubectl -n iotgw rollout restart deployment/functions
-kubectl -n iotgw rollout status  deployment/functions
+kubectl -n supabase-app rollout restart deployment/functions
+kubectl -n supabase-app rollout status  deployment/functions
 #   compose path: cd supabase && docker compose up -d functions
 #   (the Ansible collection needs no restart — it reads .env per run)
 

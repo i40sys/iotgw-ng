@@ -119,7 +119,7 @@ You are helping create or run database migrations for Supabase. Follow these ste
    The DB is a StackGres SGCluster (`supabase-db`); psql runs inside the primary
    pod's `patroni` container. Resolve the primary pod first:
    ```bash
-   PG=$(kubectl -n iotgw get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
+   PG=$(kubectl -n supabase-db get pod -l 'stackgres.io/cluster-name=supabase-db,role=master' \
           -o jsonpath='{.items[0].metadata.name}')
    ```
 
@@ -132,20 +132,20 @@ You are helping create or run database migrations for Supabase. Follow these ste
    **For ad-hoc runtime migrations**:
    ```bash
    # Option 1: Via psql (pipe a file in)
-   kubectl -n iotgw exec -i "$PG" -c patroni -- psql -U postgres -d postgres < migration.sql
+   kubectl -n supabase-db exec -i "$PG" -c patroni -- psql -U postgres -d postgres < migration.sql
 
    # Option 2: Interactive psql
-   kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres
+   kubectl -n supabase-db exec -it "$PG" -c patroni -- psql -U postgres -d postgres
    # Then paste SQL commands
 
    # Option 3: Via file
-   cat migration.sql | kubectl -n iotgw exec -i "$PG" -c patroni -- psql -U postgres -d postgres
+   cat migration.sql | kubectl -n supabase-db exec -i "$PG" -c patroni -- psql -U postgres -d postgres
    ```
 
 7. **Verify migration**:
    ```bash
    # Connect to database
-   kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres
+   kubectl -n supabase-db exec -it "$PG" -c patroni -- psql -U postgres -d postgres
    ```
 
    Then run:
@@ -177,10 +177,10 @@ You are helping create or run database migrations for Supabase. Follow these ste
    After schema changes, notify PostgREST:
    ```bash
    # Send NOTIFY to reload schema (run from the primary pod's patroni container)
-   kubectl -n iotgw exec -it "$PG" -c patroni -- psql -U postgres -d postgres -c "NOTIFY pgrst, 'reload schema'"
+   kubectl -n supabase-db exec -it "$PG" -c patroni -- psql -U postgres -d postgres -c "NOTIFY pgrst, 'reload schema'"
 
    # Or restart the rest (PostgREST) deployment
-   kubectl -n iotgw rollout restart deploy/rest
+   kubectl -n supabase-app rollout restart deploy/rest
    ```
 
 10. **Document the migration**:

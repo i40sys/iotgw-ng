@@ -812,7 +812,13 @@ export const devicesRouter = {
 
       // Step 2: Execute Kestra workflow for connectivity check
       try {
-        const kestraUrl = "http://wsl.ymbihq.local:8080/api/v1/main/executions/iotgw-ng/connectivity-check";
+        // Kestra is in its own namespace (decision-020); default to the
+        // in-cluster FQDN, overridable via KESTRA_API_URL (set on the backend
+        // Deployment). Scoped here; reused by the status poll below.
+        const KESTRA_API_URL = (
+          process.env.KESTRA_API_URL ?? "http://kestra.kestra.svc.cluster.local:8080"
+        ).replace(/\/+$/, "");
+        const kestraUrl = `${KESTRA_API_URL}/api/v1/main/executions/iotgw-ng/connectivity-check`;
         const requestBody = {
           target_ip: ipAddress,
           device_id: deviceData.id,
@@ -887,7 +893,7 @@ export const devicesRouter = {
 
         while (Date.now() - startTime < maxWaitTime) {
           pollCount++;
-          const statusUrl = `http://wsl.ymbihq.local:8080/api/v1/executions/${executionId}`;
+          const statusUrl = `${KESTRA_API_URL}/api/v1/executions/${executionId}`;
           writeDebugLog(`Poll #${pollCount}: GET ${statusUrl}`);
 
           const statusResponse = await fetch(statusUrl, {

@@ -8,10 +8,11 @@
 -- with devices. INSERT/UPDATE stays on one trigger; the function does NOT write
 -- back to the networks table, so UPDATE is loop-safe.
 --
--- The target is the in-cluster `kong` Service DNS (`http://kong:8000`), which
--- also resolves on the legacy supabase compose network — engine-neutral, so a
--- fresh apply reproduces the live k8s state (task-055). The former compose host
--- `http://wsl.ymbihq.local:8000` was host-routed only.
+-- The target is the in-cluster `kong` Service FQDN
+-- (`http://kong.supabase-app.svc.cluster.local:8000`) — kong now lives in the
+-- `supabase-app` namespace while the DB lives in `supabase-db` (decision-020).
+-- NOTE: editing this file only fixes FRESH bring-ups; an already-installed
+-- trigger is repointed by the forward migration 20260623000000.
 --
 -- Reversible: re-point both triggers back to `.../functions/v1/kestra-call`
 -- (and drop networks_webhook_delete).
@@ -22,7 +23,7 @@ create trigger networks_webhook
   on public.networks
   for each row
   execute function supabase_functions.http_request(
-    'http://kong:8000/functions/v1/netmaker-call',
+    'http://kong.supabase-app.svc.cluster.local:8000/functions/v1/netmaker-call',
     'POST',
     '{"Content-Type":"application/json"}',
     '{}',
@@ -35,7 +36,7 @@ create trigger networks_webhook_delete
   on public.networks
   for each row
   execute function supabase_functions.http_request(
-    'http://kong:8000/functions/v1/netmaker-call',
+    'http://kong.supabase-app.svc.cluster.local:8000/functions/v1/netmaker-call',
     'POST',
     '{"Content-Type":"application/json"}',
     '{}',

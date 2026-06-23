@@ -13,13 +13,13 @@ You are helping test a Supabase edge function. Follow these steps:
 
 2. **Check if function is running**:
    ```bash
-   kubectl -n iotgw get pods -l app=functions
+   kubectl -n supabase-app get pods -l app=functions
    ```
 
 3. **Redeploy the function if needed** (code is baked into the image):
    ```bash
    deploy/kind/bootstrap.sh functions
-   kubectl -n iotgw rollout restart deploy/functions
+   kubectl -n supabase-app rollout restart deploy/functions
    ```
 
 4. **Get necessary credentials**:
@@ -56,7 +56,7 @@ You are helping test a Supabase edge function. Follow these steps:
 
 7. **Monitor logs during testing**:
    ```bash
-   kubectl -n iotgw logs -f deploy/functions | grep <function-name>
+   kubectl -n supabase-app logs -f deploy/functions | grep <function-name>
    ```
 
 8. **Report results**:

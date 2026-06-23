@@ -1,24 +1,32 @@
 # NetworkPolicy for Cosmian KMS (task-057 AC#2, decision-015 KMS hardening).
 #
 # The KMS holds every device's SSH private key, so default-deny all ingress to
-# port 9998 and allow ONLY the in-namespace KMS clients:
-#   - iotgw-ui-backend  : mints/fetches device SSH keys (KMIP 2.1 REST)
-#   - kestra            : the orchestrator (and any direct KMS calls it makes)
-#   - kestra-spawned Ansible runner pods : the install/provisioning/
+# port 9998 and allow ONLY these specific CROSS-namespace KMS clients
+# (decision-020 — the clients no longer share the KMS namespace):
+#   - iotgw-ui-backend (ns iotgw-ui) : mints/fetches device SSH keys (KMIP 2.1 REST)
+#   - kestra           (ns kestra)   : the orchestrator (and any direct KMS calls)
+#   - kestra-spawned Ansible runner pods (ns kestra) : the install/provisioning/
 #     connectivity-check flows fetch device SSH keys from the KMS. The
 #     io.kestra.plugin.kubernetes.core.PodCreate task stamps these pods with
 #     `app.kubernetes.io/managed-by: kestra` (see the flow YAML under
 #     kestra/data/main/iotgw-ng/_files/*-flow.yaml).
+#
+# Each `from:` peer below combines a namespaceSelector AND a podSelector IN THE
+# SAME list item (logical AND): the source must be in the named namespace AND
+# carry the pod label. They must NOT be split into separate OR'd peers, which
+# would admit ANY pod in iotgw-ui/kestra to the SSH-key store. namespaceSelectors
+# key on the auto-stamped `kubernetes.io/metadata.name` label (no manual labelling
+# needed). supabase-app (kong/functions) is intentionally NOT on the allow-list.
 #
 # ──────────────────────────────────────────────────────────────────────────────
 # ENFORCEMENT / kindnet note (task-057 finding — IMPORTANT, supersedes the
 # original assumption that kindnet ignores NetworkPolicy):
 #
 #   The recent `kindnet` CNI shipped with this kind cluster DOES enforce
-#   NetworkPolicy. Verified live (2026-06-18): with this policy applied, a pod
-#   NOT in the allow-list (e.g. `whoami`) is denied access to cosmian-kms:9998,
-#   while the backend / kestra pods are allowed. So this is real enforcement on
-#   kind, not just render-validation.
+#   NetworkPolicy. Verified live: with this policy applied, a pod NOT on the
+#   allow-list (e.g. any `supabase-app` pod such as `kong`/`functions`) is denied
+#   access to cosmian-kms.kms:9998, while the backend (iotgw-ui) / kestra pods are
+#   allowed. So this is real enforcement on kind, not just render-validation.
 #
 #   CONSEQUENCE for the host NodePort smoke: host traffic hitting the
 #   `kms-nodeport` NodePort (`curl localhost:9998/version`) is SNAT'd and reaches
@@ -50,16 +58,28 @@ spec:
     - Ingress
   ingress:
     # Default-deny is implicit (an Ingress policy with these rules denies all
-    # other sources). Allow only the three in-namespace client classes on 9998.
+    # other sources). Allow only the three client classes on 9998, each pinned to
+    # its source namespace AND pod label (AND-combined per peer — decision-020).
     - from:
-        - podSelector:
+        # iotgw-ui backend (ns iotgw-ui).
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: iotgw-ui
+          podSelector:
             matchLabels:
               app.kubernetes.io/name: iotgw-ui-backend
-        - podSelector:
+        # Kestra orchestrator (ns kestra).
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kestra
+          podSelector:
             matchLabels:
               app.kubernetes.io/name: kestra
-        # Kestra-spawned Ansible runner pods (PodCreate-stamped).
-        - podSelector:
+        # Kestra-spawned Ansible runner pods (ns kestra, PodCreate-stamped).
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kestra
+          podSelector:
             matchLabels:
               app.kubernetes.io/managed-by: kestra
       ports:

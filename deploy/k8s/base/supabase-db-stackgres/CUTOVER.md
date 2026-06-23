@@ -54,22 +54,24 @@ already be initialized by the SGScript (roles/extensions/event-trigger/jwt GUC):
 
 ```bash
 SRC=<legacy supabase-db StatefulSet pod>        # source (kept running until smoke passes)
-DST=$(kubectl -n iotgw get pod -l stackgres.io/cluster-name=supabase-db,role=primary \
+DST=$(kubectl -n supabase-db get pod -l stackgres.io/cluster-name=supabase-db,role=primary \
         -o jsonpath='{.items[0].metadata.name}')
 
 # 1. Dump as superuser, preserving ownership + ACLs (do NOT use --no-owner).
 #    Exclude objects the SGScript already created so the restore does not collide:
-kubectl -n iotgw exec "$SRC" -- pg_dump -U postgres -d postgres -Fc \
+kubectl -n supabase-db exec "$SRC" -- pg_dump -U postgres -d postgres -Fc \
   --exclude-schema='supabase_functions' --exclude-schema='net' \
   > /tmp/supabase.dump
 
 # 2. Restore AS SUPERUSER (connect as postgres) so role grants round-trip.
-kubectl -n iotgw exec -i "$DST" -c patroni -- \
+kubectl -n supabase-db exec -i "$DST" -c patroni -- \
   pg_restore -U postgres -d postgres --no-privileges=false --exit-on-error /tmp/supabase.dump
 
 # 3. Re-point the device/network webhooks to the in-cluster Kong Service (task-055)
-#    — the repointed migrations (20260610000000/01) carry http://kong:8000 already,
-#    so this is implicit when the migrations are part of the dump.
+#    — pg_net fires from the supabase-db namespace, so the live webhook URL is the
+#    cross-namespace FQDN http://kong.supabase-app.svc.cluster.local:8000
+#    (decision-020); repoint via a forward migration (editing migration files is a
+#    no-op on an existing DB).
 ```
 
 `supavisor` (the Supabase connection pooler) is **not migrated — it does not exist
@@ -87,8 +89,8 @@ flow/KV migration is task-062.05.
 Live-verified on the kind SGCluster:
 
 ```bash
-DST=$(kubectl -n iotgw get pod -l stackgres.io/cluster-name=supabase-db,role=primary -o jsonpath='{.items[0].metadata.name}')
-kubectl -n iotgw exec "$DST" -c patroni -- psql -U postgres -d postgres --no-psqlrc -At -c "
+DST=$(kubectl -n supabase-db get pod -l stackgres.io/cluster-name=supabase-db,role=primary -o jsonpath='{.items[0].metadata.name}')
+kubectl -n supabase-db exec "$DST" -c patroni -- psql -U postgres -d postgres --no-psqlrc -At -c "
   select pg_get_userbyid(proowner) from pg_proc
     where proname='http_request' and pronamespace='supabase_functions'::regnamespace;   -- supabase_functions_admin
   select evtname from pg_event_trigger where evtname='issue_pg_net_access';             -- issue_pg_net_access
@@ -108,7 +110,7 @@ into no overlay. To revert the DB tier to the hand-authored StatefulSet:
 2. `deploy/k8s/overlays/{kind,prod}/kustomization.yaml`: remove
    `../../base/supabase-db-stackgres`; re-add the `patch-db-listen-all.yaml` patch
    (kind only).
-3. `kubectl -n iotgw delete sgcluster supabase-db` (frees the `supabase-db` Service
+3. `kubectl -n supabase-db delete sgcluster supabase-db` (frees the `supabase-db` Service
    name), then `kubectl apply -k deploy/k8s/overlays/kind`.
 
 The `supabase-db:5432` Service name is identical for both tiers, so the app tier

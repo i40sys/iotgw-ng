@@ -10,10 +10,12 @@ updated_date: '2026-06-17'
 
 > **Runtime forward-note (2026-06-18):** docker-compose was decommissioned in the
 > `TASK-062` milestone — the platform runs on **k8s/kind** (`decision-017`). The
-> Postgres tier is now a StackGres SGCluster (`decision-018`), so any
+> Postgres tier is now a StackGres SGCluster (`decision-018`) in its own
+> `supabase-db` namespace (`decision-020`), so any
 > `docker exec supabase-db …` shown below maps to
-> `kubectl -n iotgw exec <stackgres-primary-pod> -c patroni -- psql …`, and pg_net
-> webhook URLs point at the in-cluster Kong Service (`TASK-055`). The migration
+> `kubectl -n supabase-db exec <stackgres-primary-pod> -c patroni -- psql …`, and pg_net
+> webhook URLs point at the in-cluster Kong Service cross-namespace FQDN
+> `http://kong.supabase-app.svc.cluster.local:8000` (`TASK-055`). The migration
 > and webhook *concepts* are unchanged; only the runtime moved. See
 > [deploy/README.md](../../deploy/README.md).
 
