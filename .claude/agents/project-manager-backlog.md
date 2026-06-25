@@ -145,10 +145,11 @@ Short, imperative explanation of the goal of the task and why it is needed.
 - Modified or added files
 ```
 
-## Formatting `--notes` and `--plan` (avoid walls of text)
+## Formatting free-text fields (`-d`/`--description`, `--notes`, `--plan`) — avoid walls of text
 
-The value passed to `--notes`/`--plan` is written **verbatim** into the task's
-Markdown body. Two hard rules:
+This applies to **every** free-text field written into the task body —
+`-d`/`--description`, `--notes`, and `--plan` (not just notes). Each is written
+**verbatim**. Two hard rules:
 
 1. **The CLI does NOT interpret `\n`** — a literal `\n` stays as the two
    characters `\n` in the file. The ONLY way to get real line breaks is to pass
@@ -172,8 +173,11 @@ Markdown body. Two hard rules:
    paths/commands/IDs; wrap ~80 cols. Do not cram everything into one sentence
    joined by `;` — that renders as an unreadable wall of text.
 
-(The same applies to multi-step `--plan` values: pass them through a heredoc with
-real newlines, not `"1. x\n2. y"`.)
+**Descriptions** stay focused on the WHY, but when a problem statement needs more
+than ~2 sentences, structure it (a lead line, then a short bullet list of the
+distinct points) — a 900-char single-line `-d` is the same wall of text. The
+`--plan` field is identical: pass it through a heredoc with real newlines, not
+`"1. x\n2. y"`.
 
 ## Quality Checks
 

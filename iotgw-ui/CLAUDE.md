@@ -120,11 +120,12 @@ backlog task edit 42 -s Done
 
 <!-- BACKLOG.MD GUIDELINES END -->
 
-> **Formatting `--notes`/`--plan` (project rule, outside the generated block so it
-> survives `backlog agents`):** the value is written verbatim and the CLI does
-> **not** interpret `\n` (it stays literal). Pass real newlines via a heredoc and
-> write structured Markdown — a bold lead line, then bold labels + bullet lists —
-> never a single run-on paragraph:
+> **Formatting `-d`/`--description`, `--notes`, `--plan` (project rule, outside the
+> generated block so it survives `backlog agents`):** every free-text field is
+> written verbatim and the CLI does **not** interpret `\n` (it stays literal). Pass
+> real newlines via a heredoc and write structured Markdown — a bold lead line,
+> then bold labels + bullet lists — never a single run-on paragraph (a 900-char
+> single-line `-d` is the same wall of text):
 > ```bash
 > backlog task edit 42 --notes "$(cat <<'EOF'
 > **Done.** One-line outcome.
