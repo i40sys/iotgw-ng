@@ -132,12 +132,28 @@ jobs:
 
       # if: always() so findings reach the Security tab even if the scan exits
       # non-zero; per-image category so the three images don't overwrite results.
+      # continue-on-error: GitHub code scanning (SARIF upload) requires a PUBLIC
+      # repo or GitHub Advanced Security — on a private free repo this returns
+      # "Resource not accessible by integration". We do NOT let that fail the
+      # build/sign/attest pipeline; the SARIF is also retained as an artifact
+      # below. Make the repo public (or enable GHAS) to light up the Security tab.
       - name: Upload Trivy SARIF to code scanning
         if: ${{ always() && inputs.push }}
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
           category: ${{ inputs.image-name }}
+
+      # Always keep the SARIF as a build artifact so the scan evidence survives
+      # even when code scanning isn't available (private repo).
+      - name: Upload Trivy SARIF as artifact
+        if: ${{ always() && inputs.push }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-sarif-${{ inputs.image-name }}
+          path: trivy-results.sarif
+          if-no-files-found: ignore
 
       # cosign v3 line; keyless (OIDC) is the default — no COSIGN_EXPERIMENTAL,
       # no long-lived keys. Signs the DIGEST, never a mutable tag.
