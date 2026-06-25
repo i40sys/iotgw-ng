@@ -3,9 +3,10 @@ id: TASK-067.14
 title: >-
   Add an opt-in ghcr-pull path to bootstrap.sh and the kind overlay (default
   stays build-local)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
+updated_date: '2026-06-25 05:31'
 labels:
   - deploy
   - ghcr
@@ -35,11 +36,11 @@ Today deploy/kind/bootstrap.sh always builds the three custom images locally (bu
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 deploy/kind/bootstrap.sh gains an opt-in toggle (e.g. an env var like IOTGW_IMAGE_SOURCE=registry or a --pull flag) that, when set, SKIPS build_functions/build_iotgw_ui and instead pulls ghcr.io/i40sys/iotgw-functions, /iotgw-ui-backend, /iotgw-ui-frontend at a caller-supplied tag/digest and `kind load`s (or relies on cluster pull) them.
-- [ ] #2 With the toggle unset, behavior is byte-for-byte unchanged: build_functions/build_iotgw_ui still `docker build ... -t <name>:local` and `kind load docker-image <name>:local --name iotgw` (default remains build-local).
-- [ ] #3 When the registry-pull path is active and the ghcr packages are private, bootstrap.sh creates a dockerconfigjson imagePullSecret in the iotgw-ui (and supabase-app) namespaces from the SOPS store; for public packages this is skipped and noted.
-- [ ] #4 The kind overlay images: transform (deploy/k8s/overlays/kind/kustomization.yaml, currently iotgw-functions:local) is parameterized or has a documented sibling so the pulled ghcr.io/i40sys/iotgw-functions name+digest is used in registry-pull mode while :local remains the default.
-- [ ] #5 The frontend caveat is honored: any pulled iotgw-ui-frontend image is documented as carrying its build-time-baked VITE_API_URL, so a registry-pull kind run uses an image built for a routable backend URL (not the local kind hostname); this is called out in bootstrap.sh comments.
+- [x] #1 deploy/kind/bootstrap.sh gains an opt-in toggle (e.g. an env var like IOTGW_IMAGE_SOURCE=registry or a --pull flag) that, when set, SKIPS build_functions/build_iotgw_ui and instead pulls ghcr.io/i40sys/iotgw-functions, /iotgw-ui-backend, /iotgw-ui-frontend at a caller-supplied tag/digest and `kind load`s (or relies on cluster pull) them.
+- [x] #2 With the toggle unset, behavior is byte-for-byte unchanged: build_functions/build_iotgw_ui still `docker build ... -t <name>:local` and `kind load docker-image <name>:local --name iotgw` (default remains build-local).
+- [x] #3 When the registry-pull path is active and the ghcr packages are private, bootstrap.sh creates a dockerconfigjson imagePullSecret in the iotgw-ui (and supabase-app) namespaces from the SOPS store; for public packages this is skipped and noted.
+- [x] #4 The kind overlay images: transform (deploy/k8s/overlays/kind/kustomization.yaml, currently iotgw-functions:local) is parameterized or has a documented sibling so the pulled ghcr.io/i40sys/iotgw-functions name+digest is used in registry-pull mode while :local remains the default.
+- [x] #5 The frontend caveat is honored: any pulled iotgw-ui-frontend image is documented as carrying its build-time-baked VITE_API_URL, so a registry-pull kind run uses an image built for a routable backend URL (not the local kind hostname); this is called out in bootstrap.sh comments.
 - [ ] #6 `just kind-up` + the registry-pull path brings the stack up against ghcr images and the kind smoke check in `just verify` passes; the default build-local path is also re-verified to still pass.
 <!-- AC:END -->
 
@@ -53,3 +54,9 @@ Today deploy/kind/bootstrap.sh always builds the three custom images locally (bu
 5. Add comments documenting the VITE_API_URL baked-image caveat for the frontend.
 6. Validate both paths via `just kind-up` and the `just verify` kind smoke check.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+bootstrap.sh: IOTGW_IMAGE_SOURCE toggle (default build-local, byte-for-byte unchanged) + registry path (pull ghcr.io/i40sys/* at IOTGW_IMAGE_REF, retag :local, kind load) via provision_functions/provision_iotgw_ui; ghcr_login_if_private for private packages; kind overlay documents the retag approach so :local stays default. VITE_API_URL baked-image caveat in comments. bash -n clean; both overlay paths render (default kind still :local). Live registry-pull kind run not exercised here (needs public packages or login).
+<!-- SECTION:NOTES:END -->

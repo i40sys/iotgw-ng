@@ -4,7 +4,7 @@ title: Full working-tree + git-history secret audit and remediation gate
 status: In Progress
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 04:40'
+updated_date: '2026-06-25 05:10'
 labels:
   - security
   - secrets
@@ -56,5 +56,13 @@ GitHub exposes the ENTIRE commit history, so before the i40sys migration the who
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-2026-06-25 (GitHub i40sys migration): ran a full-history high-signal secret scan (gitleaks/trufflehog not yet installed). Findings: a REAL RSA private key in history at traefik-poc/server.key + traefik-poc/docker-compose.yml (defunct decommissioned PoC, self-signed *.wsl.ymbihq.local -> no rotation needed) and an elided/harmless illustrative key in kms/ssh-test/docker-test/README.md. Took a safety bundle at /tmp/iotgw-ng-prescrub.bundle, then purged all three paths from ALL history with git-filter-repo; re-verified zero residual key material (traefik-poc=0, BEGIN PRIVATE KEY excl ENC[]=0, RSA body=0). secrets/*.enc.* confirmed intact as ciphertext. Pushed the scrubbed 34-commit history to the new PRIVATE github.com/i40sys/iotgw-ng. STILL TODO: author/validate .gitleaks.toml with the real gitleaks binary, reconcile BACKUP/ creds (067.02), stand up the ongoing gate (067.04).
+2026-06-25 (gitleaks-validated audit + LIVE password remediation):
+- Authored .gitleaks.toml (extend useDefault) allowlisting ONLY *.enc.* by extension (not secrets/ wholesale) + audited false-positives (YOUR_ANON_KEY, UUID key-IDs) + decommissioned values (verify.sh tripwire set). Planted-secret test (BEGIN PRIVATE KEY in secrets/) correctly FAILS the scan.
+- gitleaks v8.30.1 full-history scan triaged 18 findings: 17 = doc/test placeholders + already-decommissioned values tracked by tools/verify.sh; 1 = a real-looking OpenRouter key sk-or-v1-... commented in supabase/.env.example.
+- CRITICAL (user-reported): the LIVE Kestra basic-auth password '***REMOVED-ROTATED-KESTRA-PW***' was hardcoded in git HISTORY across 9 files (decision-014, kestra-expert agent, deployments.ts, devices.ts, vpn-totp-manual-test.md, 4x kestra-call edge fns) = 69 blobs. gitleaks missed it (low-entropy dictionary pw).
+  ROTATED FIRST: generated a new 32-char value, sops-set into all 4 SOPS files (kestra KESTRA_BASIC_AUTH_PASSWORD; supabase/kestra-reporter/iotgw-ui-backend KESTRA_PASSWORD); refreshed k8s Secrets (kestra-env+supabase-env across kestra/iotgw-ui/supabase-app); rolled kestra + iotgw-ui-backend + functions. New value verified live in all 4 cluster Secrets.
+  THEN PURGED: git filter-repo --replace-text removed '***REMOVED-ROTATED-KESTRA-PW***' AND the sk-or-v1 OpenRouter key from ALL history. Safety bundle at /tmp/iotgw-ng-pre-pwscrub.bundle. Full-history gitleaks re-scan = 0 findings.
+  PUSHED: force-pushed scrubbed main to gitea (only branch; matches local ae6f635). GitHub origin force-push PENDING the i40sys credential/scope refresh (oriolrius token gets 'Repository not found' on the private i40sys repo; also needs 'workflow' scope to push .github/workflows/*).
+- Fixed verify.sh tripwire: 'The2password' -> '***REMOVED-ROTATED-KESTRA-PW***' (real value); added sk-or-v1 to the .env.example tripwire.
+STILL TODO: (1) force-push scrubbed history to GitHub i40sys once auth is in place; (2) REVOKE the sk-or-v1 OpenRouter key at openrouter.ai if it was ever real (it was in history before the scrub); (3) reconcile BACKUP/ creds (067.02).
 <!-- SECTION:NOTES:END -->
