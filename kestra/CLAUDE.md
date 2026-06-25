@@ -10,7 +10,6 @@ Kestra runs as a Deployment in the **`kestra` k8s namespace** on the kind cluste
 - `data/main/iotgw-ng/` — namespace workspace (Kestra 1.2+ stores files in DB, not filesystem; this dir is the *source* synced to the DB).
 - `data/main/iotgw-ng/_files/` — **NOT** the authoritative flow source. Flows live in Kestra's PostgreSQL DB; this dir is a write-through side effect of the local-storage driver (only the `provisioning` `Flow.yaml` is actually on disk). See its own [CLAUDE.md](data/main/iotgw-ng/_files/CLAUDE.md). (task-049 tracks fixing this.)
 - `data/main/iotgw-ng/{devices,networks,install,provisioning,connectivity-check}/executions/` — runtime execution state (do not edit).
-- `kestra-ansible-reporter/` — helper for reporting Ansible task output back to Kestra.
 
 ## Flows triggered from upstream
 

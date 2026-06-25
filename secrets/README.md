@@ -11,7 +11,6 @@ All secrets in this workspace are encrypted at rest with **[SOPS](https://github
 | `supabase.enc.env` | `supabase/.env` | Whole self-hosted Supabase env (DB/JWT/dashboard/realtime/logflare + `NETMAKER_*`, `KESTRA_*`, `OPENAI_API_KEY`, MinIO) |
 | `kestra.enc.env` | `kestra/.env` | Kestra Postgres password, Gemini API key, basic-auth user/pass |
 | `netmaker.enc.env` | `ansible/netmaker/.env` | Netmaker master key for the Ansible collection |
-| `kestra-reporter.enc.env` | `kestra/kestra-ansible-reporter/.env` | Kestra creds for the reporter CLI |
 | `iotgw-ui-root.enc.env` | `iotgw-ui/.env` | `DATABASE_URL` for type generation |
 | `iotgw-ui-backend.enc.env` | `iotgw-ui/apps/backend/.env` | Supabase service key + Kestra creds for the backend |
 | `traefik-tls.enc.yaml` | (manual) | Ingress TLS cert/key/CA, ex-`traefik-poc` (**compromised — regenerate**) |

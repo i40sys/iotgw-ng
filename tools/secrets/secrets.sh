@@ -34,7 +34,6 @@ export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
 # directly via `secrets.sh k8s …` (see deploy/kind/bootstrap.sh make_secrets).
 declare -A DEST=(
   [netmaker]="ansible/netmaker/.env"
-  [kestra-reporter]="kestra/kestra-ansible-reporter/.env"
   [iotgw-ui-root]="iotgw-ui/.env"
   [iotgw-ui-backend]="iotgw-ui/apps/backend/.env"
 )
