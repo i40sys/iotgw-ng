@@ -29,6 +29,25 @@ NS_APP=supabase-app
 NS_UI=iotgw-ui
 ALL_NS=("$NS_KMS" "$NS_KESTRA" "$NS_DB" "$NS_APP" "$NS_UI")
 
+# Image source (task-067.14, decision-021). DEFAULT is build-local (byte-for-byte
+# unchanged): build the three custom images and `kind load` them as :local.
+#   IOTGW_IMAGE_SOURCE=build     -> build locally (default)
+#   IOTGW_IMAGE_SOURCE=registry  -> pull ghcr.io/i40sys/* at IOTGW_IMAGE_REF,
+#                                   retag to :local, and `kind load` them, so the
+#                                   kind overlay (which references *:local) is
+#                                   UNCHANGED but runs exactly the published image.
+# IOTGW_IMAGE_REF is the tag or @sha256 digest to pull (e.g. v1.2.3 or
+# @sha256:...); GHCR_VISIBILITY=private triggers a `docker login ghcr.io` (creds
+# from GHCR_USER/GHCR_TOKEN) before pulling.
+# CAVEAT: the iotgw-ui-frontend image bakes VITE_API_URL at build time, so a
+# registry-pulled frontend carries whatever backend URL prod CI built it with —
+# NOT the local kind hostname http://iotgw-ui-backend.wsl.ymbihq.local. Use
+# registry mode to validate the PROD image, not for day-to-day local dev.
+IOTGW_IMAGE_SOURCE="${IOTGW_IMAGE_SOURCE:-build}"
+IOTGW_IMAGE_REF="${IOTGW_IMAGE_REF:-latest}"
+GHCR_NS="${GHCR_NS:-ghcr.io/i40sys}"
+GHCR_VISIBILITY="${GHCR_VISIBILITY:-public}"
+
 # Create + label every platform namespace (idempotent). Secrets are created into
 # these BEFORE the kustomize overlay (which also declares the Namespaces) is
 # applied, so they must exist up front. The `kubernetes.io/metadata.name` label
@@ -205,6 +224,60 @@ build_iotgw_ui() {
   kind load docker-image iotgw-ui-frontend:local --name "$CLUSTER"
 }
 
+# --- Opt-in registry-pull path (task-067.14) ----------------------------------
+# Pull a published ghcr.io/i40sys image at IOTGW_IMAGE_REF, retag to <name>:local,
+# and `kind load` it. Retagging to :local keeps the kind overlay UNCHANGED (it
+# still references *:local) while running the exact published artifact.
+ghcr_login_if_private() {
+  [ "$GHCR_VISIBILITY" = "private" ] || return 0
+  : "${GHCR_USER:?set GHCR_USER for private ghcr pull}"
+  : "${GHCR_TOKEN:?set GHCR_TOKEN (a PAT with read:packages) for private ghcr pull}"
+  echo "==> docker login ghcr.io (private packages)"
+  echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+  # For a kind-load flow the cluster never pulls from ghcr, so no in-cluster
+  # imagePullSecret is required. If you switch the kind overlay to a real
+  # registry pull (instead of kind load), create one per namespace, e.g.:
+  #   for ns in "$NS_UI" "$NS_APP"; do
+  #     kubectl create secret docker-registry ghcr-pull -n "$ns" \
+  #       --docker-server=ghcr.io --docker-username="$GHCR_USER" \
+  #       --docker-password="$GHCR_TOKEN" --dry-run=client -o yaml | kubectl apply -f -
+  #   done
+}
+
+pull_one() {
+  # $1 = short image name (iotgw-functions / iotgw-ui-backend / iotgw-ui-frontend)
+  local name="$1" ref src
+  case "$IOTGW_IMAGE_REF" in
+    @sha256:*) src="${GHCR_NS}/${name}${IOTGW_IMAGE_REF}" ;;  # digest pin
+    *)         src="${GHCR_NS}/${name}:${IOTGW_IMAGE_REF}" ;; # tag
+  esac
+  echo "==> pulling $src -> ${name}:local"
+  docker pull "$src"
+  docker tag "$src" "${name}:local"
+  kind load docker-image "${name}:local" --name "$CLUSTER"
+}
+
+pull_functions() { ghcr_login_if_private; pull_one iotgw-functions; }
+pull_iotgw_ui() {
+  ghcr_login_if_private
+  pull_one iotgw-ui-backend
+  pull_one iotgw-ui-frontend
+}
+
+# Dispatcher: build locally (default) or pull from ghcr (IOTGW_IMAGE_SOURCE=registry).
+provision_functions() {
+  case "$IOTGW_IMAGE_SOURCE" in
+    registry) pull_functions ;;
+    *)        build_functions ;;
+  esac
+}
+provision_iotgw_ui() {
+  case "$IOTGW_IMAGE_SOURCE" in
+    registry) pull_iotgw_ui ;;
+    *)        build_iotgw_ui ;;
+  esac
+}
+
 # Resolve the StackGres primary pod name in the supabase-db namespace (role=master
 # in 1.x, role=primary in some versions; falls back to the cluster's pod-0).
 sg_primary_pod() {
@@ -245,8 +318,9 @@ migrate_app_db() {
 }
 
 deploy() {
-  build_functions
-  build_iotgw_ui
+  # build-local by default; IOTGW_IMAGE_SOURCE=registry pulls ghcr.io/i40sys/*.
+  provision_functions
+  provision_iotgw_ui
   echo "==> applying kustomize overlay deploy/k8s/overlays/kind"
   kubectl apply -k deploy/k8s/overlays/kind
   # Headlamp dashboard — its own dedicated namespace, applied standalone so the
@@ -296,8 +370,8 @@ case "${1:-}" in
   up) cluster_up ;;
   kms-auth) kms_auth ;;
   secrets) make_secrets ;;
-  functions) build_functions ;;
-  iotgw-ui) build_iotgw_ui ;;
+  functions) provision_functions ;;
+  iotgw-ui) provision_iotgw_ui ;;
   deploy) make_secrets; deploy ;;
   migrate) migrate_app_db ;;
   force-migrate)

@@ -1,9 +1,10 @@
 ---
 id: TASK-067.01
 title: 'ADR: container image CI/CD + ghcr.io/i40sys conventions'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
+updated_date: '2026-06-25 05:00'
 labels:
   - adr
   - cicd
@@ -32,13 +33,13 @@ The 'Container image CI/CD (ghcr.io/i40sys)' milestone needs a ratified decision
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A new ADR file exists at backlog/decisions/decision-021 - *.md following the format of existing decisions (decision-014/decision-020) with Context / Decision / Consequences sections.
-- [ ] #2 The ADR names the registry namespace ghcr.io/i40sys and the exact three image names: ghcr.io/i40sys/iotgw-functions, ghcr.io/i40sys/iotgw-ui-backend, ghcr.io/i40sys/iotgw-ui-frontend, and explicitly lists every other image (kestra, postgres, ghcr.io/cosmian/kms, supabase/postgres, gotrue, postgrest, kong, headlamp, ingress-nginx, kindest/node, supabase/edge-runtime base) as upstream pull-only with no CI.
-- [ ] #3 The ADR ratifies the tag strategy: immutable type=sha tag + type=semver release tags from git vX.Y.Z tags, with an explicit rule that prod NEVER references :latest or a mutable tag.
-- [ ] #4 The ADR mandates linux/amd64-only builds (no arm64/multi-arch, no setup-qemu) with the rationale that kind nodes and servers are x86_64.
-- [ ] #5 The ADR records the supply-chain policy: Trivy vuln scan (severity HIGH,CRITICAL, ignore-unfixed) with SARIF to GitHub code scanning, cosign keyless OIDC signing of the image DIGEST, and SBOM + SLSA build-provenance attestations bound to the digest.
-- [ ] #6 The ADR states the prod kustomize overlay (deploy/k8s/overlays/prod/kustomization.yaml) pins images by sha256 DIGEST, not by tag, and notes ghcr packages must be public or require an imagePullSecret.
-- [ ] #7 The ADR references decision-014 (secrets), decision-020 (namespaces), task-062.03, and is linked from the milestone.
+- [x] #1 A new ADR file exists at backlog/decisions/decision-021 - *.md following the format of existing decisions (decision-014/decision-020) with Context / Decision / Consequences sections.
+- [x] #2 The ADR names the registry namespace ghcr.io/i40sys and the exact three image names: ghcr.io/i40sys/iotgw-functions, ghcr.io/i40sys/iotgw-ui-backend, ghcr.io/i40sys/iotgw-ui-frontend, and explicitly lists every other image (kestra, postgres, ghcr.io/cosmian/kms, supabase/postgres, gotrue, postgrest, kong, headlamp, ingress-nginx, kindest/node, supabase/edge-runtime base) as upstream pull-only with no CI.
+- [x] #3 The ADR ratifies the tag strategy: immutable type=sha tag + type=semver release tags from git vX.Y.Z tags, with an explicit rule that prod NEVER references :latest or a mutable tag.
+- [x] #4 The ADR mandates linux/amd64-only builds (no arm64/multi-arch, no setup-qemu) with the rationale that kind nodes and servers are x86_64.
+- [x] #5 The ADR records the supply-chain policy: Trivy vuln scan (severity HIGH,CRITICAL, ignore-unfixed) with SARIF to GitHub code scanning, cosign keyless OIDC signing of the image DIGEST, and SBOM + SLSA build-provenance attestations bound to the digest.
+- [x] #6 The ADR states the prod kustomize overlay (deploy/k8s/overlays/prod/kustomization.yaml) pins images by sha256 DIGEST, not by tag, and notes ghcr packages must be public or require an imagePullSecret.
+- [x] #7 The ADR references decision-014 (secrets), decision-020 (namespaces), task-062.03, and is linked from the milestone.
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -51,3 +52,9 @@ The 'Container image CI/CD (ghcr.io/i40sys)' milestone needs a ratified decision
 5. State the digest-pinning rule for the prod overlay and the ghcr visibility/imagePullSecret consequence.
 6. Add the decision to backlog via the Backlog.md CLI and cross-link task-062.03.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Authored backlog/decisions/decision-021 (Container image CI/CD + ghcr.io/i40sys conventions): ghcr.io/i40sys namespace + the 3 image names, upstream pull-only list, tag strategy (sha + semver, no :latest in prod), OCI labels, linux/amd64-only, supply-chain policy (Trivy/cosign/SBOM/SLSA), digest-pinned prod overlay + ghcr visibility/imagePullSecret note. Cross-links decision-014/020 + task-062.03. Added to CLAUDE.md Critical Docs table.
+<!-- SECTION:NOTES:END -->

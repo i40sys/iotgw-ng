@@ -123,7 +123,7 @@ supersedes the hand-authored `supabase-db` StatefulSet (which is retained in
 | **Supabase app tier** (kong / rest=PostgREST / auth=GoTrue / meta / functions) | ✅ **validated** | trimmed stateless set up on kind against the SGCluster; `PGRST_DB_SCHEMAS=public`; edge fns served from the baked `iotgw-functions:local` image (`TASK-062.04`) |
 | StackGres backups/PITR (`SGBackup`/`SGObjectStorage`) | 🟡 **authored, not validated** | `base/supabase-db-stackgres/backup.yaml` — needs a real S3/MinIO target + creds Secret; **not** in the kind path (no object store) |
 | StackGres HA (≥2 instances, prod) | 🟡 **authored, not validated** | kind runs `instances: 1`; prod bumps it — Patroni failover not exercised here |
-| prod edge-functions image (registry pull) | 🟡 **authored, not validated** | prod overlay points at `registry.invalid/...` until `TASK-062.03` wires the CI build+push |
+| prod custom images (ghcr.io/i40sys, registry pull) | ✅ **wired** | CI (`.github/workflows/*-image.yml`) builds+pushes `iotgw-functions` / `iotgw-ui-backend` / `iotgw-ui-frontend` to **ghcr.io/i40sys** (amd64; Trivy + cosign + SBOM/provenance); the prod overlay pins all three **by `@sha256` digest** (no `registry.invalid`, no `:latest`) — `decision-021`, resolves `TASK-062.03`. Release + `cosign`/`gh attestation verify` runbook: [RELEASE.md](RELEASE.md). Digests are filled in per `vX.Y.Z` release |
 | Supabase realtime / storage / imgproxy / studio / analytics / supavisor / vector | ⚪ **intentionally not deployed** | decision-018 §4: grep-confirmed unused; schemas trimmed out of `PGRST_DB_SCHEMAS`. Not a gap — these are dropped on purpose, not "to do" |
 
 ## Known migration caveats (carried from the compose spec)
@@ -135,8 +135,10 @@ supersedes the hand-authored `supabase-db` StatefulSet (which is retained in
 - **Kong** needs its declarative config rendered with secret substitution. The
   manifest uses an `envsubst` initContainer instead of the compose `eval` hack.
 - **edge functions** are bind-mounted in compose (restart-to-deploy). In k8s the
-  functions code is **baked into an image**: kind builds/loads `iotgw-functions:local`;
-  prod pulls a release-pinned tag (registry + CI wiring is `TASK-062.03`). The
+  functions code is **baked into an image**: kind builds/loads `iotgw-functions:local`
+  (or, opt-in, pulls `ghcr.io/i40sys/iotgw-functions` via
+  `IOTGW_IMAGE_SOURCE=registry`); prod pulls the CI-published image **pinned by
+  `@sha256` digest** (`decision-021`, `TASK-067`, resolves `TASK-062.03`). The
   base manifest's emptyDir is a placeholder that both overlays patch out.
 - **pg_net webhook URLs** stored in the DB point at the in-cluster Kong Service
   FQDN `http://kong.supabase-app.svc.cluster.local:8000`, not

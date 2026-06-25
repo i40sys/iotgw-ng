@@ -1,0 +1,186 @@
+# Reusable build-and-push engine for the three custom ghcr.io/i40sys images
+# (iotgw-functions, iotgw-ui-backend, iotgw-ui-frontend). Thin per-image callers
+# (backend-image.yml / frontend-image.yml / functions-image.yml) invoke this via
+# `uses:` + `secrets: inherit`. Conventions: decision-021. House style mirrors
+# ansible/netmaker/.github/workflows/publish-collection.yml (checkout@v4, named
+# steps, GITHUB_TOKEN).
+#
+# linux/amd64 ONLY (no QEMU, no multi-arch) — kind nodes + servers are x86_64.
+# On real pushes the supply-chain layers all bind to the sha256 DIGEST:
+#   - Trivy HIGH/CRITICAL scan -> SARIF to the Security tab
+#   - cosign keyless (OIDC) signature
+#   - SBOM (SPDX) + SLSA provenance signed attestations (push-to-registry)
+name: build-image (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: ghcr.io/i40sys/<image-name>
+        required: true
+        type: string
+      context:
+        description: Docker build context path
+        required: true
+        type: string
+      dockerfile:
+        description: Path to the Dockerfile
+        required: true
+        type: string
+      build-args:
+        description: Optional newline-separated build args (e.g. VITE_API_URL=...)
+        required: false
+        type: string
+        default: ""
+      push:
+        description: Push to ghcr (false on PRs validates the Dockerfile only)
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      digest:
+        description: The sha256 digest of the pushed image (for digest-pinning/signing)
+        value: ${{ jobs.build.outputs.digest }}
+
+jobs:
+  build:
+    name: build ${{ inputs.image-name }}
+    runs-on: ubuntu-latest
+    # A workflow_call job cannot escalate beyond the caller's grant — the thin
+    # callers declare the SAME block so these are actually available.
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # cosign keyless + attestations OIDC
+      security-events: write # Trivy SARIF upload
+      attestations: write # SBOM + provenance attestations
+    env:
+      REGISTRY: ghcr.io
+      IMAGE: ghcr.io/i40sys/${{ inputs.image-name }}
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Guarded so PR / push:false builds never authenticate or publish.
+      - name: Log in to ghcr.io
+        if: ${{ inputs.push }}
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags + OCI labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/i40sys/${{ inputs.image-name }}
+          # Immutable sha id + branch + semver (from vX.Y.Z tags) + latest on
+          # the default branch (latest is dev-only; prod pins by digest).
+          tags: |
+            type=sha
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+          # Standard org.opencontainers.image.* labels.
+          labels: |
+            org.opencontainers.image.title=${{ inputs.image-name }}
+
+      - name: Build and push (linux/amd64)
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          platforms: linux/amd64
+          push: ${{ inputs.push }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ inputs.build-args }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # BuildKit-native attestations: fast, inline, but UNSIGNED. The
+          # cryptographically-verifiable path is the actions/attest-* steps
+          # below (signed via OIDC, push-to-registry).
+          sbom: true
+          provenance: mode=max
+
+      # --- Supply chain (real pushes only; all bound to the sha256 digest) ---
+
+      # Trivy pulls the push-by-digest image from ghcr (buildx push:true does not
+      # load it into the local daemon), scans for fixable HIGH/CRITICAL CVEs, and
+      # emits SARIF. FAIL-OPEN during initial rollout (exit-code: 0 -> findings
+      # visible, never block); flip to exit-code: 1 to fail-closed once triaged.
+      - name: Trivy vulnerability scan (by digest)
+        if: ${{ inputs.push }}
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+          github-pat: ${{ secrets.GITHUB_TOKEN }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "0" # fail-open (rollout); set to "1" to gate releases
+          trivyignores: .trivyignore
+
+      # if: always() so findings reach the Security tab even if the scan exits
+      # non-zero; per-image category so the three images don't overwrite results.
+      - name: Upload Trivy SARIF to code scanning
+        if: ${{ always() && inputs.push }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+          category: ${{ inputs.image-name }}
+
+      # cosign v3 line; keyless (OIDC) is the default — no COSIGN_EXPERIMENTAL,
+      # no long-lived keys. Signs the DIGEST, never a mutable tag.
+      # Consumer verify (also in the release runbook):
+      #   cosign verify ghcr.io/i40sys/<image>@<digest> \
+      #     --certificate-identity-regexp \
+      #       '^https://github.com/i40sys/iotgw-ng/.github/workflows/.+@refs/.+' \
+      #     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
+      - name: Install cosign
+        if: ${{ inputs.push }}
+        uses: sigstore/cosign-installer@v4.1.0
+
+      - name: Sign image digest (cosign keyless)
+        if: ${{ inputs.push }}
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
+        env:
+          IMAGE: ${{ env.IMAGE }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+
+      # Authoritative SBOM (SPDX-JSON) from Syft, scanning the pushed digest.
+      - name: Generate SBOM (SPDX-JSON)
+        if: ${{ inputs.push }}
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      # subject-name carries NO tag; both attestations bind to the digest and are
+      # pushed as OCI referrers next to the image.
+      - name: Attest SBOM
+        if: ${{ inputs.push }}
+        uses: actions/attest-sbom@v2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          sbom-path: sbom.spdx.json
+          push-to-registry: true
+
+      - name: Attest build provenance (SLSA)
+        if: ${{ inputs.push }}
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true

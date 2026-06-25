@@ -66,6 +66,7 @@ integration point:
 | **decision-014** | [Secrets management (SOPS+age) + rotation runbook](backlog/decisions/decision-014%20-%20Secrets-Management-with-SOPS-and-age.md) |
 | **decision-015** | [Kubernetes migration with kind](backlog/decisions/decision-015%20-%20Kubernetes-Migration-with-local-kind.md) |
 | **decision-020** | [Namespace-per-subproject topology (`iotgw` is the cluster, not a namespace)](backlog/decisions/decision-020%20-%20Namespace-per-subproject-topology.md) |
+| **decision-021** | [Container image CI/CD + ghcr.io/i40sys conventions (3 custom images, digest-pinned, signed)](backlog/decisions/decision-021%20-%20Container-image-CI-CD-and-ghcr.io-i40sys-conventions.md) |
 | **doc-016** | [Database-change provisioning automation pattern](backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) (current: DB trigger → `netmaker-call` → Netmaker REST) |
 | **decision-010** | [SSH key management via Cosmian KMS](backlog/decisions/decision-010%20-%20ADR-001-SSH-Key-Management-with-Cosmian-KMS.md) |
 | **decision-009** | [TOTP authentication for device VPN access](backlog/decisions/decision-009%20-%20TOTP-Authentication-for-Device-VPN-Access.md) |
@@ -97,6 +98,18 @@ archives are in `BACKUP/git-archives/` (the reversibility net).
 
 > A frozen stack snapshot is at `BACKUP/supabase-2025-10-20/` (gitignored —
 > do not edit).
+
+### Custom container images (`decision-021`, `task-067`)
+
+The platform builds exactly **three** custom images, published by GitHub Actions
+to **`ghcr.io/i40sys`** (linux/amd64; Trivy + cosign keyless + SBOM/provenance):
+`iotgw-functions`, `iotgw-ui-backend`, `iotgw-ui-frontend`. The **prod** overlay
+pulls them **pinned by `@sha256` digest** (never `:latest`); **kind** defaults to
+**build-local** (`bootstrap.sh` → `:local` + `kind load`), with an opt-in
+`IOTGW_IMAGE_SOURCE=registry` path. Every other image (kestra, postgres,
+cosmian/kms, supabase/postgres, gotrue, postgrest, kong, headlamp, ingress-nginx,
+kindest/node, supabase/edge-runtime base) is **upstream pull-only, no CI**.
+Release + verify runbook: [deploy/RELEASE.md](deploy/RELEASE.md).
 
 ## Working Instructions
 

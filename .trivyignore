@@ -1,0 +1,7 @@
+# Trivy CVE allowlist for the three ghcr.io/i40sys images (decision-021,
+# task-067.10). One CVE id per line to accept an un-actionable / un-fixable
+# finding; document WHY next to each. Empty by default — the build-image.yml
+# Trivy step (severity HIGH,CRITICAL, ignore-unfixed) honours this file.
+#
+# Example:
+#   CVE-2024-12345  # base image, no upstream fix; not reachable in our usage

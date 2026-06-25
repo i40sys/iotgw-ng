@@ -18,18 +18,35 @@ resources:
   - ../../base/supabase-app
   - ../../base/iotgw-ui
 
-# Edge functions: in prod the baked image is published by CI from
-# deploy/k8s/base/supabase-app/Dockerfile.functions to the registry below, with
-# the tag PINNED per release (never :latest). This replaces the base emptyDir
-# placeholder (removed by the patch) — same mechanism as the kind overlay, but a
+# Custom images: all three are published by CI (.github/workflows/*-image.yml) to
+# ghcr.io/i40sys and PINNED BY sha256 DIGEST here — never :latest, never a mutable
+# tag (decision-021). The functions image replaces the base emptyDir placeholder
+# (removed by the patch below) — same mechanism as the kind overlay, but a
 # registry pull instead of `kind load`.
-# TODO(task-062.03): set the real registry (Gitea git.oriolrius.cat or
-# ghcr.io/i40sys) and wire the CI build+push. Until then this is
-# authored-not-validated.
+#
+# RELEASE FLOW (digest-pin update, decision-021 / task-067.15):
+#   1. push a vX.Y.Z git tag -> the three caller workflows build+push+sign+attest.
+#   2. read each published digest:
+#        gh api /users/i40sys/packages/container/<image>/versions \
+#          --jq '.[0].name'        # -> sha256:...
+#      (or `docker buildx imagetools inspect ghcr.io/i40sys/<image>:vX.Y.Z`).
+#   3. paste the three sha256 digests into the `digest:` fields below.
+#   4. verify before deploy (runbook): `cosign verify` + `gh attestation verify`.
+# NOTE: ghcr packages must be PUBLIC, or add a dockerconfigjson imagePullSecret in
+# the iotgw-ui + supabase-app namespaces (decision-021 / decision-014).
+#
+# The digests below are PLACEHOLDERS (all-zero) until the first vX.Y.Z release
+# publishes real ones — kustomize renders them, but do NOT deploy until replaced.
 images:
   - name: supabase/edge-runtime:v1.74.0
-    newName: registry.invalid/iotgw-functions   # <-- set real registry + CI push
-    newTag: REPLACE_WITH_RELEASE_TAG
+    newName: ghcr.io/i40sys/iotgw-functions
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+  - name: iotgw-ui-backend
+    newName: ghcr.io/i40sys/iotgw-ui-backend
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+  - name: iotgw-ui-frontend
+    newName: ghcr.io/i40sys/iotgw-ui-frontend
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
 
 patches:
   # Remove the emptyDir placeholder so the baked-in /home/deno/functions is used.
@@ -41,6 +58,23 @@ patches:
         path: /spec/template/spec/volumes
       - op: remove
         path: /spec/template/spec/containers/0/volumeMounts
+
+  # Flip imagePullPolicy off `Never` (base = kind-loaded :local) so prod actually
+  # pulls the ghcr.io/i40sys digests above (task-067.13).
+  - target:
+      kind: Deployment
+      name: iotgw-ui-backend
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target:
+      kind: Deployment
+      name: iotgw-ui-frontend
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
 
   # TLS patches: add wildcard TLS + ssl-redirect to all three Ingresses.
   # The iotgw-wildcard-tls Secret must exist before deploying this overlay. An

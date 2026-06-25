@@ -1,0 +1,79 @@
+# Publishes ghcr.io/i40sys/iotgw-ui-backend (Fastify/tRPC, EXPOSE 4444).
+# Thin caller over the reusable build-image.yml engine. Conventions: decision-021.
+# Path filters include the shared supabase-contract package + the lockfile so a
+# contract change still rebuilds the backend.
+name: backend-image
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - iotgw-ui/apps/backend/**
+      - iotgw-ui/packages/supabase-contract/**
+      - iotgw-ui/pnpm-lock.yaml
+      - iotgw-ui/pnpm-workspace.yaml
+      - iotgw-ui/package.json
+      - iotgw-ui/tsconfig.json
+      - iotgw-ui/apps/backend/.docker/Dockerfile
+      - .github/workflows/backend-image.yml
+      - .github/workflows/build-image.yml
+  pull_request:
+    paths:
+      - iotgw-ui/apps/backend/**
+      - iotgw-ui/packages/supabase-contract/**
+      - iotgw-ui/pnpm-lock.yaml
+      - iotgw-ui/pnpm-workspace.yaml
+      - iotgw-ui/package.json
+      - iotgw-ui/tsconfig.json
+      - iotgw-ui/apps/backend/.docker/Dockerfile
+      - .github/workflows/backend-image.yml
+      - .github/workflows/build-image.yml
+  workflow_dispatch:
+
+# Must match the reusable workflow — workflow_call cannot escalate beyond this.
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  security-events: write
+  attestations: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-image.yml
+    with:
+      image-name: iotgw-ui-backend
+      context: iotgw-ui
+      dockerfile: iotgw-ui/apps/backend/.docker/Dockerfile
+      # PRs validate the Dockerfile without publishing.
+      push: ${{ github.event_name != 'pull_request' }}
+    secrets: inherit
+
+  smoke:
+    name: smoke (starts + listens on 4444)
+    needs: build
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run the published image by digest and probe :4444
+        env:
+          REF: ghcr.io/i40sys/iotgw-ui-backend@${{ needs.build.outputs.digest }}
+        run: |
+          docker run -d --name backend-smoke -p 4444:4444 "$REF"
+          for i in $(seq 1 30); do
+            if (echo > /dev/tcp/127.0.0.1/4444) >/dev/null 2>&1; then
+              echo "backend is listening on 4444"; docker rm -f backend-smoke; exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::backend did not come up on :4444"; docker logs backend-smoke; docker rm -f backend-smoke; exit 1

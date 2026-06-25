@@ -20,7 +20,13 @@ resources:
   - nodeports.yaml
 
 images:
-  # Use the locally-built functions image (functions code baked in, not emptyDir)
+  # Use the locally-built functions image (functions code baked in, not emptyDir).
+  # REGISTRY-PULL MODE (task-067.14): this overlay stays UNCHANGED on purpose.
+  # `IOTGW_IMAGE_SOURCE=registry deploy/kind/bootstrap.sh deploy` pulls
+  # ghcr.io/i40sys/iotgw-functions at IOTGW_IMAGE_REF and retags it to
+  # iotgw-functions:local before `kind load`, so the same :local reference below
+  # runs the published artifact. (iotgw-ui-backend/frontend are similarly mapped
+  # by base name in deploy/k8s/base/iotgw-ui/.)
   - name: supabase/edge-runtime:v1.74.0
     newName: iotgw-functions
     newTag: local

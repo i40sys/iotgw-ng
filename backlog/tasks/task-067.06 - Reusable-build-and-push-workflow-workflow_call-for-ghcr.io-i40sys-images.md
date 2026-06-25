@@ -1,9 +1,10 @@
 ---
 id: TASK-067.06
 title: Reusable build-and-push workflow (workflow_call) for ghcr.io/i40sys images
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
+updated_date: '2026-06-25 05:00'
 labels:
   - ci
   - cicd
@@ -32,12 +33,12 @@ All three custom images (iotgw-functions, iotgw-ui-backend, iotgw-ui-frontend) n
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 `.github/workflows/build-image.yml` exists with `on: workflow_call` declaring string inputs `image-name`, `context`, `dockerfile`, and an optional `build-args` (multiline string), plus a boolean `push` defaulting to true.
-- [ ] #2 The workflow declares an output `digest` whose value is `steps.build.outputs.digest` from docker/build-push-action, so callers can pin/sign by digest.
-- [ ] #3 Steps use the researched pinned majors: actions/checkout@v4, docker/setup-buildx-action@v4, docker/login-action@v4 (registry ghcr.io, username github.actor, password secrets.GITHUB_TOKEN), docker/metadata-action@v5, docker/build-push-action@v7.
-- [ ] #4 metadata-action emits tags `type=sha`, `type=ref,event=branch`, `type=semver,pattern={{version}}` and `{{major}}.{{minor}}`, and `type=raw,value=latest,enable={{is_default_branch}}` for image `ghcr.io/i40sys/${{ inputs.image-name }}` plus the standard org.opencontainers.image.* labels.
-- [ ] #5 build-push-action sets `platforms: linux/amd64` only (no setup-qemu, no multi-arch), `cache-from: type=gha` and `cache-to: type=gha,mode=max`, passes `build-args: ${{ inputs.build-args }}`, and applies the metadata tags+labels.
-- [ ] #6 The job declares a `permissions:` block with at least `contents: read`, `packages: write`, and `id-token: write` (so downstream supply-chain tasks can attach cosign/attestations without re-plumbing permissions), and the login/push steps are guarded so pull_request events do not push.
+- [x] #1 `.github/workflows/build-image.yml` exists with `on: workflow_call` declaring string inputs `image-name`, `context`, `dockerfile`, and an optional `build-args` (multiline string), plus a boolean `push` defaulting to true.
+- [x] #2 The workflow declares an output `digest` whose value is `steps.build.outputs.digest` from docker/build-push-action, so callers can pin/sign by digest.
+- [x] #3 Steps use the researched pinned majors: actions/checkout@v4, docker/setup-buildx-action@v4, docker/login-action@v4 (registry ghcr.io, username github.actor, password secrets.GITHUB_TOKEN), docker/metadata-action@v5, docker/build-push-action@v7.
+- [x] #4 metadata-action emits tags `type=sha`, `type=ref,event=branch`, `type=semver,pattern={{version}}` and `{{major}}.{{minor}}`, and `type=raw,value=latest,enable={{is_default_branch}}` for image `ghcr.io/i40sys/${{ inputs.image-name }}` plus the standard org.opencontainers.image.* labels.
+- [x] #5 build-push-action sets `platforms: linux/amd64` only (no setup-qemu, no multi-arch), `cache-from: type=gha` and `cache-to: type=gha,mode=max`, passes `build-args: ${{ inputs.build-args }}`, and applies the metadata tags+labels.
+- [x] #6 The job declares a `permissions:` block with at least `contents: read`, `packages: write`, and `id-token: write` (so downstream supply-chain tasks can attach cosign/attestations without re-plumbing permissions), and the login/push steps are guarded so pull_request events do not push.
 - [ ] #7 `actionlint` (or `kustomize`-style yaml lint) passes on the new workflow and a manual run against one caller pushes a `ghcr.io/i40sys/<image>:sha-<gitsha>` tag that is resolvable by digest.
 <!-- AC:END -->
 
@@ -51,3 +52,9 @@ All three custom images (iotgw-functions, iotgw-ui-backend, iotgw-ui-frontend) n
 5. Reuse the named-step + annotation house style from ansible/netmaker/.github/workflows/publish-collection.yml.
 6. Validate with actionlint and a trial caller run; confirm the pushed digest output is non-empty.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Authored .github/workflows/build-image.yml (workflow_call): inputs image-name/context/dockerfile/build-args/push(default true); output digest=steps.build.outputs.digest; checkout@v4, setup-buildx@v4, login@v4 (guarded on push), metadata@v5 (type=sha/ref/semver/raw latest), build-push@v7 (linux/amd64, gha cache, build-args); job permissions contents/packages/id-token/security-events/attestations. YAML validated. AC#7 actionlint/live trial-run pending first CI run after the i40sys scope refresh.
+<!-- SECTION:NOTES:END -->

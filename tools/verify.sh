@@ -14,10 +14,11 @@ fail(){ echo "  FAIL  $1"; rc=1; }
 echo "== 1. No real secrets in tracked source =="
 LEAK=0
 for pat in '***REMOVED-DECOMMISSIONED***' 'The2password' '***REMOVED-GEMINI-KEY***' '***REMOVED-FRAGMENT***' '***REMOVED-FRAGMENT***'; do
-  # Exclude the SOPS store, encrypted files, and the two scanners that
-  # legitimately list these patterns to grep FOR them (this file +
-  # tools/secrets/secrets.sh) — matching them would be a self-test false positive.
-  if git grep -qI "$pat" -- ':!secrets/' ':!*.enc.*' ':!tools/verify.sh' ':!tools/secrets/secrets.sh' 2>/dev/null; then
+  # Exclude the SOPS store, encrypted files, and the scanners that legitimately
+  # list these patterns to grep FOR / allowlist them (this file,
+  # tools/secrets/secrets.sh, and the gitleaks config) — matching them would be a
+  # self-test false positive.
+  if git grep -qI "$pat" -- ':!secrets/' ':!*.enc.*' ':!tools/verify.sh' ':!tools/secrets/secrets.sh' ':!.gitleaks.toml' 2>/dev/null; then
     fail "secret '$pat' still in tracked source"; LEAK=1
   fi
 done

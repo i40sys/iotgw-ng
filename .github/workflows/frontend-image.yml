@@ -1,0 +1,89 @@
+# Publishes ghcr.io/i40sys/iotgw-ui-frontend (React SPA -> nginx:alpine, EXPOSE 80).
+# Thin caller over the reusable build-image.yml engine. Conventions: decision-021.
+#
+# ENVIRONMENT-SPECIFIC IMAGE: apps/app/.docker/Dockerfile declares
+# `ARG VITE_API_URL` which is baked into the JS bundle at build time
+# (import.meta.env). The published SPA therefore hard-codes the backend URL, so
+# prod needs a release-tag REBUILD with the prod backend URL rather than promoting
+# one image across environments. We source it from the repo variable
+# vars.PROD_VITE_API_URL (NOT the kind hostname, NOT the localhost default).
+name: frontend-image
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - iotgw-ui/apps/app/**
+      - iotgw-ui/packages/supabase-contract/**
+      - iotgw-ui/pnpm-lock.yaml
+      - iotgw-ui/pnpm-workspace.yaml
+      - iotgw-ui/package.json
+      - iotgw-ui/tsconfig.json
+      - iotgw-ui/apps/app/.docker/Dockerfile
+      - iotgw-ui/apps/app/.docker/nginx.conf
+      - .github/workflows/frontend-image.yml
+      - .github/workflows/build-image.yml
+  pull_request:
+    paths:
+      - iotgw-ui/apps/app/**
+      - iotgw-ui/packages/supabase-contract/**
+      - iotgw-ui/pnpm-lock.yaml
+      - iotgw-ui/pnpm-workspace.yaml
+      - iotgw-ui/package.json
+      - iotgw-ui/tsconfig.json
+      - iotgw-ui/apps/app/.docker/Dockerfile
+      - iotgw-ui/apps/app/.docker/nginx.conf
+      - .github/workflows/frontend-image.yml
+      - .github/workflows/build-image.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  security-events: write
+  attestations: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-image.yml
+    with:
+      image-name: iotgw-ui-frontend
+      context: iotgw-ui
+      dockerfile: iotgw-ui/apps/app/.docker/Dockerfile
+      # The baked-in API URL is the real prod backend (repo variable). Falls back
+      # to the localhost default only if the variable is unset.
+      build-args: |
+        VITE_API_URL=${{ vars.PROD_VITE_API_URL }}
+      push: ${{ github.event_name != 'pull_request' }}
+    secrets: inherit
+
+  smoke:
+    name: smoke (nginx serves 200 on /)
+    needs: build
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run the published image by digest and curl :80
+        env:
+          REF: ghcr.io/i40sys/iotgw-ui-frontend@${{ needs.build.outputs.digest }}
+        run: |
+          docker run -d --name frontend-smoke -p 8080:80 "$REF"
+          for i in $(seq 1 30); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/ || true)"
+            if [ "$code" = "200" ]; then
+              echo "nginx served 200 on /"; docker rm -f frontend-smoke; exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::frontend did not serve 200 on :80"; docker logs frontend-smoke; docker rm -f frontend-smoke; exit 1
