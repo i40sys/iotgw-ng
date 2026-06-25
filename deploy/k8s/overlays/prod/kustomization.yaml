@@ -46,7 +46,11 @@ images:
     digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
   - name: iotgw-ui-frontend
     newName: ghcr.io/i40sys/iotgw-ui-frontend
-    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    # Built with VITE_API_URL=https://iotgw-ui-backend.wsl.ymbihq.local/ (repo var
+    # PROD_VITE_API_URL) baked in — env-specific image, task-067.18. Rebuild +
+    # repin this digest whenever PROD_VITE_API_URL or ingress-prod.yaml's backend
+    # host changes. (functions/backend below stay placeholder until a vX.Y.Z release.)
+    digest: sha256:5303df69ddba5c3b5485d93989e57ecbec903e60bb8db5b5c890c5db3c40c4d0
 
 patches:
   # Remove the emptyDir placeholder so the baked-in /home/deno/functions is used.
