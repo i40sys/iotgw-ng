@@ -1,0 +1,49 @@
+---
+id: TASK-067.12
+title: Cosign keyless (OIDC) signing of each image digest + documented verify command
+status: To Do
+assignee: []
+created_date: '2026-06-23 08:01'
+labels:
+  - ci
+  - security
+  - supply-chain
+  - ghcr
+milestone: Container image CI/CD (ghcr.io/i40sys)
+dependencies:
+  - TASK-067.06
+references:
+  - .github/workflows/build-and-push.yml
+  - deploy/k8s/base/supabase-app/Dockerfile.functions
+  - iotgw-ui/apps/backend/.docker/Dockerfile
+  - iotgw-ui/apps/app/.docker/Dockerfile
+  - task-062.03
+parent_task_id: TASK-067
+priority: medium
+---
+
+## Description
+
+<!-- SECTION:DESCRIPTION:BEGIN -->
+To let consumers cryptographically verify that the 3 images came from this repo's CI (and pave the way for admission-controller verification), add cosign keyless signing of each image DIGEST using GitHub OIDC — no long-lived keys or secrets. Layer sigstore/cosign-installer@v4.1.0 plus a `cosign sign --yes ghcr.io/i40sys/<image>@<digest>` step into the reusable build-and-push workflow, signing by digest (never by mutable tag). Deliver the canonical `cosign verify` command (certificate-identity-regexp scoped to https://github.com/i40sys/iotgw-ng/.github/workflows/* and certificate-oidc-issuer https://token.actions.githubusercontent.com) so the docs-runbook can publish a consumer verification recipe.
+<!-- SECTION:DESCRIPTION:END -->
+
+## Acceptance Criteria
+<!-- AC:BEGIN -->
+- [ ] #1 The reusable workflow installs cosign via sigstore/cosign-installer@v4.1.0 (cosign v3 line; keyless is the default — no COSIGN_EXPERIMENTAL env var is set).
+- [ ] #2 A signing step runs cosign sign --yes ghcr.io/i40sys/<image>@${{ steps.build.outputs.digest }}, signing the DIGEST and never a tag, for each of the 3 images.
+- [ ] #3 The job grants permissions: id-token: write and packages: write (and caller workflows propagate them); signing is skipped on pull_request / fork builds where the OIDC token is unavailable.
+- [ ] #4 After a build on main, the signature is published to ghcr as ghcr.io/i40sys/<image>:sha256-<digest>.sig (the cosign .sig referrer is present for the signed image).
+- [ ] #5 A working consumer verify command is captured (in the workflow comments and handed to docs-runbook): cosign verify ghcr.io/i40sys/<image>@<digest> --certificate-identity-regexp '^https://github.com/i40sys/iotgw-ng/.github/workflows/.+@refs/.+' --certificate-oidc-issuer 'https://token.actions.githubusercontent.com', and running it against a freshly-signed image exits 0.
+- [ ] #6 The runbook note records the exact cosign version installed so signer/verifier stay on compatible releases (cosign v3 Rekor v2 / RFC3161 timestamp handling skew is called out).
+<!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Add sigstore/cosign-installer@v4.1.0 to the reusable workflow before the sign step.
+2. Add a cosign sign --yes step targeting ghcr.io/i40sys/<image>@${{ steps.build.outputs.digest }} (digest, never tag).
+3. Ensure job permissions id-token: write + packages: write and propagate from caller workflows; guard the step so it only runs on push (not PR/fork).
+4. Build on main and confirm the sha256-<digest>.sig referrer appears in ghcr.
+5. Write and validate the cosign verify command (certificate-identity-regexp + certificate-oidc-issuer) and hand it, plus the pinned cosign version, to docs-runbook.
+<!-- SECTION:PLAN:END -->
