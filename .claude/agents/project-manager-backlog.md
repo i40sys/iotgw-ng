@@ -145,6 +145,36 @@ Short, imperative explanation of the goal of the task and why it is needed.
 - Modified or added files
 ```
 
+## Formatting `--notes` and `--plan` (avoid walls of text)
+
+The value passed to `--notes`/`--plan` is written **verbatim** into the task's
+Markdown body. Two hard rules:
+
+1. **The CLI does NOT interpret `\n`** — a literal `\n` stays as the two
+   characters `\n` in the file. The ONLY way to get real line breaks is to pass
+   actual newline characters, via a quoted heredoc:
+
+   ```bash
+   backlog task edit 42 --notes "$(cat <<'EOF'
+   **Done 2026-06-25.** One-line summary of the outcome.
+
+   **What changed:**
+   - `path/to/file` — what and why (one idea per bullet)
+   - second change
+
+   **Validation:** `command run` → result.
+   EOF
+   )"
+   ```
+
+2. **Write structured Markdown, never a single run-on paragraph.** Use a short
+   **bold lead line**, then **bold section labels** + bullet lists; backtick
+   paths/commands/IDs; wrap ~80 cols. Do not cram everything into one sentence
+   joined by `;` — that renders as an unreadable wall of text.
+
+(The same applies to multi-step `--plan` values: pass them through a heredoc with
+real newlines, not `"1. x\n2. y"`.)
+
 ## Quality Checks
 
 Before finalizing any task creation, verify:
@@ -154,6 +184,8 @@ Before finalizing any task creation, verify:
 - [ ] Each AC is outcome-focused and testable
 - [ ] Task is atomic (single PR scope)
 - [ ] No dependencies on future tasks
+- [ ] Any `--notes`/`--plan` are structured Markdown (bold labels + bullets +
+      real newlines via heredoc), not a run-on paragraph
 
 You are meticulous about these standards and will guide users to create high-quality tasks that enhance project productivity and maintainability.
 
@@ -172,7 +204,7 @@ Ensure that the task is structured in a way that it can be easily understood and
 | Create with status      | `backlog task create "Feature" -s "In Progress"`                                                                                                              |
 | Create with labels      | `backlog task create "Feature" -l auth,backend`                                                                                                               |
 | Create with priority    | `backlog task create "Feature" --priority high`                                                                                                               |
-| Create with plan        | `backlog task create "Feature" --plan "1. Research\n2. Implement"`                                                                                            |
+| Create with plan        | `backlog task create "Feature" --plan "$(printf '1. Research\n2. Implement')"` (real newlines — literal `\n` is NOT interpreted; see "Formatting" above) |
 | Create with AC          | `backlog task create "Feature" --ac "Must work,Must be tested"`                                                                                               |
 | Create with notes       | `backlog task create "Feature" --notes "Started initial research"`                                                                                            |
 | Create with deps        | `backlog task create "Feature" --dep task-1,task-2`                                                                                                           |

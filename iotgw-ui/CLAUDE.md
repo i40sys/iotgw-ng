@@ -119,3 +119,18 @@ backlog task edit 42 -s Done
 **AC flags:** `--ac "text"` (add), `--check-ac N` (check), `--uncheck-ac N`, `--remove-ac N`. Multiple flags per command. No comma-separated or range syntax.
 
 <!-- BACKLOG.MD GUIDELINES END -->
+
+> **Formatting `--notes`/`--plan` (project rule, outside the generated block so it
+> survives `backlog agents`):** the value is written verbatim and the CLI does
+> **not** interpret `\n` (it stays literal). Pass real newlines via a heredoc and
+> write structured Markdown — a bold lead line, then bold labels + bullet lists —
+> never a single run-on paragraph:
+> ```bash
+> backlog task edit 42 --notes "$(cat <<'EOF'
+> **Done.** One-line outcome.
+>
+> **What changed:**
+> - `path` — what and why
+> EOF
+> )"
+> ```

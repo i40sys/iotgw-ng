@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-25 08:10'
-updated_date: '2026-06-25 08:13'
+updated_date: '2026-06-25 08:17'
 labels:
   - ghcr
   - cicd
