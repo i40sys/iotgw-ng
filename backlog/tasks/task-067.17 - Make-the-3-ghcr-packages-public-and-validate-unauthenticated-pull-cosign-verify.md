@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-25 08:10'
-updated_date: '2026-06-25 08:10'
+updated_date: '2026-06-25 08:13'
 labels:
   - ghcr
   - cicd
@@ -34,5 +34,22 @@ PROBLEM: tasks 067.05/067.13/067.14 were marked Done assuming the 3 ghcr package
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-DONE 2026-06-25. User flipped all 3 packages to public via the package Settings UI (no REST/GraphQL endpoint for user container-pkg visibility — PATCH /user/packages/container/<p> returns 404). VALIDATED logged OUT of ghcr: anonymous token + manifest GET for iotgw-functions/iotgw-ui-backend/iotgw-ui-frontend :latest all return HTTP 200; anonymous cosign v3 verify of ghcr.io/i40sys/iotgw-functions@sha256:43773c86... against identity-regexp ^https://github.com/i40sys/iotgw-ng/.github/workflows/.+@refs/.+ + token.actions issuer = OK. => prod overlay (067.13) needs NO imagePullSecret; the private-package fallback is moot. Cross-ref task-067.16 (the security incident).
+**Resolved 2026-06-25.** The 3 ghcr packages were created *private* by the first
+CI push and stayed private — there is no REST/GraphQL endpoint to flip a
+user-owned container package's visibility (`PATCH /user/packages/container/<p>`
+returns 404). The user flipped them via the package **Settings → Change
+visibility** UI.
+
+**Validation (logged OUT of ghcr — fully anonymous):**
+
+- Anonymous manifest `GET .../manifests/latest` → **HTTP 200** for all three:
+  `iotgw-functions`, `iotgw-ui-backend`, `iotgw-ui-frontend`.
+- Anonymous `cosign verify ghcr.io/i40sys/iotgw-functions@sha256:43773c86…`
+  against identity-regexp `…/i40sys/iotgw-ng/.github/workflows/…` and the
+  `token.actions.githubusercontent.com` issuer → **OK**.
+
+**Consequence:** the prod overlay (067.13) needs **no** `imagePullSecret`; the
+private-package fallback is now moot.
+
+**See also:** task-067.16 (the security incident).
 <!-- SECTION:NOTES:END -->
