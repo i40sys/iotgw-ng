@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 08:10'
+updated_date: '2026-06-25 08:32'
 labels:
   - ci
   - security
@@ -55,5 +55,12 @@ After the one-time secret-audit (task-067.03), the repo needs a non-bypassable o
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-CORRECTION (2026-06-25, see task-067.16): the .gitleaks.toml authored here used 'stopwords' containing the LITERAL decommissioned/leaked secret values (incl. the live Gemini key) — on the public repo that config file itself became the leak Google flagged. Fixed under task-067.16: stopwords removed; the known-bad list moved to the ENCRYPTED secrets/decommissioned-secrets.enc.env which verify.sh decrypts at check time. The gitleaks CI gate + required check + native scanning remain valid.
+**CORRECTION (2026-06-25, see task-067.16).** The `.gitleaks.toml` authored here
+used `stopwords` containing the **literal** decommissioned/leaked secret values
+(incl. the live Gemini key) — on the public repo that config file itself became
+the leak Google flagged.
+
+**Fixed under task-067.16:** stopwords removed; the known-bad list moved to the
+**encrypted** `secrets/decommissioned-secrets.enc.env` which `verify.sh` decrypts
+at check time. The gitleaks CI gate + required check + native scanning remain valid.
 <!-- SECTION:NOTES:END -->

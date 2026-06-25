@@ -4,7 +4,7 @@ title: Remove BACKUP/ and relocate the reversibility net before the i40sys migra
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 06:35'
+updated_date: '2026-06-25 08:32'
 labels:
   - security
   - secrets
@@ -54,5 +54,17 @@ BACKUP/ (19M, gitignored at .gitignore line 12, never committed — git ls-files
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Inventory recorded (7 git-archive tarballs incl. kms.git.tar.gz 13.5M + iotgw-ui.git.tar.gz 3.8M; supabase-2025-10-20/ snapshot w/ plaintext .env keys POSTGRES_PASSWORD/JWT_SECRET/SERVICE_ROLE_KEY/SECRET_KEY_BASE/VAULT_ENC_KEY/ANON_KEY/DASHBOARD_PASSWORD/LOGFLARE_*/OPENAI_API_KEY). Confirmed BACKUP/ was NEVER tracked / never in git history (no rewrite needed) and never reached the public repo. Per user decision: forfeited the decision-012/013 reversibility net and DELETED BACKUP/ outright (no relocation) via rm -rf + sudo for the root-owned compose pg data dir; folder gone. .gitignore retains /BACKUP/ (line 12). Creds confirmed SUPERSEDED (dead 2025-10 snapshot; current kind/SOPS stack uses different values) — no rotation needed.
+**Inventory recorded:** 7 git-archive tarballs (incl. `kms.git.tar.gz` 13.5M,
+`iotgw-ui.git.tar.gz` 3.8M) + the `supabase-2025-10-20/` snapshot whose plaintext
+`.env` held `POSTGRES_PASSWORD` / `JWT_SECRET` / `SERVICE_ROLE_KEY` /
+`SECRET_KEY_BASE` / `VAULT_ENC_KEY` / `ANON_KEY` / `DASHBOARD_PASSWORD` /
+`LOGFLARE_*` / `OPENAI_API_KEY`.
+
+- Confirmed `BACKUP/` was **never tracked / never in git history** (no rewrite
+  needed) and never reached the public repo.
+- **Per user decision:** forfeited the decision-012/013 reversibility net and
+  **deleted `BACKUP/` outright** (`rm -rf` + `sudo` for the root-owned compose pg
+  data dir). `.gitignore` retains `/BACKUP/`.
+- Creds confirmed **superseded** (dead 2025-10 snapshot; current kind/SOPS stack
+  uses different values) — no rotation needed.
 <!-- SECTION:NOTES:END -->

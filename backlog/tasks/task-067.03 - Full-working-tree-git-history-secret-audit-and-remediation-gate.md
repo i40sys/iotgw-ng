@@ -4,7 +4,7 @@ title: Full working-tree + git-history secret audit and remediation gate
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 08:10'
+updated_date: '2026-06-25 08:32'
 labels:
   - security
   - secrets
@@ -56,5 +56,17 @@ GitHub exposes the ENTIRE commit history, so before the i40sys migration the who
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-CORRECTION (2026-06-25, see task-067.16): the earlier 'full-history gitleaks = 0' was achieved partly by ALLOWLISTING the leaked Gemini key as a .gitleaks.toml stopword and leaving literal decommissioned values in tools/verify.sh — i.e. the 'clean' state still EMBEDDED real secret values in tracked source, which leaked when the repo went public (Google flagged the Gemini key). Also the LIVE Kestra password 'The2password.' hardcoded across 9 history files was NOT caught here (low-entropy; gitleaks-invisible) and was only found via a user tip. Both were truly resolved later under task-067.16 (rotate-first + history scrub + SOPS-encrypted tripwire). This task's audit was necessary but INCOMPLETE at close.
+**CORRECTION (2026-06-25, see task-067.16).** This audit was necessary but
+**incomplete** at close:
+
+- The earlier "full-history gitleaks = 0" was achieved partly by **allowlisting
+  the leaked Gemini key** as a `.gitleaks.toml` stopword and leaving literal
+  decommissioned values in `tools/verify.sh` — i.e. the "clean" state still
+  **embedded real secret values in tracked source**, which leaked when the repo
+  went public (Google flagged the Gemini key).
+- The live Kestra password `The2password.` (hardcoded across 9 history files) was
+  **not caught here** (low-entropy, gitleaks-invisible) — found only via a user tip.
+
+Both were truly resolved later under **task-067.16** (rotate-first + history
+scrub + SOPS-encrypted tripwire).
 <!-- SECTION:NOTES:END -->

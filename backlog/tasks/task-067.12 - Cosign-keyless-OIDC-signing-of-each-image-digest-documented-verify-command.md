@@ -4,7 +4,7 @@ title: Cosign keyless (OIDC) signing of each image digest + documented verify co
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 05:30'
+updated_date: '2026-06-25 08:32'
 labels:
   - ci
   - security
@@ -52,5 +52,15 @@ To let consumers cryptographically verify that the 3 images came from this repo'
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-sigstore/cosign-installer@v4.1.0 (cosign v3) + 'cosign sign --yes <image>@<digest>' (digest, guarded on push) in build-image.yml. LIVE-VALIDATED 2026-06-25 on public repo i40sys/iotgw-ng: first CI run built+pushed all 3 images to ghcr.io/i40sys; full supply chain green. sign step success; .sig referrer present (sha256-43773c86...); 'cosign verify' with the i40sys identity-regexp + token.actions issuer = VERIFIED with cosign v3 (v2 gave 'no signatures found' — the documented v2/v3 skew; verifier must be v3).
+**Cosign keyless signing in `build-image.yml`:**
+
+- `sigstore/cosign-installer@v4.1.0` (cosign **v3**) +
+  `cosign sign --yes <image>@<digest>` (digest, guarded on push).
+
+**Live-validated 2026-06-25:** sign step success; `.sig` referrer present
+(`sha256-43773c86…`); `cosign verify` with the i40sys identity-regexp +
+`token.actions` issuer = **verified with cosign v3**.
+
+> Gotcha: cosign **v2** says "no signatures found" — the documented v2/v3 skew;
+> the verifier must be v3.
 <!-- SECTION:NOTES:END -->

@@ -4,7 +4,7 @@ title: iotgw-ui-backend image pipeline (caller workflow + path filters)
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 05:30'
+updated_date: '2026-06-25 08:32'
 labels:
   - ci
   - cicd
@@ -54,5 +54,11 @@ Publish the Fastify/tRPC backend image to ghcr.io/i40sys/iotgw-ui-backend via CI
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Authored .github/workflows/backend-image.yml (caller over build-image.yml, context iotgw-ui, dockerfile apps/backend/.docker/Dockerfile, path filters incl. supabase-contract+lockfile, PR=no-push, smoke probes :4444). LIVE-VALIDATED 2026-06-25 on public repo i40sys/iotgw-ng: first CI run built+pushed all 3 images to ghcr.io/i40sys; full supply chain green. backend-image run = success incl. smoke (listens on 4444). ghcr.io/i40sys/iotgw-ui-backend published.
+**Authored `.github/workflows/backend-image.yml`** — thin caller over
+`build-image.yml`: context `iotgw-ui`, dockerfile `apps/backend/.docker/Dockerfile`,
+path filters incl. `supabase-contract` + lockfile, PR = no-push, smoke probes `:4444`.
+
+**Live-validated 2026-06-25** on the public repo: the first CI run built+pushed all
+3 images to `ghcr.io/i40sys` with the full supply chain green. `backend-image` run
+= success incl. smoke (listens on 4444). `ghcr.io/i40sys/iotgw-ui-backend` published.
 <!-- SECTION:NOTES:END -->

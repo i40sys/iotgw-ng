@@ -4,7 +4,7 @@ title: 'Epic: Container image CI/CD (GitHub Actions -> ghcr.io/i40sys)'
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 06:36'
+updated_date: '2026-06-25 08:32'
 labels:
   - cicd
   - ghcr
@@ -48,5 +48,23 @@ Stand up CI/CD for the three custom container images the platform builds (iotgw-
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-DONE 2026-06-25. All 15 subtasks complete; milestone live-validated on the now-PUBLIC github.com/i40sys/iotgw-ng. All 3 custom images build+push to ghcr.io/i40sys (linux/amd64) via the reusable build-image.yml + 3 callers; supply chain green per image (Trivy->SARIF in Security tab, cosign v3 keyless signature [verified], SBOM+SLSA provenance [gh attestation verify exit 0]); secret-scan gitleaks gate is a required check + native secret scanning/push protection on; prod overlay pins all 3 by @sha256 (placeholder until a vX.Y.Z release); bootstrap.sh has the opt-in registry-pull path; decision-021 + deploy/RELEASE.md published. Pre-migration gate: full-history secret audit clean (0 findings) incl. rotating+scrubbing the live Kestra pw + the OpenRouter key; BACKUP/ (untracked, never in history/never published) deleted. Resolves task-062.03. Follow-ups (non-blocking): flip the 3 ghcr packages public (UI), revoke sk-or-v1 at openrouter.ai, set PROD_VITE_API_URL before a real prod frontend release.
+**Done 2026-06-25.** All 15 subtasks complete; milestone live-validated on the
+now-PUBLIC `github.com/i40sys/iotgw-ng`.
+
+**Delivered:**
+- 3 custom images build+push to `ghcr.io/i40sys` (linux/amd64) via the reusable
+  `build-image.yml` + 3 callers.
+- Supply chain green per image: Trivy→SARIF (Security tab), cosign v3 signature
+  (verified), SBOM + SLSA provenance (`gh attestation verify` exit 0).
+- `secret-scan` gitleaks gate is a required check; native secret scanning + push
+  protection on.
+- prod overlay pins all 3 by `@sha256` (placeholder until a vX.Y.Z release);
+  `bootstrap.sh` has the opt-in registry-pull path.
+- `decision-021` + `deploy/RELEASE.md` published.
+
+**Pre-migration gate:** full-history secret audit clean (0 findings) incl.
+rotating+scrubbing the live Kestra pw + OpenRouter key; `BACKUP/` (untracked,
+never published) deleted.
+
+**Resolves** task-062.03. **Follow-ups:** task-067.18 (PROD_VITE_API_URL).
 <!-- SECTION:NOTES:END -->

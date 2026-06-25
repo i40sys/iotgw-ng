@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 05:31'
+updated_date: '2026-06-25 08:32'
 labels:
   - docs
   - ghcr
@@ -60,5 +60,15 @@ Once the prod overlay pulls real ghcr.io/i40sys digests and the supply-chain gat
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-deploy/README.md row 126 flipped to 'wired' (ghcr.io/i40sys digest pulls) + the edge-functions caveat updated; root CLAUDE.md adds a 'Custom container images' note + decision-021 in Critical Docs; deploy/RELEASE.md is the full release+verify runbook (tag->CI->digest->overlay->deploy; cosign verify + gh attestation verify commands w/ i40sys identity regexp + pinned cosign-installer@v4.1.0; Trivy SARIF + SBOM/provenance locations; kind build-local-vs-registry toggle). ADR cross-linked from README + CLAUDE.md + RELEASE.md.
+**Docs updated:**
+
+- `deploy/README.md` row 126 flipped to **wired** (ghcr.io/i40sys digest pulls) +
+  edge-functions caveat updated.
+- root `CLAUDE.md`: "Custom container images" note + `decision-021` in Critical Docs.
+- `deploy/RELEASE.md` — full release+verify runbook (tag → CI → digest → overlay →
+  deploy; `cosign verify` + `gh attestation verify` commands with the i40sys
+  identity regexp + pinned `cosign-installer@v4.1.0`; Trivy SARIF + SBOM/provenance
+  locations; kind build-local-vs-registry toggle).
+
+ADR cross-linked from README + CLAUDE.md + RELEASE.md.
 <!-- SECTION:NOTES:END -->

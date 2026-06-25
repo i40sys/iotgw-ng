@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 05:30'
+updated_date: '2026-06-25 08:32'
 labels:
   - ci
   - cicd
@@ -56,5 +56,13 @@ Publish the React SPA image to ghcr.io/i40sys/iotgw-ui-frontend via CI. The crit
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Authored frontend-image.yml (VITE_API_URL build-arg from vars.PROD_VITE_API_URL, nginx smoke :80, env-specific-image note). LIVE-VALIDATED 2026-06-25 on public repo i40sys/iotgw-ng: first CI run built+pushed all 3 images to ghcr.io/i40sys; full supply chain green. frontend-image run = success incl. smoke (200 on /). NOTE: PROD_VITE_API_URL repo var not set yet -> image baked the localhost default; set the var before a real prod release (env-specific image).
+**Authored `.github/workflows/frontend-image.yml`** — `VITE_API_URL` build-arg from
+`vars.PROD_VITE_API_URL`, nginx smoke on `:80`, env-specific-image note.
+
+**Live-validated 2026-06-25** on the public repo: `frontend-image` run = success
+incl. smoke (HTTP 200 on `/`).
+
+> **Note:** `PROD_VITE_API_URL` repo var is not set yet, so the image baked the
+> localhost default. Set it before a real prod release (env-specific image) —
+> tracked in **task-067.18**.
 <!-- SECTION:NOTES:END -->

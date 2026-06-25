@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 05:30'
+updated_date: '2026-06-25 08:32'
 labels:
   - ci
   - cicd
@@ -57,5 +57,9 @@ Publish the Deno edge-functions image to ghcr.io/i40sys/iotgw-functions via CI s
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Authored functions-image.yml (context supabase/volumes, bumpable base note, smoke asserts /home/deno/functions non-empty). LIVE-VALIDATED 2026-06-25 on public repo i40sys/iotgw-ng: first CI run built+pushed all 3 images to ghcr.io/i40sys; full supply chain green. functions-image run = success incl. smoke. ghcr.io/i40sys/iotgw-functions published.
+**Authored `.github/workflows/functions-image.yml`** — context `supabase/volumes`,
+bumpable-base note, smoke asserts `/home/deno/functions` is non-empty.
+
+**Live-validated 2026-06-25** on the public repo: `functions-image` run = success
+incl. smoke. `ghcr.io/i40sys/iotgw-functions` published.
 <!-- SECTION:NOTES:END -->

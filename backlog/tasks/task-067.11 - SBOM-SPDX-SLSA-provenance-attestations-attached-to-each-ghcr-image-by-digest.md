@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 05:30'
+updated_date: '2026-06-25 08:32'
 labels:
   - ci
   - supply-chain
@@ -57,5 +57,14 @@ To give consumers a verifiable bill of materials and build provenance for the 3 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-anchore/sbom-action@v0 (SPDX-JSON) + actions/attest-sbom@v2 + actions/attest-build-provenance@v3, subject-name no-tag, subject-digest, push-to-registry, in build-image.yml; buildkit-native sbom/provenance also on (documented unsigned). LIVE-VALIDATED 2026-06-25 on public repo i40sys/iotgw-ng: first CI run built+pushed all 3 images to ghcr.io/i40sys; full supply chain green. both attest steps success; 'gh attestation verify oci://ghcr.io/i40sys/iotgw-functions@sha256:43773c86... -R i40sys/iotgw-ng' exit 0 (slsa.dev/provenance/v1).
+**SBOM + provenance attestations in `build-image.yml`:**
+
+- `anchore/sbom-action@v0` (SPDX-JSON) → `actions/attest-sbom@v2` +
+  `actions/attest-build-provenance@v3` — `subject-name` no-tag, `subject-digest`,
+  `push-to-registry`.
+- BuildKit-native `sbom`/`provenance` also on (documented as **unsigned**).
+
+**Live-validated 2026-06-25:** both attest steps success;
+`gh attestation verify oci://ghcr.io/i40sys/iotgw-functions@sha256:43773c86… -R i40sys/iotgw-ng`
+exits 0 (`slsa.dev/provenance/v1`).
 <!-- SECTION:NOTES:END -->

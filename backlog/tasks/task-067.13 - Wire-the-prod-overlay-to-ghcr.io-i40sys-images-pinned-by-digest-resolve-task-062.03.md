@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 05:31'
+updated_date: '2026-06-25 08:32'
 labels:
   - deploy
   - ghcr
@@ -59,5 +59,17 @@ The prod kustomize overlay (deploy/k8s/overlays/prod/kustomization.yaml) still c
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-prod overlay images: now ghcr.io/i40sys/{iotgw-functions,iotgw-ui-backend,iotgw-ui-frontend} pinned by digest (kustomize images[].digest); TODO(062.03) comment removed; imagePullPolicy patched Never->IfNotPresent on both UI Deployments; release digest-update flow documented in-comment + deploy/RELEASE.md. 'kubectl kustomize deploy/k8s/overlays/prod' renders clean: grep finds no registry.invalid/REPLACE/:local. Digests are all-zero PLACEHOLDERS by design — real @sha256 pinned per vX.Y.Z release (images are env-specific; frontend needs PROD_VITE_API_URL). imagePullSecret path documented for private packages.
+**prod overlay wired to ghcr digests:**
+
+- `images:` now `ghcr.io/i40sys/{iotgw-functions,iotgw-ui-backend,iotgw-ui-frontend}`
+  pinned by `digest` (kustomize `images[].digest`); the `TODO(062.03)` comment removed.
+- `imagePullPolicy` patched `Never`→`IfNotPresent` on both UI Deployments.
+- release digest-update flow documented in-comment + `deploy/RELEASE.md`.
+
+**Validation:** `kubectl kustomize deploy/k8s/overlays/prod` renders clean — grep
+finds no `registry.invalid` / `REPLACE` / `:local`.
+
+> Digests are all-zero **placeholders** by design — real `@sha256` pinned per
+> vX.Y.Z release (images are env-specific; frontend needs `PROD_VITE_API_URL`).
+> imagePullSecret path documented for private packages.
 <!-- SECTION:NOTES:END -->

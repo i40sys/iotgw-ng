@@ -4,7 +4,7 @@ title: 'Set up the i40sys GitHub repo, ghcr packages, and Actions permissions/se
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 08:10'
+updated_date: '2026-06-25 08:32'
 labels:
   - github
   - ghcr
@@ -56,5 +56,8 @@ The build pipelines cannot push to ghcr.io/i40sys until the GitHub org repo and 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-CORRECTION (2026-06-25, see task-067.17): this task was closed with the 3 ghcr packages still PRIVATE (AC#2 'public OR document imagePullSecret' was satisfied only via the fallback). Packages were actually made public + unauthenticated pull/verify proven later under task-067.17.
+**CORRECTION (2026-06-25, see task-067.17).** This task was closed with the 3
+ghcr packages still **private** — AC#2 ("public OR document imagePullSecret") was
+satisfied only via the fallback. The packages were actually made public, and
+unauthenticated pull + cosign verify were proven, later under **task-067.17**.
 <!-- SECTION:NOTES:END -->

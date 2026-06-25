@@ -4,7 +4,7 @@ title: 'ADR: container image CI/CD + ghcr.io/i40sys conventions'
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 05:00'
+updated_date: '2026-06-25 08:32'
 labels:
   - adr
   - cicd
@@ -56,5 +56,15 @@ The 'Container image CI/CD (ghcr.io/i40sys)' milestone needs a ratified decision
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Authored backlog/decisions/decision-021 (Container image CI/CD + ghcr.io/i40sys conventions): ghcr.io/i40sys namespace + the 3 image names, upstream pull-only list, tag strategy (sha + semver, no :latest in prod), OCI labels, linux/amd64-only, supply-chain policy (Trivy/cosign/SBOM/SLSA), digest-pinned prod overlay + ghcr visibility/imagePullSecret note. Cross-links decision-014/020 + task-062.03. Added to CLAUDE.md Critical Docs table.
+**Authored `backlog/decisions/decision-021`** (Container image CI/CD +
+ghcr.io/i40sys conventions). Fixes:
+
+- the `ghcr.io/i40sys` namespace + the 3 image names, and the upstream
+  pull-only list;
+- tag strategy (sha + semver, **no `:latest` in prod**), OCI labels, linux/amd64-only;
+- supply-chain policy (Trivy / cosign / SBOM / SLSA);
+- digest-pinned prod overlay + ghcr visibility / imagePullSecret note.
+
+Cross-links `decision-014`/`decision-020` + task-062.03; added to the CLAUDE.md
+Critical Docs table.
 <!-- SECTION:NOTES:END -->

@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 05:31'
+updated_date: '2026-06-25 08:32'
 labels:
   - deploy
   - ghcr
@@ -58,5 +58,16 @@ Today deploy/kind/bootstrap.sh always builds the three custom images locally (bu
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-bootstrap.sh: IOTGW_IMAGE_SOURCE toggle (default build-local, byte-for-byte unchanged) + registry path (pull ghcr.io/i40sys/* at IOTGW_IMAGE_REF, retag :local, kind load) via provision_functions/provision_iotgw_ui; ghcr_login_if_private for private packages; kind overlay documents the retag approach so :local stays default. VITE_API_URL baked-image caveat in comments. bash -n clean; both overlay paths render (default kind still :local). Live registry-pull kind run not exercised here (needs public packages or login).
+**Opt-in registry-pull path in `bootstrap.sh`:**
+
+- `IOTGW_IMAGE_SOURCE` toggle — default **build-local** (byte-for-byte unchanged);
+  `registry` pulls `ghcr.io/i40sys/*` at `IOTGW_IMAGE_REF`, retags `:local`, `kind
+  load`s — via `provision_functions`/`provision_iotgw_ui`.
+- `ghcr_login_if_private` for private packages.
+- kind overlay documents the retag approach so `:local` stays the default.
+- `VITE_API_URL` baked-image caveat in comments.
+
+**Validation:** `bash -n` clean; both overlay paths render (default kind still
+`:local`). Live registry-pull kind run not exercised here (needs public packages
+or login).
 <!-- SECTION:NOTES:END -->

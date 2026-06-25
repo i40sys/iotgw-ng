@@ -4,7 +4,7 @@ title: Reusable build-and-push workflow (workflow_call) for ghcr.io/i40sys image
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 05:31'
+updated_date: '2026-06-25 08:32'
 labels:
   - ci
   - cicd
@@ -56,5 +56,14 @@ All three custom images (iotgw-functions, iotgw-ui-backend, iotgw-ui-frontend) n
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Authored .github/workflows/build-image.yml (workflow_call; inputs image-name/context/dockerfile/build-args/push; output digest; checkout@v4/buildx@v4/login@v4/metadata@v5/build-push@v7; linux/amd64; gha cache; permissions contents/packages/id-token/security-events/attestations). LIVE-VALIDATED 2026-06-25: all 3 callers ran green on public repo; digest output drives cosign+attest. AC#7 actionlint not run locally (binary absent) but 5 workflows pass python yaml.safe_load + GitHub accepted/ran them.
+**Authored `.github/workflows/build-image.yml`** (`workflow_call`):
+
+- inputs `image-name`/`context`/`dockerfile`/`build-args`/`push`; output `digest`.
+- `checkout@v4` → `setup-buildx@v4` → `login@v4` → `metadata@v5` → `build-push@v7`;
+  linux/amd64; GHA cache.
+- permissions: `contents`/`packages`/`id-token`/`security-events`/`attestations`.
+
+**Live-validated 2026-06-25:** all 3 callers ran green on the public repo; the
+`digest` output drives cosign + attest. *AC#7:* `actionlint` not run locally
+(binary absent), but the 5 workflows pass `yaml.safe_load` and GitHub accepted/ran them.
 <!-- SECTION:NOTES:END -->
