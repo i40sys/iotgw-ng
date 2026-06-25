@@ -6,6 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-06-23 08:01'
+updated_date: '2026-06-25 04:40'
 labels:
   - ci
   - security
@@ -27,7 +28,7 @@ priority: high
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-After the one-time secret-audit, the repo needs a non-bypassable ongoing backstop so no secret can be (re)introduced once it is public on i40sys. Add a gitleaks CI job under .github/workflows/ as a required status check on PRs and a local pre-commit hook for fast feedback, then enable GitHub native secret scanning + push protection org-wide on i40sys. Because i40sys is a GitHub ORG, gitleaks-action@v2 is unavailable (Node20 EOL 2026-09-16) and the v3 action requires a free GITLEAKS_LICENSE — so the recommended default is running the MIT gitleaks Go binary directly in a run step (no license, any visibility); gitleaks-action@v3 with a provisioned GITLEAKS_LICENSE secret is the documented alternative. The CI job must reuse the .gitleaks.toml allowlist from secret-audit so the SOPS .enc.* blobs do not trip it.
+After the one-time secret-audit (task-067.03), the repo needs a non-bypassable ongoing backstop so no secret can be (re)introduced now that it lives on GitHub. Per the user's explicit preference, the gate is gitleaks (https://github.com/gitleaks/gitleaks): a gitleaks job under .github/workflows/ run on push + pull_request and set as a REQUIRED status check, plus a local pre-commit hook, all reusing the repo-root .gitleaks.toml allowlist from task-067.03 so the SOPS .enc.* ciphertext does not trip it. CORRECTION (2026-06-25): i40sys is a GitHub USER account (not an org), so gitleaks-action is license-free here - the GITLEAKS_LICENSE requirement applies only to GitHub Organizations; use gitleaks-action@v3 or the MIT gitleaks Go binary in a run step (avoid gitleaks-action@v2, Node20 EOL). PREREQUISITE: pushing any .github/workflows/ file requires the i40sys gh token to gain the 'workflow' scope (currently gist,read:org,repo - no workflow).
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

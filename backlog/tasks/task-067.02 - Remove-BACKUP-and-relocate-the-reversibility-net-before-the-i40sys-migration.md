@@ -4,6 +4,7 @@ title: Remove BACKUP/ and relocate the reversibility net before the i40sys migra
 status: To Do
 assignee: []
 created_date: '2026-06-23 08:01'
+updated_date: '2026-06-25 04:40'
 labels:
   - security
   - secrets
@@ -49,3 +50,9 @@ BACKUP/ (19M, gitignored at .gitignore line 12, never committed — git ls-files
 5. rm -rf BACKUP/ and verify it is gone; confirm .gitignore still blocks /BACKUP/.
 6. Hand the credential list (esp. the supabase-2025-10-20/.env values) to secret-audit and note the reversibility tradeoff in the relocation doc.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-06-25: the traefik-poc/* and kms/ssh-test/docker-test/README.md key material that lived in git HISTORY was already purged under task-067.03's scrub. This task (the on-disk BACKUP/ folder, 19M, untracked) is still OUTSTANDING: inventory + relocate the git-archives reversibility net, and rotate/relocate the CONFIRMED-plaintext creds in BACKUP/supabase-2025-10-20/.env (POSTGRES_PASSWORD/JWT_SECRET/SERVICE_ROLE_KEY/SECRET_KEY_BASE/VAULT_ENC_KEY) before deleting BACKUP/.
+<!-- SECTION:NOTES:END -->

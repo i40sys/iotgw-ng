@@ -1,9 +1,10 @@
 ---
 id: TASK-067.03
 title: Full working-tree + git-history secret audit and remediation gate
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-06-23 08:01'
+updated_date: '2026-06-25 04:40'
 labels:
   - security
   - secrets
@@ -51,3 +52,9 @@ GitHub exposes the ENTIRE commit history, so before the i40sys migration the who
 6. Reconcile the backup-removal credential inventory into the rotation list.
 7. Produce the green pre-migration checklist as the gate sign-off.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-06-25 (GitHub i40sys migration): ran a full-history high-signal secret scan (gitleaks/trufflehog not yet installed). Findings: a REAL RSA private key in history at traefik-poc/server.key + traefik-poc/docker-compose.yml (defunct decommissioned PoC, self-signed *.wsl.ymbihq.local -> no rotation needed) and an elided/harmless illustrative key in kms/ssh-test/docker-test/README.md. Took a safety bundle at /tmp/iotgw-ng-prescrub.bundle, then purged all three paths from ALL history with git-filter-repo; re-verified zero residual key material (traefik-poc=0, BEGIN PRIVATE KEY excl ENC[]=0, RSA body=0). secrets/*.enc.* confirmed intact as ciphertext. Pushed the scrubbed 34-commit history to the new PRIVATE github.com/i40sys/iotgw-ng. STILL TODO: author/validate .gitleaks.toml with the real gitleaks binary, reconcile BACKUP/ creds (067.02), stand up the ongoing gate (067.04).
+<!-- SECTION:NOTES:END -->

@@ -1,9 +1,10 @@
 ---
 id: TASK-067.05
 title: 'Set up the i40sys GitHub repo, ghcr packages, and Actions permissions/secrets'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-06-23 08:01'
+updated_date: '2026-06-25 04:40'
 labels:
   - github
   - ghcr
@@ -51,3 +52,9 @@ The build pipelines cannot push to ghcr.io/i40sys until the GitHub org repo and 
 6. Provision Actions secrets/variables (GITLEAKS_LICENSE if used, prod VITE_API_URL) or note none required.
 7. Verify a ghcr push works from the default branch.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-06-25: created the migration-target repo github.com/i40sys/iotgw-ng (PRIVATE) via gh as the i40sys account; set description + 15 topics; pushed the scrubbed main (34 commits). NOTE: i40sys is a GitHub USER account, not an org - 'org-wide' settings in the ACs become repo-level. SCOPE GAP: the i40sys gh token has scopes gist,read:org,repo - it LACKS 'workflow' (needed to push .github/workflows/* for tasks .04/.06-.12) and 'write:packages' (needed to push to ghcr.io). Grant via: gh auth refresh --user i40sys -h github.com -s workflow -s write:packages. ghcr packages not yet created.
+<!-- SECTION:NOTES:END -->
