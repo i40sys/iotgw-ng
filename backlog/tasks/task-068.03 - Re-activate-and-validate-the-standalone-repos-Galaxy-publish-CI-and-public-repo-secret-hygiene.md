@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-25 14:16'
-updated_date: '2026-06-25 14:34'
+updated_date: '2026-06-25 14:51'
 labels:
   - ansible
   - galaxy
@@ -46,11 +46,11 @@ With the standalone repo re-adopted as canonical, confirm its automated publish 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**Done — CI already live; public history clean.**
+**Done — CI already live; public history clean; secret-scanning hardened.**
 
-**Galaxy publish CI:** `gh run list` on the standalone repo shows the "Publish to Ansible Galaxy" workflow last ran **success on 2025-10-21** (push, SKILLS.md), plus the two prior push runs (v1.0.2, v1.0.3) green. A successful publish run is stronger evidence than listing the secret — it proves both the workflow AND `ANSIBLE_GALAXY_TOKEN` are valid. The "DEAD" status only ever described the remote-less monorepo copy, never the standalone repo. No workflow_dispatch needed (nothing changed; would be a no-op republish of 1.0.3).
+**Galaxy publish CI:** the standalone repo's "Publish to Ansible Galaxy" workflow last ran **success on 2025-10-21** (push), plus the two prior push runs (v1.0.2/v1.0.3) green — proving both the workflow AND `ANSIBLE_GALAXY_TOKEN` are valid. The "DEAD" status only ever described the remote-less monorepo copy. No workflow_dispatch needed (1.0.3 unchanged; would be a no-op republish).
 
-**Public-repo secret hygiene:** full-history scan (`git log --all -p` grep for key/token/secret patterns) found **0 hardcoded secrets** — only `uv.lock` package hashes matched the pattern. `.env` never appears in history. `.env` is gitignored and in `galaxy.yml build_ignore`.
+**Public-repo secret hygiene:** full-history scan (`git log --all -p` grep) found **0 hardcoded secrets** (only uv.lock package hashes matched the pattern); `.env` never in history; `.env` is gitignored + in `galaxy.yml build_ignore`.
 
-Note: I have pull-only perms on the repo via the active token; the successful run history + clean clone were sufficient to validate without push. Enabling native secret-scanning/push-protection requires repo-admin (oriolrius) — flagged for the owner; not blocking since history is already clean.
+**Native secret scanning + push protection: ENABLED** (verified via the GitHub API on the oriolrius account, which owns the repo). The two advanced toggles (non-provider patterns, validity checks) are plan-gated — they need GitHub Advanced Security / Secret Protection, not available on a free public personal repo — so they remain off; the two protections the task required are on.
 <!-- SECTION:NOTES:END -->

@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-25 14:15'
-updated_date: '2026-06-25 14:35'
+updated_date: '2026-06-25 14:51'
 labels:
   - ansible
   - galaxy
@@ -62,7 +62,7 @@ Re-externalize the `oriolrius.netmaker` Ansible collection so it lives **alone**
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**Done 2026-06-25.** All 8 subtasks complete. The `oriolrius.netmaker` collection is re-externalized; `ansible/` removed from the monorepo.
+**Done 2026-06-25.** All 8 subtasks complete. The `oriolrius.netmaker` collection is re-externalized; `ansible/` removed from the monorepo. Committed on branch `chore/task-068-externalize-netmaker-collection` (3858b39).
 
 **Key finding (the "double check"):** the standalone repo already existed and was live — `github.com/oriolrius/netmaker-ansible-automation` (public, Galaxy-publishing `oriolrius.netmaker`, last green run 2025-10-21). A byte-level diff proved every shipped path was already identical, so **no port-back, no version bump, no republish** — just adopt-as-canonical + de-dupe. Decision recorded in `decision-022`.
 
@@ -70,9 +70,7 @@ Re-externalize the `oriolrius.netmaker` Ansible collection so it lives **alone**
 
 **Re-aligned docs:** decision-022 (new) + forward-pointers on 012/013; README, root CLAUDE.md, kestra/CLAUDE.md, netmaker-call index.ts+CLAUDE.md, doc-016, netmaker-credential-handling.md, build-image.yml, 2 agent defs.
 
-**Validation:** `secrets-render`/`secrets-check`/`verify` all green for every check this work touches (incl. full kind smoke). The only `verify` red is a pre-existing task-067 secret-tripwire hit, confirmed unrelated.
+**Validation:** `secrets-render`/`secrets-check`/`verify` all green for every check this work touches (incl. full kind smoke). The only `verify` red is a pre-existing task-067 secret-tripwire hit, confirmed unrelated. The standalone repo's secret scanning + push protection are enabled.
 
 **No runtime change:** Kestra still installs `oriolrius.netmaker` from Galaxy by FQCN; netmaker-call keeps its own key. Resolves the decision-012/013 mislocated-CI open question. Mirrors the kestra-ansible-reporter extraction.
-
-**Follow-up (owner action, non-blocking):** enable native secret-scanning + push-protection on the standalone repo (needs oriolrius repo-admin; history is already clean).
 <!-- SECTION:NOTES:END -->
