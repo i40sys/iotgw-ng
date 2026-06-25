@@ -4,7 +4,7 @@ title: 'Set up the i40sys GitHub repo, ghcr packages, and Actions permissions/se
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 05:31'
+updated_date: '2026-06-25 08:10'
 labels:
   - github
   - ghcr
@@ -56,5 +56,5 @@ The build pipelines cannot push to ghcr.io/i40sys until the GitHub org repo and 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-i40sys GitHub repo live (github.com/i40sys/iotgw-ng), now PUBLIC; i40sys token re-scoped via device-flow to repo+workflow+write:packages (validated: pushed .github/workflows/* + CI pushed to ghcr). 3 ghcr packages exist (iotgw-functions/iotgw-ui-backend/iotgw-ui-frontend), created by the first CI run; GITHUB_TOKEN packages:write proven by successful pushes from the default branch. Per-job permissions block recorded (contents/packages/id-token/security-events/attestations). REMAINING (UI/manual): flip the 3 ghcr packages private->public (no REST endpoint for user container pkg visibility — Package > Settings > Change visibility) so prod/kind pull needs no imagePullSecret; the imagePullSecret fallback is documented if kept private. Set repo var PROD_VITE_API_URL before a real prod frontend release (currently unset -> localhost default).
+CORRECTION (2026-06-25, see task-067.17): this task was closed with the 3 ghcr packages still PRIVATE (AC#2 'public OR document imagePullSecret' was satisfied only via the fallback). Packages were actually made public + unauthenticated pull/verify proven later under task-067.17.
 <!-- SECTION:NOTES:END -->

@@ -4,7 +4,7 @@ title: Full working-tree + git-history secret audit and remediation gate
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 06:35'
+updated_date: '2026-06-25 08:10'
 labels:
   - security
   - secrets
@@ -56,5 +56,5 @@ GitHub exposes the ENTIRE commit history, so before the i40sys migration the who
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-CLOSED 2026-06-25. Full-history gitleaks v8.30.1 (--log-opts=--all -c .gitleaks.toml) = 0 un-allowlisted findings on the scrubbed history (both gitea + GitHub at the rewritten head); working-tree scan clean; planted private-key in secrets/ correctly FAILS. .gitleaks.toml allowlists ONLY *.enc.* by extension + audited FPs/decommissioned values. age PRIVATE key (AGE-SECRET-KEY-) absent from tree + all history; secrets/*.enc.* verified ENC[AES256_GCM] ciphertext. Rotate-first runbook EXECUTED for the real leak (Kestra pw ***REMOVED-ROTATED-KESTRA-PW*** rotated in SOPS + k8s + consumers, then git-filter-repo purged from all history; sk-or-v1 OpenRouter key also purged). BACKUP creds reconciled (067.02: superseded, deleted). NOTE: trufflehog not run (gitleaks chosen per user pref); RECOMMENDED user follow-up: revoke the sk-or-v1 OpenRouter key at openrouter.ai if it was ever active (it was in public-repo history before the scrub).
+CORRECTION (2026-06-25, see task-067.16): the earlier 'full-history gitleaks = 0' was achieved partly by ALLOWLISTING the leaked Gemini key as a .gitleaks.toml stopword and leaving literal decommissioned values in tools/verify.sh — i.e. the 'clean' state still EMBEDDED real secret values in tracked source, which leaked when the repo went public (Google flagged the Gemini key). Also the LIVE Kestra password 'The2password.' hardcoded across 9 history files was NOT caught here (low-entropy; gitleaks-invisible) and was only found via a user tip. Both were truly resolved later under task-067.16 (rotate-first + history scrub + SOPS-encrypted tripwire). This task's audit was necessary but INCOMPLETE at close.
 <!-- SECTION:NOTES:END -->

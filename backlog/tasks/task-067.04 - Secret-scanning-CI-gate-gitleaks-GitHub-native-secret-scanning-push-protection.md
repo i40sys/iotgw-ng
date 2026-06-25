@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 05:31'
+updated_date: '2026-06-25 08:10'
 labels:
   - ci
   - security
@@ -55,5 +55,5 @@ After the one-time secret-audit (task-067.03), the repo needs a non-bypassable o
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Authored .github/workflows/secret-scan.yml (MIT gitleaks v8.30.1 binary, full-history --log-opts=--all, -c .gitleaks.toml, ::error:: + non-zero exit) + .pre-commit-config.yaml (gitleaks rev v8.30.1) + .gitleaks.toml (allowlists ONLY *.enc.* by extension + audited FPs/decommissioned values). VALIDATED: planted private-key in secrets/ FAILS; secret-scan run = SUCCESS on the scrubbed repo. On the now-PUBLIC repo: GitHub native secret scanning + push protection ENABLED, and 'gitleaks (full history)' set as a REQUIRED status check on main.
+CORRECTION (2026-06-25, see task-067.16): the .gitleaks.toml authored here used 'stopwords' containing the LITERAL decommissioned/leaked secret values (incl. the live Gemini key) — on the public repo that config file itself became the leak Google flagged. Fixed under task-067.16: stopwords removed; the known-bad list moved to the ENCRYPTED secrets/decommissioned-secrets.enc.env which verify.sh decrypts at check time. The gitleaks CI gate + required check + native scanning remain valid.
 <!-- SECTION:NOTES:END -->
