@@ -1,6 +1,6 @@
 [project]
 name = "cosmian-kms-tools"
-version = "0.2.0"
+version = "0.2.1"
 description = "Utilities for Cosmian KMS - SSH key conversion and management"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -30,7 +30,7 @@ dev-dependencies = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.2.0"
+version = "0.2.1"
 version_files = [
     "pyproject.toml:^version",
     "VERSION",
