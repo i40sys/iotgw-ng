@@ -38,4 +38,5 @@ stopwords = [
   "***REMOVED-GEMINI-KEY***",       # decommissioned Gemini/GCP key (kestra)
   "***REMOVED-FRAGMENT***",                                  # decommissioned device-key example
   "***REMOVED-FRAGMENT***",                                  # decommissioned WireGuard example key
+  "***REMOVED-ROTATED-KESTRA-PW***",                                 # ROTATED Kestra basic-auth pw (purged from history; tripwire value)
 ]

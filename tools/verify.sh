@@ -13,7 +13,7 @@ fail(){ echo "  FAIL  $1"; rc=1; }
 
 echo "== 1. No real secrets in tracked source =="
 LEAK=0
-for pat in '***REMOVED-DECOMMISSIONED***' 'The2password' '***REMOVED-GEMINI-KEY***' '***REMOVED-FRAGMENT***' '***REMOVED-FRAGMENT***'; do
+for pat in '***REMOVED-DECOMMISSIONED***' '***REMOVED-ROTATED-KESTRA-PW***' '***REMOVED-GEMINI-KEY***' '***REMOVED-FRAGMENT***' '***REMOVED-FRAGMENT***'; do
   # Exclude the SOPS store, encrypted files, and the scanners that legitimately
   # list these patterns to grep FOR / allowlist them (this file,
   # tools/secrets/secrets.sh, and the gitleaks config) — matching them would be a
@@ -28,7 +28,7 @@ echo "== 2. SOPS store round-trips with no cleartext leak =="
 if tools/secrets/secrets.sh check >/tmp/verify-secrets.log 2>&1; then pass "secrets.sh check"; else fail "secrets.sh check (see /tmp/verify-secrets.log)"; fi
 
 echo "== 3. .env.example templates carry no real values =="
-if git ls-files '*.env.example' | xargs -r grep -lE 'NBMtSWau|The2password|AIzaSy|sk-proj' 2>/dev/null | grep -q .; then
+if git ls-files '*.env.example' | xargs -r grep -lE 'NBMtSWau|The2password|AIzaSy|sk-proj|sk-or-v1' 2>/dev/null | grep -q .; then
   fail "a .env.example contains a real secret"; else pass ".env.example templates clean"; fi
 
 echo "== 4. Kustomize overlays render =="
