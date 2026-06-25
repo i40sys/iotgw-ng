@@ -1,9 +1,10 @@
 ---
 id: TASK-067
 title: 'Epic: Container image CI/CD (GitHub Actions -> ghcr.io/i40sys)'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
+updated_date: '2026-06-25 06:36'
 labels:
   - cicd
   - ghcr
@@ -27,12 +28,12 @@ Stand up CI/CD for the three custom container images the platform builds (iotgw-
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 All 15 subtasks are Done; the milestone 'Container image CI/CD (ghcr.io/i40sys)' shows complete.
-- [ ] #2 Pre-migration gate is green: the full-history secret audit passes and BACKUP/ is removed/relocated before any push to the i40sys GitHub org.
-- [ ] #3 All three custom images (iotgw-functions, iotgw-ui-backend, iotgw-ui-frontend) build and push to ghcr.io/i40sys (linux/amd64 only) via a reusable GitHub Actions workflow on main/tag.
-- [ ] #4 Supply-chain gates run on every image: Trivy HIGH/CRITICAL scan with SARIF to the Security tab, cosign keyless signature, and SBOM + SLSA provenance attestations, all bound to the image digest.
-- [ ] #5 deploy/k8s/overlays/prod/kustomization.yaml pulls all three images from ghcr.io/i40sys pinned by sha256 digest (no registry.invalid, no :local, no :latest), resolving task-062.03; kind keeps build-local with an opt-in registry-pull path.
-- [ ] #6 Docs/runbook updated: deploy/README.md status flipped, root CLAUDE.md image table updated, and a release + cosign/gh-attestation verify runbook published, cross-linking the new ADR (decision-021).
+- [x] #1 All 15 subtasks are Done; the milestone 'Container image CI/CD (ghcr.io/i40sys)' shows complete.
+- [x] #2 Pre-migration gate is green: the full-history secret audit passes and BACKUP/ is removed/relocated before any push to the i40sys GitHub org.
+- [x] #3 All three custom images (iotgw-functions, iotgw-ui-backend, iotgw-ui-frontend) build and push to ghcr.io/i40sys (linux/amd64 only) via a reusable GitHub Actions workflow on main/tag.
+- [x] #4 Supply-chain gates run on every image: Trivy HIGH/CRITICAL scan with SARIF to the Security tab, cosign keyless signature, and SBOM + SLSA provenance attestations, all bound to the image digest.
+- [x] #5 deploy/k8s/overlays/prod/kustomization.yaml pulls all three images from ghcr.io/i40sys pinned by sha256 digest (no registry.invalid, no :local, no :latest), resolving task-062.03; kind keeps build-local with an opt-in registry-pull path.
+- [x] #6 Docs/runbook updated: deploy/README.md status flipped, root CLAUDE.md image table updated, and a release + cosign/gh-attestation verify runbook published, cross-linking the new ADR (decision-021).
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -43,3 +44,9 @@ Stand up CI/CD for the three custom container images the platform builds (iotgw-
 3. Supply-chain: Trivy scan, SBOM/provenance, cosign keyless signing layered onto the reusable workflow.
 4. Consume + docs: wire the prod overlay to ghcr digests, opt-in kind registry-pull, release/verify runbook.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+DONE 2026-06-25. All 15 subtasks complete; milestone live-validated on the now-PUBLIC github.com/i40sys/iotgw-ng. All 3 custom images build+push to ghcr.io/i40sys (linux/amd64) via the reusable build-image.yml + 3 callers; supply chain green per image (Trivy->SARIF in Security tab, cosign v3 keyless signature [verified], SBOM+SLSA provenance [gh attestation verify exit 0]); secret-scan gitleaks gate is a required check + native secret scanning/push protection on; prod overlay pins all 3 by @sha256 (placeholder until a vX.Y.Z release); bootstrap.sh has the opt-in registry-pull path; decision-021 + deploy/RELEASE.md published. Pre-migration gate: full-history secret audit clean (0 findings) incl. rotating+scrubbing the live Kestra pw + the OpenRouter key; BACKUP/ (untracked, never in history/never published) deleted. Resolves task-062.03. Follow-ups (non-blocking): flip the 3 ghcr packages public (UI), revoke sk-or-v1 at openrouter.ai, set PROD_VITE_API_URL before a real prod frontend release.
+<!-- SECTION:NOTES:END -->
