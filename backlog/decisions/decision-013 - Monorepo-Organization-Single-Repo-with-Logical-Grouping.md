@@ -64,6 +64,13 @@ and (c) a root `just` orchestrator + `README.md`.
    plan a root-level CI later that publishes on a path/tag filter. The in-tree
    workflow is left as reference but is known-dead in the monorepo. (Backlog
    task added.)
+   > **Resolved (2026-06-25, `decision-022`, `task-068`):** rather than build
+   > root-level CI, the `oriolrius.netmaker` collection was **re-externalized** —
+   > the standalone repo `github.com/oriolrius/netmaker-ansible-automation`
+   > (whose Galaxy-publish workflow still runs) is again the canonical source,
+   > and `ansible/netmaker/` was removed from this repo. Automated Galaxy
+   > publishing is restored where it can run; the monorepo carries no Ansible
+   > source.
 3. **`supabase` canonical remote** → The `i40sys/iotgw-ng_supabase` push was a
    one-off backup; the monorepo is canonical. `CLAUDE.md` "local only" wording
    is corrected (it's now part of the monorepo, not a standalone repo).

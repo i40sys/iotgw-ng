@@ -33,7 +33,7 @@ Skills config at `data/main/iotgw-ng/_files/.claude/skills/`.
 ## Auth & integration
 
 - Kestra basic auth: credentials read from env (`KESTRA_USER` / `KESTRA_PASSWORD`), sourced from `secrets/kestra.enc.env` (SOPS+age, decision-014). No longer hardcoded in the edge function.
-- Ansible playbooks use `oriolrius.netmaker` collection (see `ansible/netmaker/`) to call the Netmaker API at `api.netmaker.i40sys.com`.
+- Ansible playbooks use the `oriolrius.netmaker` collection — installed **from Ansible Galaxy** by FQCN at runtime (source: external repo `github.com/oriolrius/netmaker-ansible-automation`; re-externalized in `decision-022`, no longer in this repo) — to call the Netmaker API at `api.netmaker.i40sys.com`.
 - `GITHUB_ACCESS_TOKEN` stored in Kestra KV store for git sync.
 
 ## Call chain context

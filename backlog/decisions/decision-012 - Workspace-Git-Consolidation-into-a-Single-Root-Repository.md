@@ -115,6 +115,10 @@ These are the "worth flagging" items. Each needs an explicit call.
    pipeline.
    *Decide:* relocate/rewire it to the root `.github/workflows/`, keep
    publishing from the standalone repo, or drop the automated publish?
+   > **Resolved (2026-06-25, `decision-022`, `task-068`):** "keep publishing
+   > from the standalone repo." The collection was re-externalized to
+   > `github.com/oriolrius/netmaker-ansible-automation` and `ansible/netmaker/`
+   > was removed from this repo (see `decision-013` answer 2).
 
 3. **`supabase` is no longer "local only".** Its 15 commits now live in the
    **new private** `i40sys/iotgw-ng_supabase`. The root `CLAUDE.md`

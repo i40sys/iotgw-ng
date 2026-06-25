@@ -2,8 +2,7 @@
 
 A single consolidated repository (a **monorepo**) for the whole IoT Gateway
 platform: the management UI, the self-hosted backend services, the workflow
-and key-management tiers, the automation collection, and the Kubernetes
-deployment definitions.
+and key-management tiers, and the Kubernetes deployment definitions.
 
 > **VCS topology:** one git repo at this root (no per-subproject `.git`).
 > See `backlog/decisions/decision-012` (consolidation) and
@@ -17,7 +16,6 @@ deployment definitions.
 | `supabase/` | **platform** | Self-hosted Supabase (Postgres, Kong, GoTrue, edge functions…). System of record + webhook hub. |
 | `kestra/` | **platform** | Kestra workflow orchestration (OpenWRT provisioning / install / connectivity flows). |
 | `kms/` | **platform** | Cosmian KMS — authoritative store for device SSH keys + the PoC PKI. |
-| `ansible/` | **automation** | The `oriolrius.netmaker` Ansible collection. |
 | `deploy/` | **infra** | Kubernetes manifests (kustomize) + local `kind` cluster + bootstrap. |
 | `secrets/` | **infra** | SOPS+age encrypted secrets (the only secret source of truth). |
 | `tools/` | **infra** | Workspace tooling (`secrets/secrets.sh`, …). |

@@ -29,23 +29,26 @@ master key or the other networks**. Creating a scoped API key
 networks), unlike rotating the master key.
 
 This is a hardening **design** change to `netmaker-call` and the
-`oriolrius.netmaker` Ansible collection, tracked as its own backlog task — not
-part of task-060. It still requires a Netmaker admin to mint the scoped key, but
-that action does not disturb other networks.
+`oriolrius.netmaker` Ansible collection (now external —
+`github.com/oriolrius/netmaker-ansible-automation`, `decision-022`), tracked as
+its own backlog task — not part of task-060. It still requires a Netmaker admin
+to mint the scoped key, but that action does not disturb other networks.
 
 ## Where the Netmaker credential lives + who consumes it
 
 | Consumer | Reads credential from | Notes |
 |---|---|---|
-| `netmaker-call` edge function (`supabase/volumes/functions/netmaker-call/index.ts`) | `NETMAKER_MASTER_KEY` env — kind: `supabase-env` Secret; compose: `supabase/.env` | fails loud if unset (no fallback) |
-| `oriolrius.netmaker` Ansible collection (`ansible/netmaker/`) | `ansible/netmaker/.env` (loaded by `ansible/netmaker/justfile`) ← `secrets/netmaker.enc.env` | workstation-only |
-| kind `supabase-env` Secret (ns `supabase-app`) | `secrets/supabase.enc.env` via `secrets.sh k8s` | the only kind Secret carrying it (the `netmaker-call` function reads it in `supabase-app`; `decision-020`) |
+| `netmaker-call` edge function (`supabase/volumes/functions/netmaker-call/index.ts`) | `NETMAKER_MASTER_KEY` env (kind: `supabase-env` Secret) ← `secrets/supabase.enc.env` | fails loud if unset (no fallback); **the only in-repo consumer** |
+| kind `supabase-env` Secret (ns `supabase-app`) | `secrets/supabase.enc.env` via `secrets.sh k8s` | the only Secret carrying it (the `netmaker-call` function reads it in `supabase-app`; `decision-020`) |
+| `oriolrius.netmaker` Ansible collection — **now external** (`github.com/oriolrius/netmaker-ansible-automation`, `decision-022`) | its own `.env` on whoever runs it; **no longer rendered from this repo** | reference-only for this platform; removed from the monorepo in `task-068` |
 | ~~Kestra `device_*/network_*` playbooks~~ | (removed in task-060.04) | no longer a consumer |
 
-> **Footgun:** the credential is duplicated as `NETMAKER_MASTER_KEY` in **both**
-> `secrets/supabase.enc.env` and `secrets/netmaker.enc.env`. Any swap must set the
-> **same** new value in both, or the edge function and the Ansible collection
-> will disagree.
+> **Footgun resolved (`decision-022`, `task-068`):** the key used to be
+> duplicated as `NETMAKER_MASTER_KEY` in **both** `secrets/supabase.enc.env` and
+> `secrets/netmaker.enc.env`. When the Ansible collection was re-externalized,
+> `secrets/netmaker.enc.env` (which rendered only to `ansible/netmaker/.env`) was
+> removed. The live key now lives in **one** place — `secrets/supabase.enc.env` —
+> so there is no longer a pair to keep in sync.
 
 ## Local credential-swap mechanics (for when we adopt a scoped API key)
 
@@ -53,25 +56,21 @@ If/when a Netmaker admin provides a **scoped API key** to replace the master key
 in our consumers, the local side is mechanical (never echo the key to the shell):
 
 ```bash
-# A) update the SOPS store — BOTH files, same value
+# A) update the SOPS store — one place now (the Ansible collection is external)
 tools/secrets/secrets.sh edit supabase     # set NETMAKER_MASTER_KEY (the scoped key)
-tools/secrets/secrets.sh edit netmaker      # set NETMAKER_MASTER_KEY (same value)
 tools/secrets/secrets.sh check              # round-trip OK; no LEAK lines
 
-# B) re-render the consuming .env files
-just secrets-render                          # -> supabase/.env, ansible/netmaker/.env (gitignored)
-
-# C) refresh the kind Secret (only supabase-env carries it)
+# B) refresh the kind Secret (only supabase-env carries it)
 deploy/kind/bootstrap.sh secrets
 #   or: tools/secrets/secrets.sh k8s supabase supabase-app supabase-env | kubectl apply -f -
 
-# D) restart the consumer so it re-reads the Secret
+# C) restart the consumer so it re-reads the Secret
 kubectl -n supabase-app rollout restart deployment/functions
 kubectl -n supabase-app rollout status  deployment/functions
-#   compose path: cd supabase && docker compose up -d functions
-#   (the Ansible collection needs no restart — it reads .env per run)
 
-# E) verify: create + delete a test network in the UI -> network_jobs SUCCESS
+# D) verify: create + delete a test network in the UI -> network_jobs SUCCESS
+#   (the external oriolrius.netmaker collection keeps its own .env, set wherever
+#    it is run — it is no longer wired from this repo)
 ```
 
 Adopting a narrower key may also require updating the consumer code if the

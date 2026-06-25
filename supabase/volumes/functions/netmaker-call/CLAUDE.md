@@ -80,7 +80,9 @@ const network  = String(rec.network_id).replaceAll('-', '')
 const netid = String(rec.id).replaceAll('-', '')
 ```
 
-This mirrors the convention used by the `oriolrius.netmaker` Ansible collection.
+This mirrors the convention used by the `oriolrius.netmaker` Ansible collection
+(the reference spec for this function; external repo
+`github.com/oriolrius/netmaker-ansible-automation` — `decision-022`).
 
 ## Environment variables
 

@@ -57,7 +57,8 @@ const CORS_HEADERS = {
 
 // -----------------------------------------------------------------------
 // netmakerRequest — thin HTTP helper that mirrors the response-handling
-// logic of the oriolrius.netmaker Ansible module:
+// logic of the oriolrius.netmaker Ansible module (reference spec, external repo:
+// github.com/oriolrius/netmaker-ansible-automation — decision-022):
 //   404 → null (not found, do not throw)
 //   204 → true (successful delete)
 //   500 with .Message === 'no result found' → null (Netmaker "doesn't exist")
@@ -287,7 +288,8 @@ async function deprovisionDevice(
 // -----------------------------------------------------------------------
 // provisionNetwork — CREATE / UPDATE flow for `networks` (state=present)
 //   Mirrors the oriolrius.netmaker Ansible module's create_network /
-//   update_network logic:
+//   update_network logic (external repo
+//   github.com/oriolrius/netmaker-ansible-automation — decision-022):
 //     1. Guard: ipv4_cidr must be set (Netmaker requires an address range).
 //     2. GET /networks/{netid} → existing object or null.
 //     3. Build desired = { netid, addressrange: ipv4_cidr [, addressrange6] }.

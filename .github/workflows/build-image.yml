@@ -2,8 +2,9 @@
 # (iotgw-functions, iotgw-ui-backend, iotgw-ui-frontend). Thin per-image callers
 # (backend-image.yml / frontend-image.yml / functions-image.yml) invoke this via
 # `uses:` + `secrets: inherit`. Conventions: decision-021. House style mirrors
-# ansible/netmaker/.github/workflows/publish-collection.yml (checkout@v4, named
-# steps, GITHUB_TOKEN).
+# the oriolrius.netmaker collection's publish workflow (external repo
+# github.com/oriolrius/netmaker-ansible-automation; checkout@v4, named steps,
+# GITHUB_TOKEN).
 #
 # linux/amd64 ONLY (no QEMU, no multi-arch) — kind nodes + servers are x86_64.
 # On real pushes the supply-chain layers all bind to the sha256 DIGEST:

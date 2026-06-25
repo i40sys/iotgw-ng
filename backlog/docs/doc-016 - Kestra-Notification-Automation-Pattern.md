@@ -193,4 +193,4 @@ functions (and the Dashboard-webhook setup they relied on) and the Kestra
 - [doc-010 — Database Migration & Webhook Management](doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md)
 - [doc-008 — Domains/Networks/Devices architecture](doc-008%20-%20Domains-Networks-and-Devices-Architecture.md)
 - [decision-010 — SSH key management via Cosmian KMS](../decisions/decision-010%20-%20ADR-001-SSH-Key-Management-with-Cosmian-KMS.md)
-- [ansible/netmaker — the Netmaker REST contract netmaker-call replicates](../../ansible/netmaker/CLAUDE.md)
+- [oriolrius.netmaker — the Netmaker REST contract netmaker-call replicates](https://github.com/oriolrius/netmaker-ansible-automation) (external repo; re-externalized per [decision-022](../decisions/decision-022%20-%20Re-externalize-the-oriolrius.netmaker-Ansible-collection.md))

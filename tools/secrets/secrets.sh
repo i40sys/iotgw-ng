@@ -27,13 +27,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
 
-# name -> plaintext destination consumed at runtime by a pnpm-dev / ansible
-# process. The former compose-only render targets supabase/.env and kestra/.env
-# were pruned with the docker-compose decommission (task-062.13): in k8s the
+# name -> plaintext destination consumed at runtime by a pnpm-dev process.
+# The former compose-only render targets supabase/.env and kestra/.env were
+# pruned with the docker-compose decommission (task-062.13): in k8s the
 # supabase + kestra Secrets are created from secrets/{supabase,kestra}.enc.env
 # directly via `secrets.sh k8s …` (see deploy/kind/bootstrap.sh make_secrets).
+# The former [netmaker] -> ansible/netmaker/.env target was dropped when the
+# oriolrius.netmaker collection was re-externalized (decision-022, task-068):
+# the live Netmaker key now lives only in secrets/supabase.enc.env (read by the
+# netmaker-call edge function); secrets/netmaker.enc.env was removed.
 declare -A DEST=(
-  [netmaker]="ansible/netmaker/.env"
   [iotgw-ui-root]="iotgw-ui/.env"
   [iotgw-ui-backend]="iotgw-ui/apps/backend/.env"
 )

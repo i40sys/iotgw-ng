@@ -52,6 +52,12 @@ migrations 20260610000000/01):
 - The Kestra `devices` / `networks` flows and the `kestra-call` edge function
   are **removed** — device/network provisioning runs through `netmaker-call`
   and SSH-key generation through the backend→KMS path.
+- The `oriolrius.netmaker` Ansible collection **no longer lives in this repo**:
+  it was re-externalized to `github.com/oriolrius/netmaker-ansible-automation`
+  (published to Ansible Galaxy as `oriolrius.netmaker`; `decision-022`,
+  `task-068`). Kestra still installs it **from Galaxy** by FQCN at runtime for
+  the OpenWRT flows; `netmaker-call` mirrors its Netmaker REST contract. There is
+  no in-repo Ansible source.
 - **TLS certs**: `kms/pki-test/` mints certs, consumed by the k8s Ingress
   (the former `traefik-poc/` PoC has been removed — see `deploy/`).
 
@@ -89,7 +95,6 @@ archives are in `BACKUP/git-archives/` (the reversibility net).
 | `supabase/` | self-hosted Supabase stack | [supabase/CLAUDE.md](supabase/CLAUDE.md) |
 | `supabase/volumes/functions/` | Deno edge functions | [supabase/volumes/functions/CLAUDE.md](supabase/volumes/functions/CLAUDE.md) |
 | `kestra/` | workflow orchestration (flow source in DB + `i40sys/iotgw-kestra`) | [kestra/CLAUDE.md](kestra/CLAUDE.md) |
-| `ansible/netmaker/` | `oriolrius.netmaker` collection (published to Galaxy) | [ansible/netmaker/CLAUDE.md](ansible/netmaker/CLAUDE.md) |
 | `kms/` | Cosmian KMS (device SSH keys + PoC PKI) | [kms/CLAUDE.md](kms/CLAUDE.md) |
 | `deploy/` | Kubernetes (kustomize) + local kind; TLS terminates at the Ingress (replaced the former `traefik-poc/`) | [deploy/README.md](deploy/README.md) |
 | `secrets/` | SOPS+age encrypted secrets | [secrets/README.md](secrets/README.md) |

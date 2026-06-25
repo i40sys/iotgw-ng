@@ -16,7 +16,6 @@ You delegate the **drafting** to the `codex` CLI (OpenAI Codex) running non-inte
 - `iotgw-ui/` — pnpm workspace: React 19 SPA (`apps/app`), Fastify+tRPC backend (`apps/backend`), shared `packages/supabase-contract`
 - `supabase/` — Postgres migrations, edge functions (`volumes/functions/`)
 - `kestra/` — workflow definitions (`data/main/iotgw-ng/_files/`)
-- `ansible/netmaker/` — Ansible playbooks using `oriolrius.netmaker` collection
 - `kms/` — Cosmian KMS integration + PKI test rigs
 - `deploy/` — Kubernetes migration manifests (decision-015, tested on kind); the Ingress here is the TLS-termination edge (replaced the former `traefik-poc/` PoC)
 - `secrets/` — SOPS+age encrypted secrets (decision-014); no secrets are hardcoded in tracked source

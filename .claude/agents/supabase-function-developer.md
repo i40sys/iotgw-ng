@@ -71,7 +71,7 @@ DB triggers (pg_net, via `supabase_functions.http_request`) POST to your functio
 ## Replicating an External API Contract
 
 When a function must call an external service (Netmaker, KMS, Kestra), do **not** guess the contract:
-1. **Find the authoritative implementation** and mirror it exactly — the `oriolrius.netmaker` Ansible module (`ansible/netmaker/plugins/modules/netmaker_management.py`), the old/sibling function, or the service's docs.
+1. **Find the authoritative implementation** and mirror it exactly — the `oriolrius.netmaker` Ansible module (external repo `github.com/oriolrius/netmaker-ansible-automation`, `plugins/modules/netmaker_management.py`; re-externalized per `decision-022`, no longer in this repo), the old/sibling function, or the service's docs.
 2. **Mirror its response-handling quirks.** E.g. Netmaker: base path is `${base}/api…`; auth `Authorization: Bearer <master_key>`; **404 → not-found, 204 → success, 500 with body `{"Message":"no result found"}` → not-found (not an error)**, else raise. Replicate naming conventions too (Netmaker `clientid`/`network` = the Supabase UUID **with dashes stripped**).
 3. **Validate live before writing code** with read-only calls (`curl -H "Authorization: Bearer $KEY" $BASE/api/...`) to confirm auth, paths, and the real response shape — and to discover prerequisites (e.g. an extclient needs the network to exist in Netmaker with an ingress gateway; a `/31` subnet has no room and Netmaker returns 500 "No unique addresses available").
 
