@@ -4,6 +4,11 @@
 # `.enc.*` extension — NOT the secrets/ directory wholesale. This is deliberate:
 # SOPS+age ciphertext (AES256_GCM) is safe to publish, but a stray PLAINTEXT file
 # dropped into secrets/ (e.g. secrets/leak.env) must still trip the scan.
+#
+# NO literal secret VALUES are kept in this file (a public-repo leak: Google
+# flagged a real Gemini key that was previously listed here). The known-bad
+# rotated/decommissioned values live ENCRYPTED in
+# secrets/decommissioned-secrets.enc.env and are checked by tools/verify.sh.
 title = "iotgw-ng secret scan"
 
 [extend]
@@ -11,32 +16,18 @@ title = "iotgw-ng secret scan"
 useDefault = true
 
 [allowlist]
-description = "SOPS ciphertext + audited false-positives / decommissioned values"
-# Matches secrets/supabase.enc.env, secrets/traefik-tls.enc.yaml, etc.
-# Extension-scoped on purpose: a plaintext sibling in secrets/ is NOT allowlisted.
+description = "SOPS ciphertext + audited non-secret false-positives"
+# Matches secrets/*.enc.* (supabase.enc.env, traefik-tls.enc.yaml,
+# decommissioned-secrets.enc.env, …). Extension-scoped on purpose: a plaintext
+# sibling in secrets/ is NOT allowlisted.
 paths = [
   '''.*\.enc\.(env|yaml|yml|json)$''',
-  # tools/verify.sh hardcodes the decommissioned-secret patterns it greps FOR
-  # (it is itself the rotation tripwire), so it legitimately contains them.
-  '''^tools/verify\.sh$''',
 ]
 
-# Placeholders / illustrative values that are NOT secrets (task-067.03 audit).
+# Placeholders / identifiers that are NOT secrets (task-067.03 audit).
 regexes = [
   '''YOUR_ANON_KEY''',                            # docs/test curl placeholders
   # Bare UUIDs are identifiers, not secrets (e.g. Cosmian KMS key-IDs in
   # kms/pki-test/README.md). Allowlist the UUID shape so key-IDs don't trip.
   '''^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$''',
-]
-
-# Already-rotated / decommissioned values that survive only in git HISTORY and in
-# doc/task files. Tracked by tools/verify.sh as "must never reappear" — i.e. the
-# rotation is the record. Allowlisted here so the ongoing gate is green without a
-# history rewrite for dead credentials (task-067.03 AC#5/#6).
-stopwords = [
-  "***REMOVED-DECOMMISSIONED***",               # decommissioned Netmaker master_key (task-045)
-  "***REMOVED-GEMINI-KEY***",       # decommissioned Gemini/GCP key (kestra)
-  "***REMOVED-FRAGMENT***",                                  # decommissioned device-key example
-  "***REMOVED-FRAGMENT***",                                  # decommissioned WireGuard example key
-  "***REMOVED-ROTATED-KESTRA-PW***",                                 # ROTATED Kestra basic-auth pw (purged from history; tripwire value)
 ]

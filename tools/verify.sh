@@ -11,24 +11,34 @@ rc=0
 pass(){ echo "  PASS  $1"; }
 fail(){ echo "  FAIL  $1"; rc=1; }
 
-echo "== 1. No real secrets in tracked source =="
+echo "== 1. No real (rotated/decommissioned) secrets re-introduced in tracked source =="
+# The known-bad VALUES are kept ENCRYPTED in secrets/decommissioned-secrets.enc.env
+# (SOPS) so they are NEVER stored as plaintext in tracked source (a public-repo
+# leak: a literal key here is itself the secret). Decrypt them only at check time.
 LEAK=0
-for pat in '***REMOVED-DECOMMISSIONED***' '***REMOVED-ROTATED-KESTRA-PW***' '***REMOVED-GEMINI-KEY***' '***REMOVED-FRAGMENT***' '***REMOVED-FRAGMENT***'; do
-  # Exclude the SOPS store, encrypted files, and the scanners that legitimately
-  # list these patterns to grep FOR / allowlist them (this file,
-  # tools/secrets/secrets.sh, and the gitleaks config) — matching them would be a
-  # self-test false positive.
-  if git grep -qI "$pat" -- ':!secrets/' ':!*.enc.*' ':!tools/verify.sh' ':!tools/secrets/secrets.sh' ':!.gitleaks.toml' 2>/dev/null; then
-    fail "secret '$pat' still in tracked source"; LEAK=1
-  fi
-done
-[ "$LEAK" = 0 ] && pass "no known secrets in tracked source"
+if pats="$(sops -d secrets/decommissioned-secrets.enc.env 2>/dev/null | sed 's/^[^=]*=//')" && [ -n "$pats" ]; then
+  while IFS= read -r pat; do
+    [ -z "$pat" ] && continue
+    # Exclude the SOPS store + encrypted blobs (where the patterns legitimately
+    # live as ciphertext). Anything else matching = a real re-introduction.
+    if git grep -qIF "$pat" -- ':!secrets/' ':!*.enc.*' 2>/dev/null; then
+      fail "a known rotated/decommissioned secret reappeared in tracked source"; LEAK=1
+    fi
+  done <<EOF
+$pats
+EOF
+  [ "$LEAK" = 0 ] && pass "no known rotated secrets in tracked source"
+else
+  echo "  SKIP  (cannot decrypt secrets/decommissioned-secrets.enc.env — need the age key)"
+fi
 
 echo "== 2. SOPS store round-trips with no cleartext leak =="
 if tools/secrets/secrets.sh check >/tmp/verify-secrets.log 2>&1; then pass "secrets.sh check"; else fail "secrets.sh check (see /tmp/verify-secrets.log)"; fi
 
 echo "== 3. .env.example templates carry no real values =="
-if git ls-files '*.env.example' | xargs -r grep -lE 'NBMtSWau|The2password|AIzaSy|sk-proj|sk-or-v1' 2>/dev/null | grep -q .; then
+# Generic vendor key-format PREFIXES only (not specific secret values) so this
+# file never embeds a real key.
+if git ls-files '*.env.example' | xargs -r grep -lE 'AIzaSy|sk-proj-|sk-or-v1-|sk-ant-' 2>/dev/null | grep -q .; then
   fail "a .env.example contains a real secret"; else pass ".env.example templates clean"; fi
 
 echo "== 4. Kustomize overlays render =="
