@@ -104,9 +104,11 @@ make_secrets() {
   echo "secrets applied"
 }
 
-# Bridge the KMS API-token bearer (task-057) into the `kms-auth` Secret consumed
-# by the iotgw-ui backend Deployment (KMS_AUTH_TOKEN env). The backend is in the
-# `iotgw-ui` namespace (decision-020), so the Secret goes there. The token VALUE
+# Bridge the KMS API-token bearer (task-057) into the `kms-auth` Secret. Two
+# consumers (decision-020): the iotgw-ui backend Deployment (KMS_AUTH_TOKEN env,
+# `iotgw-ui` namespace) AND the Kestra OpenWRT runner pods (task-069), which
+# fetch the per-device SSH key from the KMS in-pod and reference the Secret via
+# secretKeyRef — so it must also exist in the `kestra` namespace. The token VALUE
 # lives in secrets/iotgw-ui-backend.enc.env (SOPS).
 gen_kms_auth_secret() {
   local tok
@@ -116,9 +118,12 @@ gen_kms_auth_secret() {
     echo "  (skip kms-auth Secret: KMS_AUTH_TOKEN not found in SOPS store — run 'kms-auth' first)"
     return 0
   fi
-  kubectl create secret generic kms-auth -n "$NS_UI" \
-    --from-literal=KMS_AUTH_TOKEN="$tok" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
-  echo "  kms-auth Secret applied to $NS_UI (backend KMS_AUTH_TOKEN)"
+  local ns
+  for ns in "$NS_UI" "$NS_KESTRA"; do
+    kubectl create secret generic kms-auth -n "$ns" \
+      --from-literal=KMS_AUTH_TOKEN="$tok" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+  done
+  echo "  kms-auth Secret applied to $NS_UI (backend) + $NS_KESTRA (task-069 runner pods)"
 }
 
 # Provision the Cosmian KMS API-token symmetric key (task-057, AC#1) and persist
