@@ -51,3 +51,24 @@ obsidian-wiki setup --vault "$PWD/wiki" --project . --project-only
 > drops other-agent skill mirrors; after running it, restore the project's
 > `CLAUDE.md` and `.claude/skills/skill-creator/` and remove the non-Claude dirs
 > (see this repo's `.gitignore` for the exact ignore set).
+
+## Optional: QMD semantic search
+
+`wiki-query`/`wiki-ingest` use [QMD](https://github.com/tobi/qmd) (local, no API
+key) for concept-level search when configured; otherwise they fall back to grep.
+This vault is wired for QMD via two collections (all machine-local — nothing in
+the repo). To set it up on another machine:
+
+```bash
+npm install -g @tobilu/qmd                                   # needs Node >= 22
+qmd collection add "$PWD/wiki"    --name iotgw-wiki           # distilled pages
+qmd collection add "$PWD/backlog" --name iotgw-backlog        # raw sources
+qmd embed                                                    # ~330MB model auto-downloads
+```
+
+Then exclude the in-vault source copies from the wiki collection by adding an
+`ignore: ["**/_sources/**", "**/_raw/**", "**/_staging/**", "**/_archives/**"]`
+list under `iotgw-wiki` in `~/.config/qmd/index.yml` and run `qmd update`.
+The obsidian-wiki side is enabled in `~/.obsidian-wiki/config`:
+`QMD_WIKI_COLLECTION=iotgw-wiki`, `QMD_PAPERS_COLLECTION=iotgw-backlog`,
+`QMD_TRANSPORT=cli`. Refresh after re-ingests with `qmd update && qmd embed`.
