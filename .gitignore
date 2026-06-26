@@ -76,3 +76,49 @@ secrets/rendered/
 
 # Vendored CLI binary (35MB) — kept on disk, not in source control
 /kms/contrib/cosmian
+
+# ── obsidian-wiki local tooling (regenerate with: obsidian-wiki setup ──
+#    --vault $PWD/wiki --project . --project-only) ──
+#    The VAULT itself (wiki/) IS committed; only the machine-specific
+#    symlinked skills + agent bootstrap below are ignored.
+/AGENTS.md
+/.github/copilot-instructions.md
+/.claude/skills/claude-history-ingest
+/.claude/skills/codex-history-ingest
+/.claude/skills/copilot-history-ingest
+/.claude/skills/cross-linker
+/.claude/skills/daily-update
+/.claude/skills/graph-colorize
+/.claude/skills/hermes-history-ingest
+/.claude/skills/impl-validator
+/.claude/skills/llm-wiki
+/.claude/skills/memory-bridge
+/.claude/skills/openclaw-history-ingest
+/.claude/skills/pi-history-ingest
+/.claude/skills/tag-taxonomy
+/.claude/skills/vault-skill-factory
+/.claude/skills/wiki-agent
+/.claude/skills/wiki-capture
+/.claude/skills/wiki-context-pack
+/.claude/skills/wiki-dashboard
+/.claude/skills/wiki-dedup
+/.claude/skills/wiki-digest
+/.claude/skills/wiki-export
+/.claude/skills/wiki-history-ingest
+/.claude/skills/wiki-import
+/.claude/skills/wiki-ingest
+/.claude/skills/wiki-lint
+/.claude/skills/wiki-query
+/.claude/skills/wiki-rebuild
+/.claude/skills/wiki-research
+/.claude/skills/wiki-setup
+/.claude/skills/wiki-stage-commit
+/.claude/skills/wiki-status
+/.claude/skills/wiki-switch
+/.claude/skills/wiki-synthesize
+/.claude/skills/wiki-update
+# Obsidian per-machine workspace state (keep app.json/appearance.json/graph.json)
+/wiki/.obsidian/workspace.json
+/wiki/.obsidian/workspace-mobile.json
+/wiki/.obsidian/workspace.json.bak
+/wiki/.trash/

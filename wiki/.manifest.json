@@ -1,0 +1,2739 @@
+{
+  "version": 1,
+  "vault_path": "/home/oriol/iotgw-ng/wiki",
+  "created": "2026-06-26 00:00",
+  "updated": "2026-06-26",
+  "note": "Full backlog ingested in two passes. Pass 1: backlog/decisions + backlog/docs + backlog/archive/milestones (the high-authority backbone). Pass 2: backlog/tasks + backlog/completed + backlog/archive/tasks (transactional task history distilled into 7 synthesis epic/feature-history pages + 1 journal snapshot, and merged as provenance into the backbone pages). NOTE: backlog/completed and backlog/archive/tasks contain duplicate task-NNN stems (parallel doc-writing vs feature series, and the archived deployments epic); sources are keyed by full relative path so collisions are avoided. All task files are status=Done. The m-0 milestone is an empty placeholder (no page).",
+  "sources": {
+    "backlog/decisions/decision-001 - Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2723,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:27ca948941fd0c484a41b057d5a13d2169340166ec5b8a5c03e2ae37bc951c79",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/iotgw-ui-architecture.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/iotgw-ui-architecture.md"
+    },
+    "backlog/decisions/decision-002 - Backend-Architecture-Fastify-and-tRPC-API-Design.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2695,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:6a93750dcba5d2b25ebcbefc05a73b59704c4b3bf03efc8044efdc213eadc8dc",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/iotgw-ui-architecture.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/iotgw-ui-architecture.md"
+    },
+    "backlog/decisions/decision-003 - Database-and-Infrastructure-Supabase-PostgreSQL-Choice.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3184,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:4a352e7ffe0a1bf02886bade7710645249bf7ab41f05043af9196b6766aa8ad2",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "entities/supabase.md",
+        "concepts/iotgw-ui-architecture.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: entities/supabase.md, concepts/iotgw-ui-architecture.md"
+    },
+    "backlog/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3278,
+      "modified_at": 1782104138,
+      "content_hash": "sha256:fb00426973a5334f70a20568372eb55347c0054c00c4420ca9d31b69736ee76c",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/iotgw-ui-architecture.md",
+        "concepts/monorepo-organization.md",
+        "skills/iotgw-ui-development-workflow.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/iotgw-ui-architecture.md, concepts/monorepo-organization.md, skills/iotgw-ui-development-workflow.md"
+    },
+    "backlog/decisions/decision-005 - Development-Tooling-Build-and-Development-Experience.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3548,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:e377dba08f16292c8f2bdd56ee2adf6606248314fc20008ceee3a3a6f4771d52",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/iotgw-ui-architecture.md",
+        "skills/iotgw-ui-development-workflow.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
+    },
+    "backlog/decisions/decision-006 - Testing-Framework-Vitest-Choice.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2614,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:7e7d88335d64c2114b8fb22dc815b81b0f302f7271343659e629d6f95ca664ea",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/iotgw-ui-architecture.md",
+        "skills/testing-with-vitest.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/iotgw-ui-architecture.md, skills/testing-with-vitest.md"
+    },
+    "backlog/decisions/decision-009 - TOTP-Authentication-for-Device-VPN-Access.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 11346,
+      "modified_at": 1763451913,
+      "content_hash": "sha256:a37ee8c790d265f8148895a3044049e70bc5f8938a2110e3888e5e0c8da1eeb7",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/totp-device-vpn-auth.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/totp-device-vpn-auth.md"
+    },
+    "backlog/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 12902,
+      "modified_at": 1782104138,
+      "content_hash": "sha256:e140deb86948d1119004daeb204cb4eafd54660efd30f668e397c4f7b8526103",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/ssh-key-management-kms.md",
+        "entities/cosmian-kms.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/ssh-key-management-kms.md, entities/cosmian-kms.md"
+    },
+    "backlog/decisions/decision-011 - Debug-Logging-Configuration.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3259,
+      "modified_at": 1780288952,
+      "content_hash": "sha256:93dceb16cd12c7f7c135e235441a0bb7a3a45878ce815977a115b2994975c6be",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/iotgw-ui-architecture.md",
+        "skills/iotgw-ui-development-workflow.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
+    },
+    "backlog/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 10624,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:16a0a8402f2de9c3b0de970191d592887fa38575aeab3ddc0e62a7dabf126041",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/monorepo-organization.md",
+        "synthesis/netmaker-collection-externalization.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/monorepo-organization.md, synthesis/netmaker-collection-externalization.md"
+    },
+    "backlog/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 6495,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:ff7b8b471d11a2028e3652c2afec46e200683ea8c30fe4626399c1eec1d2f476",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/monorepo-organization.md",
+        "entities/ingress-nginx.md",
+        "synthesis/netmaker-collection-externalization.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/monorepo-organization.md, entities/ingress-nginx.md, synthesis/netmaker-collection-externalization.md"
+    },
+    "backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 9614,
+      "modified_at": 1782104138,
+      "content_hash": "sha256:5f4ac6941900104bc4b4992e9f9cb46734304102b820663b9e59b510ce25641d",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/secrets-management-sops-age.md",
+        "synthesis/secret-exposure-rotation-runbook.md",
+        "skills/deploy-on-kind.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/secrets-management-sops-age.md, synthesis/secret-exposure-rotation-runbook.md, skills/deploy-on-kind.md"
+    },
+    "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 6351,
+      "modified_at": 1782104138,
+      "content_hash": "sha256:9a09ef441a04e6ebd28397969bd02f423a41d88dd769d8cc6a1fa897189bf894",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/kubernetes-migration-kind.md",
+        "entities/kind.md",
+        "entities/cosmian-kms.md",
+        "entities/ingress-nginx.md",
+        "references/service-ports-and-namespaces.md",
+        "skills/deploy-on-kind.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/kubernetes-migration-kind.md, entities/kind.md, entities/cosmian-kms.md, entities/ingress-nginx.md, references/service-ports-and-namespaces.md, skills/deploy-on-kind.md"
+    },
+    "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 29022,
+      "modified_at": 1782104138,
+      "content_hash": "sha256:7d534785d85f7a0484ce57a219a17a08b284272296ff004dffdad8d5b36a2426",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/provisioning-call-chain.md",
+        "entities/edge-functions.md",
+        "entities/netmaker.md",
+        "entities/kestra.md",
+        "entities/supabase.md",
+        "synthesis/docker-compose-decommission.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/provisioning-call-chain.md, entities/edge-functions.md, entities/netmaker.md, entities/kestra.md, entities/supabase.md, synthesis/docker-compose-decommission.md"
+    },
+    "backlog/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3936,
+      "modified_at": 1782104138,
+      "content_hash": "sha256:ff81e1278ca6ea37b51b7b5ae7dc31ef5bd6b1579e3b79dd335264220fc44887",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/docker-compose-decommission.md",
+        "concepts/kubernetes-migration-kind.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: synthesis/docker-compose-decommission.md, concepts/kubernetes-migration-kind.md"
+    },
+    "backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 5613,
+      "modified_at": 1782104138,
+      "content_hash": "sha256:59006b5bb4fbf5e030260414e19b3e8bbffedc6a6fdc06935fedb0b868c42858",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "entities/stackgres.md",
+        "entities/supabase.md",
+        "synthesis/docker-compose-decommission.md",
+        "entities/kind.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: entities/stackgres.md, entities/supabase.md, synthesis/docker-compose-decommission.md, entities/kind.md"
+    },
+    "backlog/decisions/decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4133,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:231d7993014d82bf597bb6a36fd16221ba984b0ca87cd69d515852a9085a0c08",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "entities/headlamp.md",
+        "entities/keycloak.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: entities/headlamp.md, entities/keycloak.md"
+    },
+    "backlog/decisions/decision-020 - Namespace-per-subproject-topology.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 5855,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:0de4a998a16755bec4816100658490974383beb63537caef12cd37ff26419838",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/namespace-per-subproject.md",
+        "references/service-ports-and-namespaces.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/namespace-per-subproject.md, references/service-ports-and-namespaces.md"
+    },
+    "backlog/decisions/decision-021 - Container-image-CI-CD-and-ghcr.io-i40sys-conventions.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 8543,
+      "modified_at": 1782362950,
+      "content_hash": "sha256:8e05373f5b8ba1dcd6f17cc51ebd36dedc10682c845818ed2e67c1102d95b904",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "references/container-image-cicd.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: references/container-image-cicd.md"
+    },
+    "backlog/decisions/decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 6084,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:f9a2acb79aea2ba913d6f2cceb64c37ca6e0c8de22c5a31207f268912514472e",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/netmaker-collection-externalization.md",
+        "entities/netmaker.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: synthesis/netmaker-collection-externalization.md, entities/netmaker.md"
+    },
+    "backlog/docs/doc-002 - Testing-Strategies-and-Patterns.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 26727,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:4089731e0a0328d5f7309c07b555b8dd4a891f385a1c4582f9e3be260b6303c5",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "skills/testing-with-vitest.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: skills/testing-with-vitest.md"
+    },
+    "backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 19439,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:b4be442d0938f81b223ab59f8ffcef2404ead9e6312b80c3be25b051ffbcf9d2",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "entities/supabase.md",
+        "concepts/iotgw-ui-architecture.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: entities/supabase.md, concepts/iotgw-ui-architecture.md"
+    },
+    "backlog/docs/doc-005 - tRPC-API-Development-Patterns.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 44618,
+      "modified_at": 1763376986,
+      "content_hash": "sha256:a1780a74491536f4fc471901316117cfaea07f8880ff88b78c30b3603de7e132",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/iotgw-ui-architecture.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/iotgw-ui-architecture.md"
+    },
+    "backlog/docs/doc-006 - React-Component-Development-Guidelines.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 41342,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:7f89ff591fa25794ff47ea6f4ff32f90d5bc2d2eeff05bf2c2c29988c95736ab",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/iotgw-ui-architecture.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/iotgw-ui-architecture.md"
+    },
+    "backlog/docs/doc-007 - Workspace-Development-Workflow.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 20638,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:76a245c10091f61fdc6da5f3172fe8ff8b5f092666f4cd052c764cabb9c90fbe",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "skills/iotgw-ui-development-workflow.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: skills/iotgw-ui-development-workflow.md"
+    },
+    "backlog/docs/doc-008 - Domains-Networks-and-Devices-Architecture.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 9820,
+      "modified_at": 1782104138,
+      "content_hash": "sha256:0379a7249d895344f33f1aaaa66d7ee6a02f0fe1d45d6fb652dd3bbf64944d42",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/domains-networks-devices.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/domains-networks-devices.md"
+    },
+    "backlog/docs/doc-009 - Testing-with-Vitest.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 18297,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:b1fbcc5950a301f6122f921da5bfaab15611211978f4768773582414d45b9875",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "skills/testing-with-vitest.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: skills/testing-with-vitest.md"
+    },
+    "backlog/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 7637,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:6afbc5fd4117af14f24035dc3341d5206d02d8de6305e4e2d594801c5a9b4c00",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "references/database-migrations-webhooks.md",
+        "concepts/provisioning-call-chain.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: references/database-migrations-webhooks.md, concepts/provisioning-call-chain.md"
+    },
+    "backlog/docs/doc-011 - Deployment-Section-Redesign-Interface-Specification.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4427,
+      "modified_at": 1764138392,
+      "content_hash": "sha256:08bde3d8eb47d2b82c1bf2dfe6a826979affce6311cafaa0db615ec77fc0039f",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "references/deployments-page-behavior.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: references/deployments-page-behavior.md"
+    },
+    "backlog/docs/doc-013 - Deployments-Page-Behavior-Specification.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 8588,
+      "modified_at": 1764741161,
+      "content_hash": "sha256:60d73b7de2d2a6a11e4bff752cc796f8578e40f9bdf114c36a545ff357882076",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "references/deployments-page-behavior.md",
+        "entities/kestra.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: references/deployments-page-behavior.md, entities/kestra.md"
+    },
+    "backlog/docs/doc-014 - OpenWRT Wireguard.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2160,
+      "modified_at": 1782104138,
+      "content_hash": "sha256:d955d4dbfc603a92b261da1571619ffd57f9cc6480b587881cc3dcd6d5dc83b9",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "references/openwrt-wireguard-config.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: references/openwrt-wireguard-config.md"
+    },
+    "backlog/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 18572,
+      "modified_at": 1780288944,
+      "content_hash": "sha256:628a96451eaec077f36fac8bb2682ca8e9fd465edf82440dd694085e01110aee",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/iotgw-ui-architecture.md",
+        "skills/iotgw-ui-development-workflow.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
+    },
+    "backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 8813,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:b831f1c2c3ee2f93b635de464ce2ce08fc88bb736836fa877d95973dbd9defca",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "concepts/provisioning-call-chain.md",
+        "entities/netmaker.md",
+        "entities/kestra.md",
+        "entities/edge-functions.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: concepts/provisioning-call-chain.md, entities/netmaker.md, entities/kestra.md, entities/edge-functions.md"
+    },
+    "backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 10589,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:d49fbefe8f53eb0da36723cb420e54d7f0019767c596831a4fd94c95cfb4a0db",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "entities/headlamp.md",
+        "entities/keycloak.md",
+        "entities/ingress-nginx.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: entities/headlamp.md, entities/keycloak.md, entities/ingress-nginx.md"
+    },
+    "backlog/docs/netmaker-credential-handling.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4628,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:edc5780e5160b9700b44dc082b5aa53d8e9921222c56d17ba6b23e52d5533297",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "entities/netmaker.md",
+        "synthesis/secret-exposure-rotation-runbook.md",
+        "synthesis/netmaker-collection-externalization.md"
+      ],
+      "pages_updated": [],
+      "note": "produced: entities/netmaker.md, synthesis/secret-exposure-rotation-runbook.md, synthesis/netmaker-collection-externalization.md"
+    },
+    "backlog/archive/milestones/m-0 - test.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 63,
+      "modified_at": 1782104138,
+      "content_hash": "sha256:a05750c11037b544becac50016b875c40278b6f8e7dad8c5a0d19b905dcbe65e",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [],
+      "note": "empty placeholder milestone \u2014 skipped (no page produced)"
+    },
+    "backlog/tasks/task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3392,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:cac729232c3d36f2c12913f4ca86ed8157c47ff046bb0f3727bad58c8671fac9",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/kestra-k8s-runner.md",
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [
+        "entities/kestra.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/kestra-k8s-runner.md, synthesis/k8s-migration-epic.md, entities/kestra.md"
+    },
+    "backlog/tasks/task-055 - Re-point-pg_net-webhook-URLs-to-in-cluster-Service-for-k8s.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3858,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:8165a51a24e3fdae41f54688210a886e51d50ede164fa5ab5918c10e2221e115",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [
+        "concepts/provisioning-call-chain.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md, concepts/provisioning-call-chain.md"
+    },
+    "backlog/tasks/task-056 - Adopt-supabase-kubernetes-Helm-chart-for-the-full-Supabase-data-plane.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 6061,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:368e14cc847713135b658ac773c0f45fb2ca6dc5fa82de5424106c70bed77393",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-057 - Add-authentication-NetworkPolicy-to-Cosmian-KMS.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3242,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:ec93135d8b854b4297ff380cf880195f3c0adbccb50712150c782d0cd3c26b78",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/ssh-key-kms-epic.md",
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [
+        "entities/cosmian-kms.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/ssh-key-kms-epic.md, entities/cosmian-kms.md, synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.01 - Authorize-docker-compose-decommission-supersede-the-parallel-paths-ADR-stance.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1872,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:17472989eeb835470ec0fb2f97d88dde1c4f3deaeef271224a91ac998d5123e7",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.02 - Refresh-the-deploy-README-validation-matrix-for-the-kind-deployed-Supabase-app-tier.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2892,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:8090d1daa698ed51b6e9bb2ea7f7cf91b1762b292fd1d7da69098f4dd35783ac",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.03 - Bake-or-git-sync-the-Supabase-edge-functions-image-and-automate-it-in-bootstrap-CI.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2763,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:0af17324dd1f2099cb355392a8c30c1b06ce2c3342917274b32941b7240594e1",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.04 - Validate-the-Supabase-app-tier-kong-auth-rest-meta-functions-on-kind-and-resolve-compose-caveats.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4897,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:7677caad1889d40aff3fec5acbf0258200c8e789918d9d4e58a5aa876cbacd72",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.05 - Migrate-Kestra-flow-source-KV-store-into-the-k8s-Postgres.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2447,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:e4785d8f76860f5fa0c495e78061a44dda5e188baf29ff065644188724c0fbf3",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.06 - Restore-Kestra-Gemini-AI-config-and-management-port-parity-in-k8s.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2401,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:9d7a46f3527eaa595e22537348f96ef9b3341c12e4af9d05df24c00c043f2df2",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.07 - Migrate-persistent-data-from-compose-bind-mount-volumes-into-k8s-PVCs.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4488,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:35a2c49183a367dc71a6363ea9145a5514f312bb9d14f096febaf395bf8e76ed",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.08 - Containerize-and-deploy-iotgw-ui-frontend-backend-to-k8s.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3587,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:a743f377cfe0a2c66e2505b7700e3a55b2f01d0c40b00e08599d6c4c8907a71c",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.09 - Make-ingress-nginx-and-TLS-reproducible-via-kustomize-bootstrap-not-an-imperative-apply.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2825,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:a4d05bb8c684276903be44f792745db432ad860172ab7739fee2183b10e01265",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.10 - Extend-verify.sh-kind-smoke-to-cover-the-Supabase-API-path-netmaker-call-and-iotgw-ui.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3199,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:3079fa7f66743ad62a8ae9ac4c4ae274ef7da9ba3ca6c758ea996415319bfc90",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.11 - End-to-end-validate-the-full-stack-on-kind-at-parity-with-compose.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4139,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:9777ff81d49aabce13e7729cab53c22fe71026618cd7a41d102172de14da41d0",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.12 - Stage-compose-files-to-a-deprecated-location-for-one-milestone-before-hard-deletion-reversible-cutover.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2903,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:266761372da3347c18fada3b5253d2aa5a3dcc5b388832268b19346886b0d107",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.13 - Rewire-justfile-verify.sh-and-the-secrets-render-flow-to-make-k8s-the-sole-bring-up.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2852,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:433ca7828500617ead077bfbd0ee3a578d08683e29a0c9583f07b361ea689e55",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.14 - Rewrite-compose-coupled-docs-to-a-k8s-first-workflow.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3344,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:e68d1cc13e15d2468d1c841bbb4a73d5e041e41db12ac6c60841daf1cfab3f53",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.15 - TERMINAL-delete-all-docker-compose-files-helper-scripts-and-the-ssh-test-harness.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4454,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:dbaf7c3f0b86866362eb110fe52a589dad62e1de03358ba1866f73ae26ce80f4",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.16 - SPIKE-blocking-go-no-go-prove-pg_net-Supabase-initdb-fire-on-a-StackGres-SGCluster-PG15.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 6693,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:ce7f234ec6c804c324e3c03c9585c32daf07ddce106dddf3d116f9e1429d74b4",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.17 - ADR-adopt-StackGres-for-the-Postgres-tier-devprod-\u2014-direct-primary-kustomize-stateless-tier-CNPG-fallback.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2818,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:f121c399265a29d918b0606218df8586d932effe507f06d9d616a1510017959d",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md"
+    },
+    "backlog/tasks/task-062.18 - Define-and-implement-the-edge-function-\u2192-Kestra-durable-execution-handoff-contract.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4635,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:694832cc8ff0763faa6aec23a2d9d40222051f81e204c0df70078e1a23288eec",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md"
+      ],
+      "pages_updated": [
+        "entities/edge-functions.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md, entities/edge-functions.md"
+    },
+    "backlog/tasks/task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3561,
+      "modified_at": 1782105771,
+      "content_hash": "sha256:a7c8bea91b2551f834509fa1d98c4bc77a4b79eaef6b479101240c21c4b6f61d",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/k8s-migration-epic.md",
+        "journal/2026-06-26.md"
+      ],
+      "pages_updated": [
+        "synthesis/docker-compose-decommission.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/k8s-migration-epic.md, synthesis/docker-compose-decommission.md, journal/2026-06-26.md"
+    },
+    "backlog/tasks/task-063 - Deploy-Headlamp-Kubernetes-dashboard-into-the-kind-cluster.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2918,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:070aec6fd45dffaeb5aff2944f7389213195266978436a11be05c9d0e01592d4",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "journal/2026-06-26.md"
+      ],
+      "pages_updated": [
+        "entities/headlamp.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: entities/headlamp.md, journal/2026-06-26.md"
+    },
+    "backlog/tasks/task-064.01 - Author-ADR-decision-020-ratifying-the-namespace-per-subproject-topology.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2143,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:27f27ad1dafe043b51a9eb04a049aa876bb79e0bb01ec3d926cf8b1f4d057e2c",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.02 - Decide-whoamis-home-drop-dedicated-ns-or-move-to-iotgw-ui-and-capture-the-deny-path-replacement.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1953,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:102d55c71cd6b1aabe734ff6346e65f6b502e6dc1361328f7edce999aee48bf4",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.03 - Restructure-kustomize-into-per-subproject-namespaces-and-delete-the-global-iotgw-transformer-Namespace.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3103,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:109e529ad049e622d0d472ca079a9e8aaa51869af85f41168c64e4e0cce91336",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.04 - Rework-the-KMS-NetworkPolicy-for-cross-namespace-clients-AND-combined-selectors.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2365,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:4ae94bdcdbf7a62b45261859b523db5802ecfc0c75b6deacd1040ebef691403b",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.05 - Repoint-supabase-app-service-references-to-cross-namespace-FQDNs-DB-kestra.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2395,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:a844703559ac644fc2f1e2cd1db28ae0bea645eac4f05787af875a529910bf3b",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.06 - Repoint-iotgw-ui-backend-service-references-to-cross-namespace-FQDNs-kong-KMS-backend-code-fallbacks.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2206,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:f1a8e54e9d28854d532b9256bdfe71750b6690e2c12be400e55b7bba1b4d28a5",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.07 - Move-rename-Kestra-RBAC-and-repoint-the-Gitea-synced-PodCreate-runner-namespace-to-kestra.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3583,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:f0dc4afbcd993c21b84678855f225caba96653e9e1a6f47662e53c26a047194c",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md",
+        "synthesis/kestra-k8s-runner.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md, synthesis/kestra-k8s-runner.md"
+    },
+    "backlog/tasks/task-064.08 - Relocate-NodePort-services-into-their-target-namespaces.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2303,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:a8c459009896359549cf3e07908f10e5393a89e7fd8241a8ed6069eab334e836",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.09 - Move-Ingresses-into-their-backend-namespaces-and-replicate-the-wildcard-TLS-Secret.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2451,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:979535064c02a9cec231ad3e62807a74d60a5a35c0a180efe3bbea0f43a342b9",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.10 - Add-a-forward-migration-repointing-the-live-pg_net-webhook-triggers-to-the-kong-FQDN.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2951,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:c200c265d2905f085b71ece0496bad37e11760b028f57e859b4595dcc8dd1a58",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.11 - Split-per-namespace-secret-creation-and-namespace-bootstrap-in-tooling-bootstrap.sh-secrets.sh-justfile.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2681,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:b25f5d57d4006041a690d0fd258a4cbb327f63b90f0637e57a8336745e46aa9b",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.12 - Confirm-StackGres-SGCluster-generated-secret-initdb-placement-in-supabase-db.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2464,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:c528321031b0dcbf6fbe9a9a59792416bfd71098cdab2fbcc82970072bfa8548",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.13 - Rewire-justfile-recipes-verify.sh-and-e2e-smoke-to-the-new-namespaces.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2221,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:9b14e260027594468824dfb541ddf37bf57640ba8bddac6a5d0abf8a52bce6a6",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.14 - Update-all-docs-runbooks-CLAUDE.md-Service-Ports-tables-and-memory-for-the-per-namespace-layout.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2817,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:32e9969cdeb11aa987afa16dc76f27ef0d913c71dcf1ab1924f2f6c78bfc498f",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064.15 - Terminal-end-to-end-validation-of-the-namespace-split-gated-on-all-work.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3863,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:640f87ab75b4fda13d45b348f5e52d8e8752ca04e7b5a7caba83b448e23c2e24",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md"
+    },
+    "backlog/tasks/task-064 - Epic-Namespace-per-subproject-split-iotgw-becomes-the-cluster-not-a-namespace.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 5307,
+      "modified_at": 1782199989,
+      "content_hash": "sha256:071b8dfe2d865bd4e04605b0c8cba44f801c15ac2c55cbdad091529ac211c35b",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/namespace-split-epic.md",
+        "journal/2026-06-26.md"
+      ],
+      "pages_updated": [
+        "concepts/namespace-per-subproject.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/namespace-split-epic.md, concepts/namespace-per-subproject.md, journal/2026-06-26.md"
+    },
+    "backlog/tasks/task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 9527,
+      "modified_at": 1782467287,
+      "content_hash": "sha256:de7c25f5f0dba96f9f524755ace538ec659a478e456084a9a7d9c456d729ea78",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/kestra-k8s-runner.md"
+      ],
+      "pages_updated": [
+        "entities/kestra.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/kestra-k8s-runner.md, entities/kestra.md"
+    },
+    "backlog/tasks/task-066 - Make-Kestra-flow-namespace-kestra-durable-against-sync-namespace-files-Gitea-source.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3196,
+      "modified_at": 1782401240,
+      "content_hash": "sha256:84e7c76d556e4689999f2b7024f260e490205aec05d08bc98881a618139d857a",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/kestra-k8s-runner.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/kestra-k8s-runner.md"
+    },
+    "backlog/tasks/task-067.01 - ADR-container-image-CI-CD-ghcr.io-i40sys-conventions.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4644,
+      "modified_at": 1782376328,
+      "content_hash": "sha256:24c5effef3001c4e1debe9705f0315f488dc7033565c8d22e696f8db4cffbaab",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.02 - Remove-BACKUP-and-relocate-the-reversibility-net-before-the-i40sys-migration.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4485,
+      "modified_at": 1782376328,
+      "content_hash": "sha256:c85a4c5034f451f771f1153fd3a4816beb12535a69a27e7f54d71b4cda4fafc0",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.03 - Full-working-tree-git-history-secret-audit-and-remediation-gate.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4764,
+      "modified_at": 1782376328,
+      "content_hash": "sha256:80f0261c806f9a964309afba1b48b4ed3c46486653d8c7535201a7933a3a7898",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.04 - Secret-scanning-CI-gate-gitleaks-GitHub-native-secret-scanning-push-protection.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4116,
+      "modified_at": 1782376328,
+      "content_hash": "sha256:95b711969fd04979281a8bd9f97af6d3098a354bf56b0b589e7a4d2313242d4a",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.05 - Set-up-the-i40sys-GitHub-repo-ghcr-packages-and-Actions-permissions-secrets.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4131,
+      "modified_at": 1782376367,
+      "content_hash": "sha256:b23e70a93ba7871529979940d0d4f14f18352b3c1d360dc0866a27bda61faeed",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.06 - Reusable-build-and-push-workflow-workflow_call-for-ghcr.io-i40sys-images.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4856,
+      "modified_at": 1782376329,
+      "content_hash": "sha256:484a6c49ffc00b1349b05f4a8c7002d5e5bf6b23cb2fd2c33ff78783e9da2092",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.07 - iotgw-ui-backend-image-pipeline-caller-workflow-path-filters.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4248,
+      "modified_at": 1782376329,
+      "content_hash": "sha256:af7fe0fef01e0f3aa2096ee4ad6685fc237e43e582bd171fabcc7b8164ba35b8",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.08 - iotgw-ui-frontend-image-pipeline-caller-workflow-path-filters-VITE_API_URL-build-arg.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4333,
+      "modified_at": 1782376367,
+      "content_hash": "sha256:82ea1c64cf7daf182639f8dac8861ae75c671e7d54d16c8cf731e96bcf2eee66",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.09 - iotgw-functions-image-pipeline-caller-workflow-path-filters-context-supabase-volumes.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4016,
+      "modified_at": 1782376367,
+      "content_hash": "sha256:19be06a4665a91349d5827d4bf128fc5f91096e6139248fff5a0f36d00c2da3f",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.10 - Trivy-vulnerability-scan-SARIF-upload-to-GitHub-code-scanning-for-all-3-images.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4584,
+      "modified_at": 1782376367,
+      "content_hash": "sha256:051483fda5be35f7a4bb0156b162bed257bfc3cfd94b7d590fef24017271c6a9",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.11 - SBOM-SPDX-SLSA-provenance-attestations-attached-to-each-ghcr-image-by-digest.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4606,
+      "modified_at": 1782376367,
+      "content_hash": "sha256:b5993f59d419829cddf162182c28cebf6eb7a36cc7f561e046c49a589488ef97",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.12 - Cosign-keyless-OIDC-signing-of-each-image-digest-documented-verify-command.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3960,
+      "modified_at": 1782376368,
+      "content_hash": "sha256:bb3bc7c45fd5f992854ec592dc2e9c30b425bdff8a900bf6ca382d6a8428a46c",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.13 - Wire-the-prod-overlay-to-ghcr.io-i40sys-images-pinned-by-digest-resolve-task-062.03.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 5065,
+      "modified_at": 1782376368,
+      "content_hash": "sha256:ec67e32fb44dd889d7d5fefed7017bd4d4bd662d3fa7b24096e9266122adf91c",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.14 - Add-an-opt-in-ghcr-pull-path-to-bootstrap.sh-and-the-kind-overlay-default-stays-build-local.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4537,
+      "modified_at": 1782376368,
+      "content_hash": "sha256:924949d7faa05ae4baf8378ace7fc90fc0223a432d0f1af48eea040cbce2fae0",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.15 - Docs-release-runbook-flip-deploy-README-status-update-CLAUDE.md-image-table-document-release-verify-flow.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4603,
+      "modified_at": 1782376368,
+      "content_hash": "sha256:a74661ddd659ca88decf672fdf4a5dc66cbb7aac232804cf8ee71e83e40764bb",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.16 - Post-public-secret-exposure-incident-literal-secret-tripwire-leak-credential-rotations.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 5651,
+      "modified_at": 1782374853,
+      "content_hash": "sha256:38dc345d1d56f2506bd50c082ec8797840a8c600af3b8304ea156382fd3acb95",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [
+        "synthesis/secret-exposure-rotation-runbook.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md, synthesis/secret-exposure-rotation-runbook.md"
+    },
+    "backlog/tasks/task-067.17 - Make-the-3-ghcr-packages-public-and-validate-unauthenticated-pull-cosign-verify.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2813,
+      "modified_at": 1782375425,
+      "content_hash": "sha256:8ab09db221d835c2c402ca44f54623e8a49430f5bf569e96edb4083d1ca140a9",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md"
+    },
+    "backlog/tasks/task-067.18 - Set-repo-var-PROD_VITE_API_URL-before-cutting-a-real-prod-frontend-release.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3475,
+      "modified_at": 1782377003,
+      "content_hash": "sha256:2430124a836d2c19ce7c3a99056fc470b2d3e20ccb4699664115ccf883d4c05d",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md",
+        "journal/2026-06-26.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md, journal/2026-06-26.md"
+    },
+    "backlog/tasks/task-067 - Epic-Container-image-CI-CD-GitHub-Actions-ghcr.io-i40sys.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4279,
+      "modified_at": 1782376328,
+      "content_hash": "sha256:20c70fb1ceef64fa9b1a9474e6c1abf832701046396706be2bd0d5602f36e307",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/image-cicd-epic.md",
+        "journal/2026-06-26.md"
+      ],
+      "pages_updated": [
+        "references/container-image-cicd.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/image-cicd-epic.md, references/container-image-cicd.md, journal/2026-06-26.md"
+    },
+    "backlog/tasks/task-068.01 - ADR-decision-022-re-externalize-the-netmaker-collection-adopt-the-existing-oriolrius-repo-as-canonical.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3512,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:85a8a5cb9b14a811455c2c7f729fb350407aa48144cafa58cb83497efe03f26d",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "synthesis/netmaker-collection-externalization.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/netmaker-collection-externalization.md"
+    },
+    "backlog/tasks/task-068.02 - Reconcile-the-monorepo-copy-against-the-standalone-repo-and-port-monorepo-only-changes-back.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3713,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:3d9546e67fa2967e5533010e515a41581e8dc5e62fc92d88a5348620ace52df0",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "synthesis/netmaker-collection-externalization.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/netmaker-collection-externalization.md"
+    },
+    "backlog/tasks/task-068.03 - Re-activate-and-validate-the-standalone-repos-Galaxy-publish-CI-and-public-repo-secret-hygiene.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3450,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:6e4b6e722a046de98dc8d5169ad8f1c7bb7925161a3d3e67a2baa6ffe7e23c85",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "synthesis/netmaker-collection-externalization.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/netmaker-collection-externalization.md"
+    },
+    "backlog/tasks/task-068.04 - Remove-ansible-netmaker-from-the-monorepo-and-resolve-the-now-empty-ansible-wrapper.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2508,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:00db51601a0f6652f1539b7135d898c028e92317cda062203e9c865c79349dea",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "synthesis/netmaker-collection-externalization.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/netmaker-collection-externalization.md"
+    },
+    "backlog/tasks/task-068.05 - De-wire-the-netmaker-secret-render-mapping-and-decide-the-fate-of-secrets-netmaker.enc.env.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4167,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:e56020f72a1ba5d94b3df99dcfe8548d4dfb092bc79c3cd19b4accd3a8c5ac43",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "synthesis/netmaker-collection-externalization.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/netmaker-collection-externalization.md"
+    },
+    "backlog/tasks/task-068.06 - Align-root-docs-README-root-CLAUDE.md-with-the-externalized-collection.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2423,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:e7359ca97fb5b451afe58944a976edc5ebe2acddcebb0e323f465ccf6b21d6ee",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "synthesis/netmaker-collection-externalization.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/netmaker-collection-externalization.md"
+    },
+    "backlog/tasks/task-068.07 - Re-align-cross-cutting-references-decisions-docs-kestra-edge-function-pointers-agent-definitions.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4394,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:0362b019a8a7afbb34254edf83bed20459cece671a97c0a2afb00f4433764296",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "synthesis/netmaker-collection-externalization.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/netmaker-collection-externalization.md"
+    },
+    "backlog/tasks/task-068.08 - Final-validation-verify-secrets-render-dangle-free-and-memory-CLAUDE-update-close-the-milestone.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3022,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:2a0da0fd1df26869094b3541a3bdbf48af70f030926857a3b11e475990626e49",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "synthesis/netmaker-collection-externalization.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/netmaker-collection-externalization.md"
+    },
+    "backlog/tasks/task-068 - Epic-Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 6570,
+      "modified_at": 1782399263,
+      "content_hash": "sha256:33cab1c4074c5a19817711d69c2aab1e80f72bc9acbb7a88470bf0869194b142",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "journal/2026-06-26.md"
+      ],
+      "pages_updated": [
+        "synthesis/netmaker-collection-externalization.md",
+        "concepts/monorepo-organization.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/netmaker-collection-externalization.md, concepts/monorepo-organization.md, journal/2026-06-26.md"
+    },
+    "backlog/tasks/task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 6208,
+      "modified_at": 1782449482,
+      "content_hash": "sha256:70b8791fe2666d0d995a247d26d28a5506f6715ce49a4a8d41b1a6226203c52a",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/kestra-k8s-runner.md",
+        "synthesis/ssh-key-kms-epic.md"
+      ],
+      "pages_updated": [
+        "concepts/ssh-key-management-kms.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/kestra-k8s-runner.md, synthesis/ssh-key-kms-epic.md, concepts/ssh-key-management-kms.md"
+    },
+    "backlog/completed/task-001 - Create-network_jobs-table-schema.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2565,
+      "modified_at": 1772429005,
+      "content_hash": "sha256:71b013b9c0c31e79c46605b0dd886fa5e1454dab86ac8f9f65210ecb8e888510",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-001 - Document-tRPC-API-Development-Patterns.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1094,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:c350b20e324009b787d6631115dbfa32bfc244b2c7c246903d69e95af469167a",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "concepts/iotgw-ui-architecture.md",
+        "skills/iotgw-ui-development-workflow.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
+    },
+    "backlog/completed/task-002 - Create-RPC-functions-for-network_jobs-table.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2553,
+      "modified_at": 1761804804,
+      "content_hash": "sha256:4b616a344059d62b26a6e1fb6e4d8096efb803f4441d62e2b4119abfbce9bb49",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-002 - Document-React-Component-Development-Guidelines.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1154,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:0cca86aa19ace03063690ce03b53cfcc635932e48c92bd600a119b78673d0eb8",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "concepts/iotgw-ui-architecture.md",
+        "skills/iotgw-ui-development-workflow.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
+    },
+    "backlog/completed/task-003 - Create-UI-section-for-network_jobs.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2756,
+      "modified_at": 1761804804,
+      "content_hash": "sha256:4750bb4e3454ce1739741e684600676f5af472c80fb5e30b0f5e55830738998f",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-003 - Document-Supabase-RLS-Policy-Implementation-Patterns.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1189,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:095cb3b47453926a00565b6e2079975c882fe005d3a309a6d9aeca92f59a470e",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "concepts/iotgw-ui-architecture.md",
+        "skills/iotgw-ui-development-workflow.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
+    },
+    "backlog/completed/task-004 - Document-Workspace-Development-Workflow.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1108,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:d117a0d349e70838d76e514c6576cc894f315b65b8b50400aa0aaa0967eb6fe7",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "concepts/iotgw-ui-architecture.md",
+        "skills/iotgw-ui-development-workflow.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
+    },
+    "backlog/completed/task-004 - Research-automation-for-Kestra-notification-triggers.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 5016,
+      "modified_at": 1780288985,
+      "content_hash": "sha256:a5595066ea682289b9444e27756ee978ff1589a59ccb101d4a6cd84eb66ab501",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-005 - Document-IoT-Device-Integration-Patterns.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1156,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:6e01b27660891612ad3f5f13cdc16e234a4783a645a4bdefa0a2b532b4c66a7f",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "concepts/iotgw-ui-architecture.md",
+        "skills/iotgw-ui-development-workflow.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
+    },
+    "backlog/completed/task-005 - Refactor-deployment-page-to-use-tab-based-step-navigation.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2079,
+      "modified_at": 1764138889,
+      "content_hash": "sha256:7984a67888e29d59d9db29193af7f19b68ef30be137c60ac7d592a66d8fb480a",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-006 - Document-Testing-Strategies-and-Patterns.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1149,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:a06429ae3aeb9e3d60b5a67b26e385ad7606757d1f2efbffe5c7af42b9befa6b",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [],
+      "pages_updated": [
+        "concepts/iotgw-ui-architecture.md",
+        "skills/iotgw-ui-development-workflow.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
+    },
+    "backlog/completed/task-006 - Implement-Booting-Live-step-UI.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2524,
+      "modified_at": 1764221166,
+      "content_hash": "sha256:4fd63657002857fe44595bc4f959565b7ae12d0fab24ee4dd6ebabf010ecc74f",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-007 - Add-backend-procedure-for-device-connectivity-check.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2821,
+      "modified_at": 1764232246,
+      "content_hash": "sha256:9c2dc826709ac3299a9486d595b6bda2e3f56e334b80e632c7ab068af1281a44",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-007 - Create-domains-table-schema-and-migration.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1305,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:dce9f1cc8c014d37e4bc39b582a1dc420cd978fe5433eb74d87e5d12860d435f",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-008 - Add-domain-types-to-supabase-contract-package.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1179,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:bae2706eda563c523e264774f42007d8746841c3ef2886704fc47a983cf1be8f",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-008 - Implement-Check-Online-button-with-status-indicator.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2995,
+      "modified_at": 1764223773,
+      "content_hash": "sha256:2ca3516fc0c5275ac235a3a449237d72c085a0a06b808925433b77be198e0845",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-009 - Implement-domains-backend-API-router.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1356,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:c9ff1dd8b8c77e3725b92f53e86c88cb943addf2d769d6bdc5291718c4d3a58f",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-009 - Implement-O.S.-Installation-step-with-form-JSON-toggle.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2766,
+      "modified_at": 1764566550,
+      "content_hash": "sha256:19a78870bf9b9ffc68c9aef3afa4f051f7a476411c6a91607d02ce6e4aa217f9",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-010 - Implement-Rebooting-step-UI.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2026,
+      "modified_at": 1764567290,
+      "content_hash": "sha256:d07efffb9b74f9e2240ea31fc3cd2a7aff63da851aef03bda8025f496c2ba6d3",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-010 - Register-domains-router-in-main-tRPC-router.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1042,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:65f3aa4b8cbb8ab6e120e3d29c0f5bded71243acb782b52c9664c72a6a50fb23",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-011 - Add-domain-translations-to-i18n-locales.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1215,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:ddb6f06073eb442b44a525f1940845931cd63b7e7fe9ef64846afb3048791ed2",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-012 - Create-domains-route-and-page-component.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1324,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:b3b92f41aafdd94a1397362e7b8c6b4b28bcfb2ab2cb94dc122239d878946db6",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-013 - Create-domain-form-components-for-create-and-edit-operations.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1314,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:372af57e9c5036e66be150982ea0fa6eb152832697f0d0cc007a2d77bc36eae5",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-014 - Add-domains-navigation-item-to-navigation-bar.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1124,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:aa38a4a8f385da5472fa2354bf20cc8f78e962e7da1bb436075481f7f420b963",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-015 - Implement-domain-detail-view-with-edit-and-delete-functionality.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1410,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:e27d74b4b61e1107fe81f0461b95ceceeec6d4710bc2be368f51548d542ae3c0",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-016 - Add-comprehensive-error-handling-and-validation-for-domain-operations.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1446,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:942c2e58a80c610377a12cd9c5f51e7c2334c6781ef9da4eaae1bf67bce165f1",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-017 - Create-database-schema-migration-for-networks-table.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 754,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:f5bb4e1faa00b7df50c0a83e23c34638aae93d63188f1c663ecdd6c21add09e3",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-018 - Generate-database-types-for-networks-table.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 702,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:466ad2212b534fc79ba29a9fbe3fc2f51451a6d30445a2353923442e14f294d6",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-019 - Create-network-domain-types-in-shared-contract.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 665,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:85f4015dc412b9bb7221e21eeb9da600ecc861f358fe359d9be32bee038d3d21",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-020 - Implement-network-tRPC-router-with-CRUD-operations.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 798,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:90209fa5100c2d92c810accc229d01a3cc5d5647a22cf9e5d3e4b26f88dfa44c",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-021 - Create-network-list-component.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 743,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:18d90bbc39d01b3d03bd54f6ed161a581047cd868f85fe979d1e3e731dd1b723",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-022 - Convert-application-theme-from-black-gray-to-dark-blue-based-color-scheme.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 5443,
+      "modified_at": 1761804804,
+      "content_hash": "sha256:1f8e6b3118a9bfe5e0df08818103176c3d695990c5c5fc2eadfd06d631304463",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-022 - Create-network-form-component.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 748,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:68c2de9f1071d790c2b923ae72513542651d381fc7eef7e1520698205d5eee47",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-023 - Create-network-management-dialog-components.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 790,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:700446ae8e88f1e3901b38ea37fecf71439faa39bb01df019096945672251b87",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-023 - Replace-all-application-icons-with-Font-Awesome-icons-for-professional-appearance.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 5504,
+      "modified_at": 1761804804,
+      "content_hash": "sha256:c6ee86cbdb818df1bc89ea7dce60e6a175bd722cf23042edb716d0aee45d4ac0",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-024 - Create-network-management-hooks.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 801,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:7c83f8b4cfd735ceb69869af381d923418cedddcd5fd47e797ee2ef77370ab7e",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-025 - Integrate-networks-section-into-domain-detail-page.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 820,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:6e9b1cd504e739b37ca75eae7a080c92414c6708a7c2c88b36b3620b932a7926",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-026 - Add-network-count-to-domain-list-view.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 726,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:0282c28cf2c75d52cea19b7d5788e1d536f81597570c58a1749b58f3759c1123",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 5052,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:61bcb1ce4e2e34087072fd19480ed34ca20cf0d531571a03105c435dad89df33",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [
+        "concepts/domains-networks-devices.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md, concepts/domains-networks-devices.md"
+    },
+    "backlog/completed/task-028 - Fix-Supabase-row-level-security-for-database-queries.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2326,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:c8d627eeb400816b96d0dce25d275775b1f2dfaaa9109af669dd62f54a095985",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [
+        "concepts/domains-networks-devices.md",
+        "entities/supabase.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md, concepts/domains-networks-devices.md, entities/supabase.md"
+    },
+    "backlog/completed/task-029 - Remove-unused-menu-entries-and-associated-functionality.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2929,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:85cf052037e1cf30ed93b3a3ce9562b4c2cb42fcbd8b9e3a0713b5e6af1a2530",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-030 - Create-engaging-welcome-home-page-with-application-version-display.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3768,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:b02a737830f19fa76308a4d05a9babd5f57edf5bec64e5196583453025f1e0f5",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-031 - Add-search-filters-to-devices-view.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1262,
+      "modified_at": 1759390544,
+      "content_hash": "sha256:73b48278cbf32940b0d75cf5d5ed0732bb5415d5f0e3b387c2df725aafd3b48f",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/network-crud-and-jobs-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/network-crud-and-jobs-feature-history.md"
+    },
+    "backlog/completed/task-040 - Update-Kestra-devices-workflow-for-SSH-key-generation-in-KMS.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 8735,
+      "modified_at": 1772433813,
+      "content_hash": "sha256:d3df0aaeada64da22138e371f4047ee3da0a3e85bb4fcca80f13bfe63fa93cff",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/ssh-key-kms-epic.md"
+      ],
+      "pages_updated": [
+        "concepts/ssh-key-management-kms.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/ssh-key-kms-epic.md, concepts/ssh-key-management-kms.md"
+    },
+    "backlog/archive/tasks/task-001 - Create-database-schema-for-deployments-table.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2943,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:166f8feea2fb6a8b6dbd13c4fea7c09c9f141b397803e323f82b790fa0d4f34f",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [
+        "references/deployments-page-behavior.md"
+      ],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md, references/deployments-page-behavior.md"
+    },
+    "backlog/archive/tasks/task-002 - Implement-tRPC-procedures-for-deployments-CRUD-operations.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3675,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:ac4a406490e79795073274d3c8d49865e63f2f97cb74964679ec98666106098a",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-003 - Create-deployment-form-route-and-navigation-menu-entry.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2634,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:cc4f7b96b441b04afa2eaa0959380ab3450ff6b98ec700db88eb35127cd61fd9",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-004 - Build-device-selection-panel-with-domain-and-network-filters.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3499,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:730b813274d1ce4d882170a846c01fa1213bbd861ba0b197e6ff3b3dccaf7cc0",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-005 - Create-version-list-panel-for-deployment-configurations.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3374,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:07f676965a8b8e5072c51b19f57190eeb2535d8966542cf498273614a89d4164",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-006 - Integrate-JSON-editor-for-deployment-configuration.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3467,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:6d2ed5d52e8cb3bbedee232ab145edde294ffa940868a296c167f186b4393562",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-007 - Implement-deployment-actions-panel-with-version-and-save-controls.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4824,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:ce2ca2e0167eedbe2204f2ab5216576d1f88ba06e7476912874fff8854a6caef",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-008 - Add-unsaved-changes-detection-and-confirmation-dialogs.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3680,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:6d68fabeaf0536cbf90673e78fe5999cc8b3fcff676661a78047d5c75243ff28",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-009 - Implement-deployment-execution-functionality.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 5008,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:ea162e35c9f963ca828f2c1db7b4e7493239fd197b300c6122998ca7585b6335",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-010 - Create-deployment_jobs-database-table-and-migration.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4065,
+      "modified_at": 1761804803,
+      "content_hash": "sha256:f6b6a68fe1d79c430d96afa032881628fb041e55d7a84e299ea814e123dfa4cd",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-011 - Add-Supabase-RPC-functions-for-deployment-jobs-operations.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3985,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:2dda82404f87e0849ae6fa0554f2e345fefe3f588bbdddba71b97ecabad21577",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-012 - Update-deployment-execution-to-persist-jobs-to-database.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 4854,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:ef428bc45b807dae0a03c4440794fc5578f2e13c7602c4ed1cf1fa4d2d5f0b31",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-013 - Create-tRPC-procedures-for-deployment-jobs-queries.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3438,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:1fb895e6d0bfcd5b8fc7b4c8e272b623bd3efd35e51658e78fb5dba406d091ea",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-014 - Generate-TypeScript-types-for-deployment_jobs-table.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2383,
+      "modified_at": 1761804803,
+      "content_hash": "sha256:2c9075676ad6eed76b3ef7006cab0b6d71b9e20ca73c1f951b431cb74753a8f8",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-015 - Create-deployment-jobs-list-component.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3107,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:6270726e9f1c90a62bc9f2673b4325faa7b1caacb181b8bdd78ea87201b6955d",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-016 - Add-deployment-jobs-section-to-deployments-page.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2640,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:39b7123e6bf4e406fe1276cfd31661f96405ad1d8a9fdb242ce8234d15057a97",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-017 - Update-debug-view-to-work-with-deployment-jobs.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3019,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:b1904f5b216680d9341f7100192018f1c2653676f9bdc84a90ab09bc9745230a",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-018 - Add-i18n-translations-for-deployment-jobs-feature.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3054,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:2c703b9d1318c6f7400659120acd3831e92fdfe175497296c048319ba616fed1",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-019 - Add-auto-refresh-for-active-deployment-jobs.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 2870,
+      "modified_at": 1759390545,
+      "content_hash": "sha256:e7537e2aeab57f8950303d76bc9be1e28b6a24dfe30749945de9a6c48d71f1d5",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-020 - Improve-deployment-job-configuration-viewer.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 3836,
+      "modified_at": 1761804803,
+      "content_hash": "sha256:f92d2e5098268fdf176051e0c4d75ee74ffec3b118b5191070344d69919c584d",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    },
+    "backlog/archive/tasks/task-021 - Unify-styling-and-design-coherence-across-all-application-sections.md": {
+      "ingested_at": "2026-06-26",
+      "size_bytes": 1464,
+      "modified_at": 1761804803,
+      "content_hash": "sha256:5b225c3699bc91bc5fd87b781bcdce88b00d09e9aecb4b8dd6e8c8d85b514395",
+      "source_type": "document",
+      "project": "iotgw-ng",
+      "pages_created": [
+        "synthesis/deployments-feature-history.md"
+      ],
+      "pages_updated": [],
+      "note": "task (pass 2) \u2014 status Done; contributes to: synthesis/deployments-feature-history.md"
+    }
+  },
+  "pages": {
+    "concepts/domains-networks-devices.md": {
+      "sources": [
+        "backlog/docs/doc-008 - Domains-Networks-and-Devices-Architecture.md",
+        "backlog/completed/task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage.md",
+        "backlog/completed/task-028 - Fix-Supabase-row-level-security-for-database-queries.md"
+      ]
+    },
+    "concepts/iotgw-ui-architecture.md": {
+      "sources": [
+        "backlog/decisions/decision-001 - Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem.md",
+        "backlog/decisions/decision-002 - Backend-Architecture-Fastify-and-tRPC-API-Design.md",
+        "backlog/decisions/decision-003 - Database-and-Infrastructure-Supabase-PostgreSQL-Choice.md",
+        "backlog/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure.md",
+        "backlog/decisions/decision-005 - Development-Tooling-Build-and-Development-Experience.md",
+        "backlog/decisions/decision-006 - Testing-Framework-Vitest-Choice.md",
+        "backlog/decisions/decision-011 - Debug-Logging-Configuration.md",
+        "backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md",
+        "backlog/docs/doc-005 - tRPC-API-Development-Patterns.md",
+        "backlog/docs/doc-006 - React-Component-Development-Guidelines.md",
+        "backlog/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements.md",
+        "backlog/completed/task-001 - Document-tRPC-API-Development-Patterns.md",
+        "backlog/completed/task-002 - Document-React-Component-Development-Guidelines.md",
+        "backlog/completed/task-003 - Document-Supabase-RLS-Policy-Implementation-Patterns.md",
+        "backlog/completed/task-004 - Document-Workspace-Development-Workflow.md",
+        "backlog/completed/task-005 - Document-IoT-Device-Integration-Patterns.md",
+        "backlog/completed/task-006 - Document-Testing-Strategies-and-Patterns.md"
+      ]
+    },
+    "concepts/kubernetes-migration-kind.md": {
+      "sources": [
+        "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md",
+        "backlog/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime.md"
+      ]
+    },
+    "concepts/monorepo-organization.md": {
+      "sources": [
+        "backlog/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure.md",
+        "backlog/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository.md",
+        "backlog/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping.md",
+        "backlog/tasks/task-068 - Epic-Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo.md"
+      ]
+    },
+    "concepts/namespace-per-subproject.md": {
+      "sources": [
+        "backlog/decisions/decision-020 - Namespace-per-subproject-topology.md",
+        "backlog/tasks/task-064 - Epic-Namespace-per-subproject-split-iotgw-becomes-the-cluster-not-a-namespace.md"
+      ]
+    },
+    "concepts/provisioning-call-chain.md": {
+      "sources": [
+        "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md",
+        "backlog/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide.md",
+        "backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md",
+        "backlog/tasks/task-055 - Re-point-pg_net-webhook-URLs-to-in-cluster-Service-for-k8s.md"
+      ]
+    },
+    "concepts/secrets-management-sops-age.md": {
+      "sources": [
+        "backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md"
+      ]
+    },
+    "concepts/ssh-key-management-kms.md": {
+      "sources": [
+        "backlog/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS.md",
+        "backlog/tasks/task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3.md",
+        "backlog/completed/task-040 - Update-Kestra-devices-workflow-for-SSH-key-generation-in-KMS.md"
+      ]
+    },
+    "concepts/totp-device-vpn-auth.md": {
+      "sources": [
+        "backlog/decisions/decision-009 - TOTP-Authentication-for-Device-VPN-Access.md"
+      ]
+    },
+    "entities/cosmian-kms.md": {
+      "sources": [
+        "backlog/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS.md",
+        "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md",
+        "backlog/tasks/task-057 - Add-authentication-NetworkPolicy-to-Cosmian-KMS.md"
+      ]
+    },
+    "entities/edge-functions.md": {
+      "sources": [
+        "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md",
+        "backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md",
+        "backlog/tasks/task-062.18 - Define-and-implement-the-edge-function-\u2192-Kestra-durable-execution-handoff-contract.md"
+      ]
+    },
+    "entities/headlamp.md": {
+      "sources": [
+        "backlog/decisions/decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver.md",
+        "backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md",
+        "backlog/tasks/task-063 - Deploy-Headlamp-Kubernetes-dashboard-into-the-kind-cluster.md"
+      ]
+    },
+    "entities/ingress-nginx.md": {
+      "sources": [
+        "backlog/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping.md",
+        "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md",
+        "backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md"
+      ]
+    },
+    "entities/kestra.md": {
+      "sources": [
+        "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md",
+        "backlog/docs/doc-013 - Deployments-Page-Behavior-Specification.md",
+        "backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md",
+        "backlog/tasks/task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner.md",
+        "backlog/tasks/task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods.md"
+      ]
+    },
+    "entities/keycloak.md": {
+      "sources": [
+        "backlog/decisions/decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver.md",
+        "backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md"
+      ]
+    },
+    "entities/kind.md": {
+      "sources": [
+        "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md",
+        "backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md"
+      ]
+    },
+    "entities/netmaker.md": {
+      "sources": [
+        "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md",
+        "backlog/decisions/decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection.md",
+        "backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md",
+        "backlog/docs/netmaker-credential-handling.md"
+      ]
+    },
+    "entities/stackgres.md": {
+      "sources": [
+        "backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md"
+      ]
+    },
+    "entities/supabase.md": {
+      "sources": [
+        "backlog/decisions/decision-003 - Database-and-Infrastructure-Supabase-PostgreSQL-Choice.md",
+        "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md",
+        "backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md",
+        "backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md",
+        "backlog/completed/task-028 - Fix-Supabase-row-level-security-for-database-queries.md"
+      ]
+    },
+    "projects/iotgw-ng.md": {
+      "sources": [
+        "backlog/ (hub \u2014 links all backbone pages)"
+      ]
+    },
+    "references/container-image-cicd.md": {
+      "sources": [
+        "backlog/decisions/decision-021 - Container-image-CI-CD-and-ghcr.io-i40sys-conventions.md",
+        "backlog/tasks/task-067 - Epic-Container-image-CI-CD-GitHub-Actions-ghcr.io-i40sys.md"
+      ]
+    },
+    "references/database-migrations-webhooks.md": {
+      "sources": [
+        "backlog/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide.md"
+      ]
+    },
+    "references/deployments-page-behavior.md": {
+      "sources": [
+        "backlog/docs/doc-011 - Deployment-Section-Redesign-Interface-Specification.md",
+        "backlog/docs/doc-013 - Deployments-Page-Behavior-Specification.md",
+        "backlog/archive/tasks/task-001 - Create-database-schema-for-deployments-table.md"
+      ]
+    },
+    "references/openwrt-wireguard-config.md": {
+      "sources": [
+        "backlog/docs/doc-014 - OpenWRT Wireguard.md"
+      ]
+    },
+    "references/service-ports-and-namespaces.md": {
+      "sources": [
+        "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md",
+        "backlog/decisions/decision-020 - Namespace-per-subproject-topology.md"
+      ]
+    },
+    "skills/deploy-on-kind.md": {
+      "sources": [
+        "backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md",
+        "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md"
+      ]
+    },
+    "skills/iotgw-ui-development-workflow.md": {
+      "sources": [
+        "backlog/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure.md",
+        "backlog/decisions/decision-005 - Development-Tooling-Build-and-Development-Experience.md",
+        "backlog/decisions/decision-011 - Debug-Logging-Configuration.md",
+        "backlog/docs/doc-007 - Workspace-Development-Workflow.md",
+        "backlog/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements.md",
+        "backlog/completed/task-001 - Document-tRPC-API-Development-Patterns.md",
+        "backlog/completed/task-002 - Document-React-Component-Development-Guidelines.md",
+        "backlog/completed/task-003 - Document-Supabase-RLS-Policy-Implementation-Patterns.md",
+        "backlog/completed/task-004 - Document-Workspace-Development-Workflow.md",
+        "backlog/completed/task-005 - Document-IoT-Device-Integration-Patterns.md",
+        "backlog/completed/task-006 - Document-Testing-Strategies-and-Patterns.md"
+      ]
+    },
+    "skills/testing-with-vitest.md": {
+      "sources": [
+        "backlog/decisions/decision-006 - Testing-Framework-Vitest-Choice.md",
+        "backlog/docs/doc-002 - Testing-Strategies-and-Patterns.md",
+        "backlog/docs/doc-009 - Testing-with-Vitest.md"
+      ]
+    },
+    "synthesis/docker-compose-decommission.md": {
+      "sources": [
+        "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md",
+        "backlog/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime.md",
+        "backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md",
+        "backlog/tasks/task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind.md"
+      ]
+    },
+    "synthesis/netmaker-collection-externalization.md": {
+      "sources": [
+        "backlog/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository.md",
+        "backlog/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping.md",
+        "backlog/decisions/decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection.md",
+        "backlog/docs/netmaker-credential-handling.md",
+        "backlog/tasks/task-068.01 - ADR-decision-022-re-externalize-the-netmaker-collection-adopt-the-existing-oriolrius-repo-as-canonical.md",
+        "backlog/tasks/task-068.02 - Reconcile-the-monorepo-copy-against-the-standalone-repo-and-port-monorepo-only-changes-back.md",
+        "backlog/tasks/task-068.03 - Re-activate-and-validate-the-standalone-repos-Galaxy-publish-CI-and-public-repo-secret-hygiene.md",
+        "backlog/tasks/task-068.04 - Remove-ansible-netmaker-from-the-monorepo-and-resolve-the-now-empty-ansible-wrapper.md",
+        "backlog/tasks/task-068.05 - De-wire-the-netmaker-secret-render-mapping-and-decide-the-fate-of-secrets-netmaker.enc.env.md",
+        "backlog/tasks/task-068.06 - Align-root-docs-README-root-CLAUDE.md-with-the-externalized-collection.md",
+        "backlog/tasks/task-068.07 - Re-align-cross-cutting-references-decisions-docs-kestra-edge-function-pointers-agent-definitions.md",
+        "backlog/tasks/task-068.08 - Final-validation-verify-secrets-render-dangle-free-and-memory-CLAUDE-update-close-the-milestone.md",
+        "backlog/tasks/task-068 - Epic-Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo.md"
+      ]
+    },
+    "synthesis/secret-exposure-rotation-runbook.md": {
+      "sources": [
+        "backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md",
+        "backlog/docs/netmaker-credential-handling.md",
+        "backlog/tasks/task-067.16 - Post-public-secret-exposure-incident-literal-secret-tripwire-leak-credential-rotations.md"
+      ]
+    },
+    "synthesis/kestra-k8s-runner.md": {
+      "sources": [
+        "backlog/tasks/task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner.md",
+        "backlog/tasks/task-064.07 - Move-rename-Kestra-RBAC-and-repoint-the-Gitea-synced-PodCreate-runner-namespace-to-kestra.md",
+        "backlog/tasks/task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods.md",
+        "backlog/tasks/task-066 - Make-Kestra-flow-namespace-kestra-durable-against-sync-namespace-files-Gitea-source.md",
+        "backlog/tasks/task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3.md"
+      ]
+    },
+    "synthesis/k8s-migration-epic.md": {
+      "sources": [
+        "backlog/tasks/task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner.md",
+        "backlog/tasks/task-055 - Re-point-pg_net-webhook-URLs-to-in-cluster-Service-for-k8s.md",
+        "backlog/tasks/task-056 - Adopt-supabase-kubernetes-Helm-chart-for-the-full-Supabase-data-plane.md",
+        "backlog/tasks/task-057 - Add-authentication-NetworkPolicy-to-Cosmian-KMS.md",
+        "backlog/tasks/task-062.01 - Authorize-docker-compose-decommission-supersede-the-parallel-paths-ADR-stance.md",
+        "backlog/tasks/task-062.02 - Refresh-the-deploy-README-validation-matrix-for-the-kind-deployed-Supabase-app-tier.md",
+        "backlog/tasks/task-062.03 - Bake-or-git-sync-the-Supabase-edge-functions-image-and-automate-it-in-bootstrap-CI.md",
+        "backlog/tasks/task-062.04 - Validate-the-Supabase-app-tier-kong-auth-rest-meta-functions-on-kind-and-resolve-compose-caveats.md",
+        "backlog/tasks/task-062.05 - Migrate-Kestra-flow-source-KV-store-into-the-k8s-Postgres.md",
+        "backlog/tasks/task-062.06 - Restore-Kestra-Gemini-AI-config-and-management-port-parity-in-k8s.md",
+        "backlog/tasks/task-062.07 - Migrate-persistent-data-from-compose-bind-mount-volumes-into-k8s-PVCs.md",
+        "backlog/tasks/task-062.08 - Containerize-and-deploy-iotgw-ui-frontend-backend-to-k8s.md",
+        "backlog/tasks/task-062.09 - Make-ingress-nginx-and-TLS-reproducible-via-kustomize-bootstrap-not-an-imperative-apply.md",
+        "backlog/tasks/task-062.10 - Extend-verify.sh-kind-smoke-to-cover-the-Supabase-API-path-netmaker-call-and-iotgw-ui.md",
+        "backlog/tasks/task-062.11 - End-to-end-validate-the-full-stack-on-kind-at-parity-with-compose.md",
+        "backlog/tasks/task-062.12 - Stage-compose-files-to-a-deprecated-location-for-one-milestone-before-hard-deletion-reversible-cutover.md",
+        "backlog/tasks/task-062.13 - Rewire-justfile-verify.sh-and-the-secrets-render-flow-to-make-k8s-the-sole-bring-up.md",
+        "backlog/tasks/task-062.14 - Rewrite-compose-coupled-docs-to-a-k8s-first-workflow.md",
+        "backlog/tasks/task-062.15 - TERMINAL-delete-all-docker-compose-files-helper-scripts-and-the-ssh-test-harness.md",
+        "backlog/tasks/task-062.16 - SPIKE-blocking-go-no-go-prove-pg_net-Supabase-initdb-fire-on-a-StackGres-SGCluster-PG15.md",
+        "backlog/tasks/task-062.17 - ADR-adopt-StackGres-for-the-Postgres-tier-devprod-\u2014-direct-primary-kustomize-stateless-tier-CNPG-fallback.md",
+        "backlog/tasks/task-062.18 - Define-and-implement-the-edge-function-\u2192-Kestra-durable-execution-handoff-contract.md",
+        "backlog/tasks/task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind.md"
+      ]
+    },
+    "synthesis/ssh-key-kms-epic.md": {
+      "sources": [
+        "backlog/tasks/task-057 - Add-authentication-NetworkPolicy-to-Cosmian-KMS.md",
+        "backlog/tasks/task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3.md",
+        "backlog/completed/task-040 - Update-Kestra-devices-workflow-for-SSH-key-generation-in-KMS.md"
+      ]
+    },
+    "journal/2026-06-26.md": {
+      "sources": [
+        "backlog/tasks/task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind.md",
+        "backlog/tasks/task-063 - Deploy-Headlamp-Kubernetes-dashboard-into-the-kind-cluster.md",
+        "backlog/tasks/task-064 - Epic-Namespace-per-subproject-split-iotgw-becomes-the-cluster-not-a-namespace.md",
+        "backlog/tasks/task-067.18 - Set-repo-var-PROD_VITE_API_URL-before-cutting-a-real-prod-frontend-release.md",
+        "backlog/tasks/task-067 - Epic-Container-image-CI-CD-GitHub-Actions-ghcr.io-i40sys.md",
+        "backlog/tasks/task-068 - Epic-Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo.md"
+      ]
+    },
+    "synthesis/namespace-split-epic.md": {
+      "sources": [
+        "backlog/tasks/task-064.01 - Author-ADR-decision-020-ratifying-the-namespace-per-subproject-topology.md",
+        "backlog/tasks/task-064.02 - Decide-whoamis-home-drop-dedicated-ns-or-move-to-iotgw-ui-and-capture-the-deny-path-replacement.md",
+        "backlog/tasks/task-064.03 - Restructure-kustomize-into-per-subproject-namespaces-and-delete-the-global-iotgw-transformer-Namespace.md",
+        "backlog/tasks/task-064.04 - Rework-the-KMS-NetworkPolicy-for-cross-namespace-clients-AND-combined-selectors.md",
+        "backlog/tasks/task-064.05 - Repoint-supabase-app-service-references-to-cross-namespace-FQDNs-DB-kestra.md",
+        "backlog/tasks/task-064.06 - Repoint-iotgw-ui-backend-service-references-to-cross-namespace-FQDNs-kong-KMS-backend-code-fallbacks.md",
+        "backlog/tasks/task-064.07 - Move-rename-Kestra-RBAC-and-repoint-the-Gitea-synced-PodCreate-runner-namespace-to-kestra.md",
+        "backlog/tasks/task-064.08 - Relocate-NodePort-services-into-their-target-namespaces.md",
+        "backlog/tasks/task-064.09 - Move-Ingresses-into-their-backend-namespaces-and-replicate-the-wildcard-TLS-Secret.md",
+        "backlog/tasks/task-064.10 - Add-a-forward-migration-repointing-the-live-pg_net-webhook-triggers-to-the-kong-FQDN.md",
+        "backlog/tasks/task-064.11 - Split-per-namespace-secret-creation-and-namespace-bootstrap-in-tooling-bootstrap.sh-secrets.sh-justfile.md",
+        "backlog/tasks/task-064.12 - Confirm-StackGres-SGCluster-generated-secret-initdb-placement-in-supabase-db.md",
+        "backlog/tasks/task-064.13 - Rewire-justfile-recipes-verify.sh-and-e2e-smoke-to-the-new-namespaces.md",
+        "backlog/tasks/task-064.14 - Update-all-docs-runbooks-CLAUDE.md-Service-Ports-tables-and-memory-for-the-per-namespace-layout.md",
+        "backlog/tasks/task-064.15 - Terminal-end-to-end-validation-of-the-namespace-split-gated-on-all-work.md",
+        "backlog/tasks/task-064 - Epic-Namespace-per-subproject-split-iotgw-becomes-the-cluster-not-a-namespace.md"
+      ]
+    },
+    "synthesis/image-cicd-epic.md": {
+      "sources": [
+        "backlog/tasks/task-067.01 - ADR-container-image-CI-CD-ghcr.io-i40sys-conventions.md",
+        "backlog/tasks/task-067.02 - Remove-BACKUP-and-relocate-the-reversibility-net-before-the-i40sys-migration.md",
+        "backlog/tasks/task-067.03 - Full-working-tree-git-history-secret-audit-and-remediation-gate.md",
+        "backlog/tasks/task-067.04 - Secret-scanning-CI-gate-gitleaks-GitHub-native-secret-scanning-push-protection.md",
+        "backlog/tasks/task-067.05 - Set-up-the-i40sys-GitHub-repo-ghcr-packages-and-Actions-permissions-secrets.md",
+        "backlog/tasks/task-067.06 - Reusable-build-and-push-workflow-workflow_call-for-ghcr.io-i40sys-images.md",
+        "backlog/tasks/task-067.07 - iotgw-ui-backend-image-pipeline-caller-workflow-path-filters.md",
+        "backlog/tasks/task-067.08 - iotgw-ui-frontend-image-pipeline-caller-workflow-path-filters-VITE_API_URL-build-arg.md",
+        "backlog/tasks/task-067.09 - iotgw-functions-image-pipeline-caller-workflow-path-filters-context-supabase-volumes.md",
+        "backlog/tasks/task-067.10 - Trivy-vulnerability-scan-SARIF-upload-to-GitHub-code-scanning-for-all-3-images.md",
+        "backlog/tasks/task-067.11 - SBOM-SPDX-SLSA-provenance-attestations-attached-to-each-ghcr-image-by-digest.md",
+        "backlog/tasks/task-067.12 - Cosign-keyless-OIDC-signing-of-each-image-digest-documented-verify-command.md",
+        "backlog/tasks/task-067.13 - Wire-the-prod-overlay-to-ghcr.io-i40sys-images-pinned-by-digest-resolve-task-062.03.md",
+        "backlog/tasks/task-067.14 - Add-an-opt-in-ghcr-pull-path-to-bootstrap.sh-and-the-kind-overlay-default-stays-build-local.md",
+        "backlog/tasks/task-067.15 - Docs-release-runbook-flip-deploy-README-status-update-CLAUDE.md-image-table-document-release-verify-flow.md",
+        "backlog/tasks/task-067.16 - Post-public-secret-exposure-incident-literal-secret-tripwire-leak-credential-rotations.md",
+        "backlog/tasks/task-067.17 - Make-the-3-ghcr-packages-public-and-validate-unauthenticated-pull-cosign-verify.md",
+        "backlog/tasks/task-067.18 - Set-repo-var-PROD_VITE_API_URL-before-cutting-a-real-prod-frontend-release.md",
+        "backlog/tasks/task-067 - Epic-Container-image-CI-CD-GitHub-Actions-ghcr.io-i40sys.md"
+      ]
+    },
+    "synthesis/network-crud-and-jobs-feature-history.md": {
+      "sources": [
+        "backlog/completed/task-001 - Create-network_jobs-table-schema.md",
+        "backlog/completed/task-002 - Create-RPC-functions-for-network_jobs-table.md",
+        "backlog/completed/task-003 - Create-UI-section-for-network_jobs.md",
+        "backlog/completed/task-004 - Research-automation-for-Kestra-notification-triggers.md",
+        "backlog/completed/task-005 - Refactor-deployment-page-to-use-tab-based-step-navigation.md",
+        "backlog/completed/task-006 - Implement-Booting-Live-step-UI.md",
+        "backlog/completed/task-007 - Add-backend-procedure-for-device-connectivity-check.md",
+        "backlog/completed/task-007 - Create-domains-table-schema-and-migration.md",
+        "backlog/completed/task-008 - Add-domain-types-to-supabase-contract-package.md",
+        "backlog/completed/task-008 - Implement-Check-Online-button-with-status-indicator.md",
+        "backlog/completed/task-009 - Implement-domains-backend-API-router.md",
+        "backlog/completed/task-009 - Implement-O.S.-Installation-step-with-form-JSON-toggle.md",
+        "backlog/completed/task-010 - Implement-Rebooting-step-UI.md",
+        "backlog/completed/task-010 - Register-domains-router-in-main-tRPC-router.md",
+        "backlog/completed/task-011 - Add-domain-translations-to-i18n-locales.md",
+        "backlog/completed/task-012 - Create-domains-route-and-page-component.md",
+        "backlog/completed/task-013 - Create-domain-form-components-for-create-and-edit-operations.md",
+        "backlog/completed/task-014 - Add-domains-navigation-item-to-navigation-bar.md",
+        "backlog/completed/task-015 - Implement-domain-detail-view-with-edit-and-delete-functionality.md",
+        "backlog/completed/task-016 - Add-comprehensive-error-handling-and-validation-for-domain-operations.md",
+        "backlog/completed/task-017 - Create-database-schema-migration-for-networks-table.md",
+        "backlog/completed/task-018 - Generate-database-types-for-networks-table.md",
+        "backlog/completed/task-019 - Create-network-domain-types-in-shared-contract.md",
+        "backlog/completed/task-020 - Implement-network-tRPC-router-with-CRUD-operations.md",
+        "backlog/completed/task-021 - Create-network-list-component.md",
+        "backlog/completed/task-022 - Convert-application-theme-from-black-gray-to-dark-blue-based-color-scheme.md",
+        "backlog/completed/task-022 - Create-network-form-component.md",
+        "backlog/completed/task-023 - Create-network-management-dialog-components.md",
+        "backlog/completed/task-023 - Replace-all-application-icons-with-Font-Awesome-icons-for-professional-appearance.md",
+        "backlog/completed/task-024 - Create-network-management-hooks.md",
+        "backlog/completed/task-025 - Integrate-networks-section-into-domain-detail-page.md",
+        "backlog/completed/task-026 - Add-network-count-to-domain-list-view.md",
+        "backlog/completed/task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage.md",
+        "backlog/completed/task-028 - Fix-Supabase-row-level-security-for-database-queries.md",
+        "backlog/completed/task-029 - Remove-unused-menu-entries-and-associated-functionality.md",
+        "backlog/completed/task-030 - Create-engaging-welcome-home-page-with-application-version-display.md",
+        "backlog/completed/task-031 - Add-search-filters-to-devices-view.md"
+      ]
+    },
+    "synthesis/deployments-feature-history.md": {
+      "sources": [
+        "backlog/archive/tasks/task-001 - Create-database-schema-for-deployments-table.md",
+        "backlog/archive/tasks/task-002 - Implement-tRPC-procedures-for-deployments-CRUD-operations.md",
+        "backlog/archive/tasks/task-003 - Create-deployment-form-route-and-navigation-menu-entry.md",
+        "backlog/archive/tasks/task-004 - Build-device-selection-panel-with-domain-and-network-filters.md",
+        "backlog/archive/tasks/task-005 - Create-version-list-panel-for-deployment-configurations.md",
+        "backlog/archive/tasks/task-006 - Integrate-JSON-editor-for-deployment-configuration.md",
+        "backlog/archive/tasks/task-007 - Implement-deployment-actions-panel-with-version-and-save-controls.md",
+        "backlog/archive/tasks/task-008 - Add-unsaved-changes-detection-and-confirmation-dialogs.md",
+        "backlog/archive/tasks/task-009 - Implement-deployment-execution-functionality.md",
+        "backlog/archive/tasks/task-010 - Create-deployment_jobs-database-table-and-migration.md",
+        "backlog/archive/tasks/task-011 - Add-Supabase-RPC-functions-for-deployment-jobs-operations.md",
+        "backlog/archive/tasks/task-012 - Update-deployment-execution-to-persist-jobs-to-database.md",
+        "backlog/archive/tasks/task-013 - Create-tRPC-procedures-for-deployment-jobs-queries.md",
+        "backlog/archive/tasks/task-014 - Generate-TypeScript-types-for-deployment_jobs-table.md",
+        "backlog/archive/tasks/task-015 - Create-deployment-jobs-list-component.md",
+        "backlog/archive/tasks/task-016 - Add-deployment-jobs-section-to-deployments-page.md",
+        "backlog/archive/tasks/task-017 - Update-debug-view-to-work-with-deployment-jobs.md",
+        "backlog/archive/tasks/task-018 - Add-i18n-translations-for-deployment-jobs-feature.md",
+        "backlog/archive/tasks/task-019 - Add-auto-refresh-for-active-deployment-jobs.md",
+        "backlog/archive/tasks/task-020 - Improve-deployment-job-configuration-viewer.md",
+        "backlog/archive/tasks/task-021 - Unify-styling-and-design-coherence-across-all-application-sections.md"
+      ]
+    }
+  },
+  "stats": {
+    "sources_ingested": 172,
+    "total_sources_ingested": 172,
+    "pages_created": 39,
+    "total_pages": 39
+  }
+}
