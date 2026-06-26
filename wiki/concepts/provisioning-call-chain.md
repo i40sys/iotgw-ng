@@ -95,5 +95,8 @@ seam change. See [[concepts/kubernetes-migration-kind]],
 
 ## Sources
 
-- [[references/database-migrations-webhooks]] — how the trigger migrations are managed.
-- decision-016 (edge functions architecture), doc-016 (provisioning pattern), doc-010 (migration/webhook guide).
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
+- [[_sources/docs/doc-016 - Kestra-Notification-Automation-Pattern|doc-016 - Kestra-Notification-Automation-Pattern]]
+- [[_sources/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide|doc-010 - Database-Migration-and-Webhook-Management-Guide]]

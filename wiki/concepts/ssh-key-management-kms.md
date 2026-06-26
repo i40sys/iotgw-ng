@@ -84,5 +84,8 @@ API-token auth + NetworkPolicy), task-069 (in-pod KMS fetch in the runner pod â€
 
 ## Sources
 
-- decision-010 (SSH Key Management with Cosmian KMS, ADR-001, amended task-060); task-040, task-069.
-- Related: [[entities/cosmian-kms]], [[entities/kestra]], [[concepts/provisioning-call-chain]], [[synthesis/ssh-key-kms-epic]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS|decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS]]
+- [[_sources/completed/task-040 - Update-Kestra-devices-workflow-for-SSH-key-generation-in-KMS|task-040 - Update-Kestra-devices-workflow-for-SSH-key-generation-in-KMS]]
+- [[_sources/tasks/task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3|task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3]]

@@ -58,5 +58,9 @@ credential is limited and independently revocable.
 
 ## Sources
 
-- decision-016 (§4 security), doc-016, netmaker-credential-handling.md, decision-022.
-- Related: [[entities/edge-functions]], [[concepts/secrets-management-sops-age]], [[synthesis/secret-exposure-rotation-runbook]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
+- [[_sources/docs/doc-016 - Kestra-Notification-Automation-Pattern|doc-016 - Kestra-Notification-Automation-Pattern]]
+- [[_sources/docs/netmaker-credential-handling|netmaker-credential-handling]]
+- [[_sources/decisions/decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection|decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection]]

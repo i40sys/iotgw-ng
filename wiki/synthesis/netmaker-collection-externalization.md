@@ -79,5 +79,9 @@ adopt-as-canonical + de-dupe. `ansible/` removed entirely; mirrors the
 
 ## Sources
 
-- decision-022 (re-externalization), decision-012 / decision-013 (the questions it resolves).
-- Related: [[concepts/monorepo-organization]], [[entities/netmaker]], [[entities/kestra]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection|decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection]]
+- [[_sources/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository|decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository]]
+- [[_sources/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping|decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping]]
+- [[_sources/tasks/task-068 - Epic-Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo|task-068 - Epic-Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo]]

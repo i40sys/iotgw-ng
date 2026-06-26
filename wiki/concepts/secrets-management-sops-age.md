@@ -73,4 +73,6 @@ A repo-root `.gitleaks.toml` (allowlisting only `*.enc.*` ciphertext) backs a
 
 ## Sources
 
-- decision-014 (Secrets Management with SOPS + age).
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-014 - Secrets-Management-with-SOPS-and-age|decision-014 - Secrets-Management-with-SOPS-and-age]]

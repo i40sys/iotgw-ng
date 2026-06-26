@@ -29,6 +29,7 @@ distill sources into interconnected pages.
 | `synthesis/` | Cross-cutting analyses & epic histories |
 | `skills/` | How-to procedures (deploy on kind, dev workflow…) |
 | `journal/` | Time-bound snapshots |
+| `_sources/` | Symlink to the repo `backlog/` — the **original source docs**, browsable in-vault. Each page ends with a clickable **Sources** list pointing here. |
 | `_meta/taxonomy.md` | Controlled tag vocabulary |
 | `AGENTS.md` | Owner conventions that steer every ingest |
 

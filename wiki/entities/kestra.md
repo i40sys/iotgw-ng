@@ -69,5 +69,11 @@ Kestra remains the orchestrator for the **OpenWRT gateway** side:
 
 ## Sources
 
-- doc-016, decision-016 (§6 durable handoff), doc-013, decision-010; task-054, task-065.
-- Related: [[entities/edge-functions]], [[entities/cosmian-kms]], [[entities/netmaker]], [[synthesis/kestra-k8s-runner]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/docs/doc-016 - Kestra-Notification-Automation-Pattern|doc-016 - Kestra-Notification-Automation-Pattern]]
+- [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
+- [[_sources/docs/doc-013 - Deployments-Page-Behavior-Specification|doc-013 - Deployments-Page-Behavior-Specification]]
+- [[_sources/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS|decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS]]
+- [[_sources/tasks/task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner|task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner]]
+- [[_sources/tasks/task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods|task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods]]

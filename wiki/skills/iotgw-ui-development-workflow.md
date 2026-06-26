@@ -73,6 +73,9 @@ valid local convenience even though the platform services run on k8s, not compos
 
 ## Sources
 
-- doc-007 (workspace workflow), decision-005 (tooling), decision-004 (pnpm
-  workspaces), doc-015 (skills/knowledge map).
-- Related: [[concepts/iotgw-ui-architecture]], [[skills/testing-with-vitest]], [[skills/deploy-on-kind]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/docs/doc-007 - Workspace-Development-Workflow|doc-007 - Workspace-Development-Workflow]]
+- [[_sources/decisions/decision-005 - Development-Tooling-Build-and-Development-Experience|decision-005 - Development-Tooling-Build-and-Development-Experience]]
+- [[_sources/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure|decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure]]
+- [[_sources/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements|doc-015 - Claude-Code-Skills-and-Knowledge-Requirements]]

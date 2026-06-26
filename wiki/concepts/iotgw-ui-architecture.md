@@ -78,5 +78,15 @@ single source of truth, regenerated via `pnpm generate:contract`.
 
 ## Sources
 
-- decision-001/002/004/005/006/011; doc-003/005/006/015 (patterns).
-- Related: [[concepts/domains-networks-devices]], [[skills/iotgw-ui-development-workflow]], [[references/deployments-page-behavior]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-001 - Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem|decision-001 - Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem]]
+- [[_sources/decisions/decision-002 - Backend-Architecture-Fastify-and-tRPC-API-Design|decision-002 - Backend-Architecture-Fastify-and-tRPC-API-Design]]
+- [[_sources/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure|decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure]]
+- [[_sources/decisions/decision-005 - Development-Tooling-Build-and-Development-Experience|decision-005 - Development-Tooling-Build-and-Development-Experience]]
+- [[_sources/decisions/decision-006 - Testing-Framework-Vitest-Choice|decision-006 - Testing-Framework-Vitest-Choice]]
+- [[_sources/decisions/decision-011 - Debug-Logging-Configuration|decision-011 - Debug-Logging-Configuration]]
+- [[_sources/docs/doc-005 - tRPC-API-Development-Patterns|doc-005 - tRPC-API-Development-Patterns]]
+- [[_sources/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns|doc-003 - Supabase-RLS-Policy-Implementation-Patterns]]
+- [[_sources/docs/doc-006 - React-Component-Development-Guidelines|doc-006 - React-Component-Development-Guidelines]]
+- [[_sources/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements|doc-015 - Claude-Code-Skills-and-Knowledge-Requirements]]

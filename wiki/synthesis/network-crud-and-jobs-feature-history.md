@@ -74,5 +74,10 @@ feature series) realize [[references/deployments-page-behavior]].
 
 ## Sources
 
-- completed/ tasks 007/027/028/031 + the network_jobs series (task-001..003).
-- Related: [[concepts/domains-networks-devices]], [[concepts/provisioning-call-chain]], [[entities/supabase]], [[synthesis/deployments-feature-history]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/completed/task-007 - Create-domains-table-schema-and-migration|task-007 - Create-domains-table-schema-and-migration]]
+- [[_sources/completed/task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage|task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage]]
+- [[_sources/completed/task-028 - Fix-Supabase-row-level-security-for-database-queries|task-028 - Fix-Supabase-row-level-security-for-database-queries]]
+- [[_sources/completed/task-001 - Create-network_jobs-table-schema|task-001 - Create-network_jobs-table-schema]]
+- [[_sources/completed/task-031 - Add-search-filters-to-devices-view|task-031 - Add-search-filters-to-devices-view]]

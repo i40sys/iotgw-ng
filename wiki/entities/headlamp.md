@@ -57,5 +57,7 @@ becomes an RBAC identity ([[entities/keycloak]], decision-019):
 
 ## Sources
 
-- decision-019 (Headlamp SSO via Keycloak OIDC), doc-017 (deployment & access runbook).
-- Related: [[entities/keycloak]], [[concepts/namespace-per-subproject]], [[entities/ingress-nginx]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver|decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver]]
+- [[_sources/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access|doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access]]

@@ -66,5 +66,8 @@ subproject with `tar xzf BACKUP/git-archives/<name>.git.tar.gz -C <path>`.
 
 ## Sources
 
-- decision-012 (consolidation, interim/superseded), decision-013 (finalization).
-- Related: [[synthesis/netmaker-collection-externalization]], [[references/container-image-cicd]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository|decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository]]
+- [[_sources/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping|decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping]]
+- [[_sources/tasks/task-068 - Epic-Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo|task-068 - Epic-Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo]]

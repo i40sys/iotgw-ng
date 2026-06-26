@@ -70,5 +70,8 @@ Secrets fan out per namespace ([[concepts/namespace-per-subproject]]).
 
 ## Sources
 
-- decision-015, decision-014, decision-020.
-- Related: [[concepts/kubernetes-migration-kind]], [[skills/iotgw-ui-development-workflow]], [[synthesis/docker-compose-decommission]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-015 - Kubernetes-Migration-with-local-kind|decision-015 - Kubernetes-Migration-with-local-kind]]
+- [[_sources/decisions/decision-014 - Secrets-Management-with-SOPS-and-age|decision-014 - Secrets-Management-with-SOPS-and-age]]
+- [[_sources/decisions/decision-020 - Namespace-per-subproject-topology|decision-020 - Namespace-per-subproject-topology]]

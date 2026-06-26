@@ -65,5 +65,9 @@ Split per [[concepts/namespace-per-subproject]]:
 
 ## Sources
 
-- decision-003, decision-016, decision-018, doc-003.
-- Related: [[entities/stackgres]], [[entities/edge-functions]], [[references/service-ports-and-namespaces]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-003 - Database-and-Infrastructure-Supabase-PostgreSQL-Choice|decision-003 - Database-and-Infrastructure-Supabase-PostgreSQL-Choice]]
+- [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
+- [[_sources/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod|decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod]]
+- [[_sources/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns|doc-003 - Supabase-RLS-Policy-Implementation-Patterns]]

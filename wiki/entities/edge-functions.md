@@ -77,5 +77,8 @@ flow → write-back, with the execution id recorded in `deployment_jobs`.
 
 ## Sources
 
-- decision-016 (full target architecture), doc-016; task-062.18.
-- Related: [[concepts/provisioning-call-chain]], [[entities/netmaker]], [[entities/kestra]], [[entities/supabase]], [[synthesis/kestra-k8s-runner]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
+- [[_sources/docs/doc-016 - Kestra-Notification-Automation-Pattern|doc-016 - Kestra-Notification-Automation-Pattern]]
+- [[_sources/tasks/task-062.18 - Define-and-implement-the-edge-function-→-Kestra-durable-execution-handoff-contract|task-062.18 - Define-and-implement-the-edge-function-→-Kestra-durable-execution-handoff-contract]]

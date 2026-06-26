@@ -51,6 +51,8 @@ productivity, and ESM-first removes the `ts-jest` transformation friction.
 
 ## Sources
 
-- decision-006 (Vitest choice), doc-009 (testing guide), doc-002 (testing
-  strategies & patterns).
-- Related: [[concepts/iotgw-ui-architecture]], [[skills/iotgw-ui-development-workflow]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-006 - Testing-Framework-Vitest-Choice|decision-006 - Testing-Framework-Vitest-Choice]]
+- [[_sources/docs/doc-009 - Testing-with-Vitest|doc-009 - Testing-with-Vitest]]
+- [[_sources/docs/doc-002 - Testing-Strategies-and-Patterns|doc-002 - Testing-Strategies-and-Patterns]]

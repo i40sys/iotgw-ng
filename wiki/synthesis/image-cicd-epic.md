@@ -67,5 +67,11 @@ GitHub org, publishing was gated on:
 
 ## Sources
 
-- task-067 (epic) + .02/.03/.13/.16/.18; ratified by decision-021.
-- Related: [[references/container-image-cicd]], [[synthesis/secret-exposure-rotation-runbook]], [[entities/edge-functions]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/tasks/task-067 - Epic-Container-image-CI-CD-GitHub-Actions-ghcr.io-i40sys|task-067 - Epic-Container-image-CI-CD-GitHub-Actions-ghcr.io-i40sys]]
+- [[_sources/tasks/task-067.02 - Remove-BACKUP-and-relocate-the-reversibility-net-before-the-i40sys-migration|task-067.02 - Remove-BACKUP-and-relocate-the-reversibility-net-before-the-i40sys-migration]]
+- [[_sources/tasks/task-067.03 - Full-working-tree-git-history-secret-audit-and-remediation-gate|task-067.03 - Full-working-tree-git-history-secret-audit-and-remediation-gate]]
+- [[_sources/tasks/task-067.13 - Wire-the-prod-overlay-to-ghcr.io-i40sys-images-pinned-by-digest-resolve-task-062.03|task-067.13 - Wire-the-prod-overlay-to-ghcr.io-i40sys-images-pinned-by-digest-resolve-task-062.03]]
+- [[_sources/tasks/task-067.16 - Post-public-secret-exposure-incident-literal-secret-tripwire-leak-credential-rotations|task-067.16 - Post-public-secret-exposure-incident-literal-secret-tripwire-leak-credential-rotations]]
+- [[_sources/tasks/task-067.18 - Set-repo-var-PROD_VITE_API_URL-before-cutting-a-real-prod-frontend-release|task-067.18 - Set-repo-var-PROD_VITE_API_URL-before-cutting-a-real-prod-frontend-release]]

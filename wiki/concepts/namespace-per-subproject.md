@@ -82,5 +82,7 @@ runtime-state repoints it required.
 
 ## Sources
 
-- decision-020, task-064. Reference pattern: decision-019 / [[entities/headlamp]].
-- Related: [[references/service-ports-and-namespaces]], [[concepts/kubernetes-migration-kind]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-020 - Namespace-per-subproject-topology|decision-020 - Namespace-per-subproject-topology]]
+- [[_sources/tasks/task-064 - Epic-Namespace-per-subproject-split-iotgw-becomes-the-cluster-not-a-namespace|task-064 - Epic-Namespace-per-subproject-split-iotgw-becomes-the-cluster-not-a-namespace]]

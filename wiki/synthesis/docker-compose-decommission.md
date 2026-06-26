@@ -76,6 +76,10 @@ parity) is in [[synthesis/k8s-migration-epic]].
 
 ## Sources
 
-- decision-017 (authorization), decision-018 (StackGres), decision-016 (edge
-  functions), decision-015 (the migration it supersedes); task-062 (execution).
-- Related: [[concepts/kubernetes-migration-kind]], [[entities/stackgres]], [[skills/deploy-on-kind]], [[synthesis/k8s-migration-epic]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime|decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime]]
+- [[_sources/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod|decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod]]
+- [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
+- [[_sources/decisions/decision-015 - Kubernetes-Migration-with-local-kind|decision-015 - Kubernetes-Migration-with-local-kind]]
+- [[_sources/tasks/task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind|task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind]]

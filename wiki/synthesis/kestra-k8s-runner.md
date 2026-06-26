@@ -87,5 +87,9 @@ unreachable=0`. The canonical flow source also moved from private Gitea to the
 
 ## Sources
 
-- task-054 (runner), task-065 (slash bug), task-066 (durability), task-069 (KMS fetch).
-- Related: [[entities/kestra]], [[concepts/ssh-key-management-kms]], [[synthesis/namespace-split-epic]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/tasks/task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner|task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner]]
+- [[_sources/tasks/task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods|task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods]]
+- [[_sources/tasks/task-066 - Make-Kestra-flow-namespace-kestra-durable-against-sync-namespace-files-Gitea-source|task-066 - Make-Kestra-flow-namespace-kestra-durable-against-sync-namespace-files-Gitea-source]]
+- [[_sources/tasks/task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3|task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3]]

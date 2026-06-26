@@ -72,5 +72,7 @@ full-history secret audit — [[references/container-image-cicd]].)
 
 ## Sources
 
-- decision-014 (rotation runbook), netmaker-credential-handling.md.
-- Related: [[concepts/secrets-management-sops-age]], [[entities/netmaker]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-014 - Secrets-Management-with-SOPS-and-age|decision-014 - Secrets-Management-with-SOPS-and-age]]
+- [[_sources/docs/netmaker-credential-handling|netmaker-credential-handling]]

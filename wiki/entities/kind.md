@@ -49,5 +49,7 @@ context `kind-iotgw` ([[concepts/namespace-per-subproject]]).
 
 ## Sources
 
-- decision-015, decision-018.
-- Related: [[concepts/kubernetes-migration-kind]], [[entities/ingress-nginx]], [[skills/deploy-on-kind]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-015 - Kubernetes-Migration-with-local-kind|decision-015 - Kubernetes-Migration-with-local-kind]]
+- [[_sources/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod|decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod]]

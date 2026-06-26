@@ -59,8 +59,6 @@ Password) validated by the stateless `vpn/` edge function.
 
 ## Sources
 
-- decision-009 (TOTP Authentication for Device VPN Access). RFC 4226 (HOTP),
-  RFC 6238 (TOTP).
-- Code: `apps/app/src/components/device-totp-dialog.tsx`,
-  `apps/backend/src/routers/devices.ts`, `supabase/volumes/functions/vpn/index.ts`.
-- Related: [[entities/edge-functions]], [[references/openwrt-wireguard-config]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-009 - TOTP-Authentication-for-Device-VPN-Access|decision-009 - TOTP-Authentication-for-Device-VPN-Access]]

@@ -47,5 +47,6 @@ Netmaker endpoint ([[entities/netmaker]]).
 
 ## Sources
 
-- doc-014 (OpenWRT WireGuard Setup Guide).
-- Related: [[entities/netmaker]], [[references/deployments-page-behavior]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/docs/doc-014 - OpenWRT Wireguard|doc-014 - OpenWRT Wireguard]]

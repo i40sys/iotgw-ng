@@ -46,5 +46,7 @@ Admin password and the Headlamp client secret are in Bitwarden / SOPS
 
 ## Sources
 
-- decision-019, doc-017.
-- Related: [[entities/headlamp]], [[concepts/secrets-management-sops-age]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/decisions/decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver|decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver]]
+- [[_sources/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access|doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access]]

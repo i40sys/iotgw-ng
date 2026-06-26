@@ -73,5 +73,13 @@ KMS mint/fetch with auth; auth/rest/functions via Kong; `just verify` all-green.
 
 ## Sources
 
-- task-062 (epic) + .16 (spike), .18 (handoff), .15 (terminal delete); task-054/055/056/057.
-- Related: [[synthesis/docker-compose-decommission]], [[entities/stackgres]], [[synthesis/kestra-k8s-runner]], [[concepts/provisioning-call-chain]].
+*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+
+- [[_sources/tasks/task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind|task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind]]
+- [[_sources/tasks/task-062.16 - SPIKE-blocking-go-no-go-prove-pg_net-Supabase-initdb-fire-on-a-StackGres-SGCluster-PG15|task-062.16 - SPIKE-blocking-go-no-go-prove-pg_net-Supabase-initdb-fire-on-a-StackGres-SGCluster-PG15]]
+- [[_sources/tasks/task-062.18 - Define-and-implement-the-edge-function-→-Kestra-durable-execution-handoff-contract|task-062.18 - Define-and-implement-the-edge-function-→-Kestra-durable-execution-handoff-contract]]
+- [[_sources/tasks/task-062.15 - TERMINAL-delete-all-docker-compose-files-helper-scripts-and-the-ssh-test-harness|task-062.15 - TERMINAL-delete-all-docker-compose-files-helper-scripts-and-the-ssh-test-harness]]
+- [[_sources/tasks/task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner|task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner]]
+- [[_sources/tasks/task-055 - Re-point-pg_net-webhook-URLs-to-in-cluster-Service-for-k8s|task-055 - Re-point-pg_net-webhook-URLs-to-in-cluster-Service-for-k8s]]
+- [[_sources/tasks/task-056 - Adopt-supabase-kubernetes-Helm-chart-for-the-full-Supabase-data-plane|task-056 - Adopt-supabase-kubernetes-Helm-chart-for-the-full-Supabase-data-plane]]
+- [[_sources/tasks/task-057 - Add-authentication-NetworkPolicy-to-Cosmian-KMS|task-057 - Add-authentication-NetworkPolicy-to-Cosmian-KMS]]
