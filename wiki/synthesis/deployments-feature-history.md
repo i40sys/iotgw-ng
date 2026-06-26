@@ -10,7 +10,7 @@ sources:
   - backlog/archive/tasks/task-009 - Implement-deployment-execution-functionality.md
   - backlog/archive/tasks/task-010 - Create-deployment_jobs-database-table-and-migration.md
   - backlog/archive/tasks/task-019 - Add-auto-refresh-for-active-deployment-jobs.md
-summary: The archived task-001..021 epic that built the deployments table, the deployment wizard execution path, and the deployment_jobs tracking/auto-refresh UI — the precedent the *_jobs pattern derives from.
+summary: Archived task-001..021 epic that built the deployments table, the deployment wizard execution path, and deployment_jobs tracking/auto-refresh UI — the precedent the *_jobs pattern derives from.
 provenance:
   extracted: 0.8
   inferred: 0.13

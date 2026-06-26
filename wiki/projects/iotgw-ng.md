@@ -4,6 +4,7 @@ category: project
 tags: [infra/kubernetes, app/iotgw-ui, status/current]
 source_path: /home/oriol/iotgw-ng/backlog
 summary: IoT Gateway Next Generation — a single-repo Kubernetes platform that provisions WireGuard/Netmaker VPNs for OpenWRT gateways via a Supabase-trigger-driven call chain.
+sources: []
 created: 2026-06-26
 updated: 2026-06-26
 ---

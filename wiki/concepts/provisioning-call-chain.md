@@ -97,6 +97,7 @@ seam change. See [[concepts/kubernetes-migration-kind]],
 
 - [[references/database-migrations-webhooks]] — how the trigger migrations are managed.
 - decision-016 (edge functions architecture), doc-016 (provisioning pattern), doc-010 (migration/webhook guide).
+- Part of the [[projects/iotgw-ng]] project hub.
 
 <!-- _sources-links -->
 

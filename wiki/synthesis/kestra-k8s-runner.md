@@ -12,7 +12,7 @@ sources:
   - backlog/tasks/task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods.md
   - backlog/tasks/task-066 - Make-Kestra-flow-namespace-kestra-durable-against-sync-namespace-files-Gitea-source.md
   - backlog/tasks/task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3.md
-summary: How the OpenWRT Ansible flows run under k8s — no Kubernetes taskRunner exists at v1.3.22, so flows use PodCreate directly; covers the leading-slash bug, flow-source durability, and in-pod KMS key fetch.
+summary: How OpenWRT Ansible flows run under k8s — no Kubernetes taskRunner at v1.3.22, so flows use PodCreate directly; covers the leading-slash bug, flow-source durability, and in-pod KMS key fetch.
 provenance:
   extracted: 0.85
   inferred: 0.08

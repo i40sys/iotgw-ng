@@ -11,7 +11,7 @@ sources:
   - backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md
   - backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md
   - backlog/tasks/task-062.18 - Define-and-implement-the-edge-function-→-Kestra-durable-execution-handoff-contract.md
-summary: The Deno workers (supabase/edge-runtime) served through Kong — netmaker-call (live provisioning), kestra-dispatch (durable handoff), vpn (TOTP), and iPXE/smoke functions; the right-hand side of the call chain.
+summary: Deno workers (supabase/edge-runtime) behind Kong — netmaker-call (live provisioning), kestra-dispatch (durable handoff), vpn (TOTP), and iPXE/smoke; the right-hand side of the call chain.
 provenance:
   extracted: 0.85
   inferred: 0.07

@@ -12,7 +12,7 @@ sources:
   - backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md
   - backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md
   - backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md
-summary: The self-hosted Supabase stack — PostgreSQL + RLS + the Kong/auth/rest/meta/functions app tier; trimmed to essentials (no studio/realtime/storage/analytics) and split across supabase-db / supabase-app namespaces.
+summary: Self-hosted Supabase — PostgreSQL + RLS + Kong/auth/rest/meta/functions app tier; trimmed to essentials (no studio/realtime/storage/analytics), split across supabase-db / supabase-app namespaces.
 provenance:
   extracted: 0.85
   inferred: 0.07

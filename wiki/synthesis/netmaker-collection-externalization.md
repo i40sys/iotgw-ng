@@ -10,7 +10,7 @@ sources:
 relationships:
   - target: "[[concepts/monorepo-organization]]"
     type: related_to
-summary: Why the oriolrius.netmaker Ansible collection was pulled back OUT of the monorepo to its standalone repo — resolving the mislocated-CI question and de-wiring a duplicate secret, with zero runtime change.
+summary: Why the oriolrius.netmaker Ansible collection was pulled back out of the monorepo to its standalone repo — resolving the mislocated-CI question and de-wiring a duplicate secret, zero runtime change.
 provenance:
   extracted: 0.9
   inferred: 0.05

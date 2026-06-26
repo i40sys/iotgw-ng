@@ -14,7 +14,7 @@ sources:
   - backlog/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS.md
   - backlog/tasks/task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner.md
   - backlog/tasks/task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods.md
-summary: The workflow orchestrator — NOT in the device/network provisioning path anymore; it runs Ansible flows (install/provisioning/connectivity-check) against OpenWRT gateways and is the durable-execution target.
+summary: The workflow orchestrator — no longer in device/network provisioning; runs Ansible flows (install/provisioning/connectivity-check) against OpenWRT gateways as the durable-execution target.
 provenance:
   extracted: 0.85
   inferred: 0.07

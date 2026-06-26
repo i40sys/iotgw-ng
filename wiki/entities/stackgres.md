@@ -10,7 +10,7 @@ relationships:
 sources:
   - backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md
   - backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md
-summary: OnGres' AGPL Postgres operator; manages the supabase-db SGCluster in dev+prod with Patroni HA, PITR/backups, monitoring, and the supabase init ported into an SGScript — pg_net the critical compatibility item.
+summary: OnGres' AGPL Postgres operator running the supabase-db SGCluster (dev+prod) with Patroni HA, PITR/backups, monitoring, and Supabase init ported to an SGScript — pg_net the key compatibility item.
 provenance:
   extracted: 0.88
   inferred: 0.05
