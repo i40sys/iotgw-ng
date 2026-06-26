@@ -67,7 +67,12 @@ in the archived `task-001..021` epic ([[synthesis/deployments-feature-history]])
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- doc-013 (behavior spec), doc-011 (redesign interface spec); archive/tasks/task-001..021.
+- Related: [[entities/kestra]], [[concepts/totp-device-vpn-auth]], [[concepts/iotgw-ui-architecture]], [[synthesis/deployments-feature-history]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/docs/doc-013 - Deployments-Page-Behavior-Specification|doc-013 - Deployments-Page-Behavior-Specification]]
 - [[_sources/docs/doc-011 - Deployment-Section-Redesign-Interface-Specification|doc-011 - Deployment-Section-Redesign-Interface-Specification]]

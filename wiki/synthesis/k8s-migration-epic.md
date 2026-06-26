@@ -73,7 +73,12 @@ KMS mint/fetch with auth; auth/rest/functions via Kong; `just verify` all-green.
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- task-062 (epic) + .16 (spike), .18 (handoff), .15 (terminal delete); task-054/055/056/057.
+- Related: [[synthesis/docker-compose-decommission]], [[entities/stackgres]], [[synthesis/kestra-k8s-runner]], [[concepts/provisioning-call-chain]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/tasks/task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind|task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind]]
 - [[_sources/tasks/task-062.16 - SPIKE-blocking-go-no-go-prove-pg_net-Supabase-initdb-fire-on-a-StackGres-SGCluster-PG15|task-062.16 - SPIKE-blocking-go-no-go-prove-pg_net-Supabase-initdb-fire-on-a-StackGres-SGCluster-PG15]]

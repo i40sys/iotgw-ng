@@ -76,6 +76,10 @@ select * from device_jobs order by started_at desc limit 5;   -- and network_job
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- doc-010. Related: [[concepts/provisioning-call-chain]], [[entities/supabase]], [[entities/edge-functions]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide|doc-010 - Database-Migration-and-Webhook-Management-Guide]]

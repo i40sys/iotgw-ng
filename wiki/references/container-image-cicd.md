@@ -78,7 +78,11 @@ shipped and the secret-audit gate that preceded going public.
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- decision-021, task-067. Related: [[concepts/secrets-management-sops-age]], [[concepts/namespace-per-subproject]], [[entities/edge-functions]], [[synthesis/image-cicd-epic]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/decisions/decision-021 - Container-image-CI-CD-and-ghcr.io-i40sys-conventions|decision-021 - Container-image-CI-CD-and-ghcr.io-i40sys-conventions]]
 - [[_sources/tasks/task-067 - Epic-Container-image-CI-CD-GitHub-Actions-ghcr.io-i40sys|task-067 - Epic-Container-image-CI-CD-GitHub-Actions-ghcr.io-i40sys]]

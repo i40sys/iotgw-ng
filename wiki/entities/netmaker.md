@@ -58,7 +58,12 @@ credential is limited and independently revocable.
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- decision-016 (§4 security), doc-016, netmaker-credential-handling.md, decision-022.
+- Related: [[entities/edge-functions]], [[concepts/secrets-management-sops-age]], [[synthesis/secret-exposure-rotation-runbook]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
 - [[_sources/docs/doc-016 - Kestra-Notification-Automation-Pattern|doc-016 - Kestra-Notification-Automation-Pattern]]

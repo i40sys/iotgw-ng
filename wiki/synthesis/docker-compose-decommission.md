@@ -76,7 +76,13 @@ parity) is in [[synthesis/k8s-migration-epic]].
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- decision-017 (authorization), decision-018 (StackGres), decision-016 (edge
+  functions), decision-015 (the migration it supersedes); task-062 (execution).
+- Related: [[concepts/kubernetes-migration-kind]], [[entities/stackgres]], [[skills/deploy-on-kind]], [[synthesis/k8s-migration-epic]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime|decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime]]
 - [[_sources/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod|decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod]]

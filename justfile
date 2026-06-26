@@ -84,3 +84,10 @@ e2e:
 
 # Full local bring-up on kind: create the cluster -> deploy -> smoke -> e2e
 bootstrap: kind-up k8s-deploy k8s-smoke e2e
+
+# ─────────────────────────── wiki (knowledge base) ───────────────────────────
+
+# Refresh the in-vault copies of backlog/ at wiki/_sources/ (Obsidian shows real
+# files, not symlinks). Run after editing backlog/. See wiki/README.md.
+wiki-sources:
+    tools/wiki-sources-sync.sh

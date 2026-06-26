@@ -61,7 +61,12 @@ revision 12 with `networkMode: host`.
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- task-040 (generation), task-057 (KMS auth + NetworkPolicy), task-069 (in-pod fetch).
+- Related: [[concepts/ssh-key-management-kms]], [[entities/cosmian-kms]], [[synthesis/kestra-k8s-runner]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/completed/task-040 - Update-Kestra-devices-workflow-for-SSH-key-generation-in-KMS|task-040 - Update-Kestra-devices-workflow-for-SSH-key-generation-in-KMS]]
 - [[_sources/tasks/task-057 - Add-authentication-NetworkPolicy-to-Cosmian-KMS|task-057 - Add-authentication-NetworkPolicy-to-Cosmian-KMS]]

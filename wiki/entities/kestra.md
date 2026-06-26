@@ -69,7 +69,12 @@ Kestra remains the orchestrator for the **OpenWRT gateway** side:
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- doc-016, decision-016 (§6 durable handoff), doc-013, decision-010; task-054, task-065.
+- Related: [[entities/edge-functions]], [[entities/cosmian-kms]], [[entities/netmaker]], [[synthesis/kestra-k8s-runner]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/docs/doc-016 - Kestra-Notification-Automation-Pattern|doc-016 - Kestra-Notification-Automation-Pattern]]
 - [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]

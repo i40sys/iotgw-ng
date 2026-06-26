@@ -117,6 +117,9 @@ secrets/rendered/
 /.claude/skills/wiki-switch
 /.claude/skills/wiki-synthesize
 /.claude/skills/wiki-update
+# In-vault copies of backlog/ (real files so Obsidian shows them; Obsidian does
+# not follow symlinks). Duplicates backlog/ — regenerate with: just wiki-sources
+/wiki/_sources/
 # Obsidian per-machine workspace state (keep app.json/appearance.json/graph.json)
 /wiki/.obsidian/workspace.json
 /wiki/.obsidian/workspace-mobile.json

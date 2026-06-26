@@ -75,7 +75,12 @@ series — see [[synthesis/network-crud-and-jobs-feature-history]].
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- doc-008 (Domains, Networks and Devices Architecture); task-027, task-028.
+- Related: [[concepts/provisioning-call-chain]], [[concepts/iotgw-ui-architecture]], [[synthesis/network-crud-and-jobs-feature-history]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/docs/doc-008 - Domains-Networks-and-Devices-Architecture|doc-008 - Domains-Networks-and-Devices-Architecture]]
 - [[_sources/completed/task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage|task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage]]

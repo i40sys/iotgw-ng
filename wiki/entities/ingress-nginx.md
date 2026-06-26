@@ -43,7 +43,12 @@ Ingress (decision-015, decision-013).
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- decision-015 (k8s migration), decision-013 (edge group), doc-017 (Headlamp ingress).
+- Related: [[concepts/kubernetes-migration-kind]], [[entities/headlamp]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/decisions/decision-015 - Kubernetes-Migration-with-local-kind|decision-015 - Kubernetes-Migration-with-local-kind]]
 - [[_sources/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping|decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping]]

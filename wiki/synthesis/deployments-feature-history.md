@@ -59,7 +59,12 @@ deployment work is handed to Kestra via `kestra-dispatch`
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- archive/tasks/task-001..021 (deployments + deployment_jobs epic).
+- Related: [[references/deployments-page-behavior]], [[synthesis/network-crud-and-jobs-feature-history]], [[entities/edge-functions]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/archive/tasks/task-001 - Create-database-schema-for-deployments-table|task-001 - Create-database-schema-for-deployments-table]]
 - [[_sources/archive/tasks/task-009 - Implement-deployment-execution-functionality|task-009 - Implement-deployment-execution-functionality]]

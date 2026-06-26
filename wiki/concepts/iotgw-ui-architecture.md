@@ -78,7 +78,12 @@ single source of truth, regenerated via `pnpm generate:contract`.
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- decision-001/002/004/005/006/011; doc-003/005/006/015 (patterns).
+- Related: [[concepts/domains-networks-devices]], [[skills/iotgw-ui-development-workflow]], [[references/deployments-page-behavior]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/decisions/decision-001 - Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem|decision-001 - Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem]]
 - [[_sources/decisions/decision-002 - Backend-Architecture-Fastify-and-tRPC-API-Design|decision-002 - Backend-Architecture-Fastify-and-tRPC-API-Design]]

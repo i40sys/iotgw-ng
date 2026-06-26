@@ -64,7 +64,12 @@ replicated wildcard TLS Secret, and per-namespace secret fan-out. Ratified by
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- task-064 (epic) + .04/.07/.10/.15; ratified by decision-020.
+- Related: [[concepts/namespace-per-subproject]], [[entities/cosmian-kms]], [[synthesis/kestra-k8s-runner]], [[references/service-ports-and-namespaces]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/tasks/task-064 - Epic-Namespace-per-subproject-split-iotgw-becomes-the-cluster-not-a-namespace|task-064 - Epic-Namespace-per-subproject-split-iotgw-becomes-the-cluster-not-a-namespace]]
 - [[_sources/tasks/task-064.04 - Rework-the-KMS-NetworkPolicy-for-cross-namespace-clients-AND-combined-selectors|task-064.04 - Rework-the-KMS-NetworkPolicy-for-cross-namespace-clients-AND-combined-selectors]]

@@ -57,7 +57,12 @@ The hardening was delivered as **task-057** (Done): verified KMIP-without-token 
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- decision-010 (SSH key management), decision-015 (k8s migration + KMS hardening); task-057.
+- Related: [[concepts/ssh-key-management-kms]], [[concepts/namespace-per-subproject]], [[entities/kestra]], [[synthesis/ssh-key-kms-epic]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS|decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS]]
 - [[_sources/decisions/decision-015 - Kubernetes-Migration-with-local-kind|decision-015 - Kubernetes-Migration-with-local-kind]]

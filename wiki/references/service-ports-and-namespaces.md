@@ -55,7 +55,11 @@ the Keycloak **realm** `iotgw`, and the **Kestra flow namespace** `iotgw-ng`.
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- decision-020, decision-015. Related: [[concepts/namespace-per-subproject]], [[concepts/kubernetes-migration-kind]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/decisions/decision-020 - Namespace-per-subproject-topology|decision-020 - Namespace-per-subproject-topology]]
 - [[_sources/decisions/decision-015 - Kubernetes-Migration-with-local-kind|decision-015 - Kubernetes-Migration-with-local-kind]]

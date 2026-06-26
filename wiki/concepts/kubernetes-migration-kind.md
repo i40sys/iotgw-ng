@@ -79,7 +79,12 @@ the SOPS files to a cluster/KMS age recipient (`sops updatekeys`).
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- decision-015 (k8s migration with kind), decision-017 (compose decommission authorization).
+- Related: [[entities/stackgres]], [[concepts/namespace-per-subproject]], [[references/service-ports-and-namespaces]], [[skills/deploy-on-kind]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/decisions/decision-015 - Kubernetes-Migration-with-local-kind|decision-015 - Kubernetes-Migration-with-local-kind]]
 - [[_sources/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime|decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime]]

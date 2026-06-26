@@ -74,7 +74,12 @@ feature series) realize [[references/deployments-page-behavior]].
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- completed/ tasks 007/027/028/031 + the network_jobs series (task-001..003).
+- Related: [[concepts/domains-networks-devices]], [[concepts/provisioning-call-chain]], [[entities/supabase]], [[synthesis/deployments-feature-history]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/completed/task-007 - Create-domains-table-schema-and-migration|task-007 - Create-domains-table-schema-and-migration]]
 - [[_sources/completed/task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage|task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage]]

@@ -66,7 +66,12 @@ Lives in the **`supabase-db`** namespace.
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- decision-018 (adopt StackGres), decision-016 (edge-function impact).
+- Related: [[entities/supabase]], [[concepts/provisioning-call-chain]], [[synthesis/docker-compose-decommission]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod|decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod]]
 - [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]

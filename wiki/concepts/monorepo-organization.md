@@ -66,7 +66,12 @@ subproject with `tar xzf BACKUP/git-archives/<name>.git.tar.gz -C <path>`.
 
 ## Sources
 
-*Original backlog documents this page distills (browsable in-vault via `_sources/`).*
+- decision-012 (consolidation, interim/superseded), decision-013 (finalization).
+- Related: [[synthesis/netmaker-collection-externalization]], [[references/container-image-cicd]].
+
+<!-- _sources-links -->
+
+**Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository|decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository]]
 - [[_sources/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping|decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping]]
