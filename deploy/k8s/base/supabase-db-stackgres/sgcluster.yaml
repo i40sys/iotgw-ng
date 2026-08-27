@@ -25,6 +25,22 @@ spec:
     disableConnectionPooling: true
   configurations:
     sgPostgresConfig: supabase-db-pgconfig
+    # `authenticator` is written by TWO systems: StackGres/Patroni reconciles it
+    # from its own generated password (the `roles-update-sql` blob in the
+    # operator-managed `supabase-db` Secret), and 90-secrets.sql sets it from the
+    # SOPS store. Without this block StackGres wins on every reconcile, the
+    # password diverges from POSTGRES_PASSWORD, and PostgREST CrashLoops with
+    # `password authentication failed for user "authenticator"` → Kong 502 →
+    # the UI shows "An invalid response was received from the upstream server".
+    # Pointing StackGres at the SOPS-derived Secret makes SOPS the single source
+    # of truth (decision-014). `supabase-db-credentials` is created by
+    # bootstrap.sh → gen_initdb_secret().
+    credentials:
+      users:
+        authenticator:
+          password:
+            name: supabase-db-credentials
+            key: authenticator-password
   managedSql:
     scripts:
       - sgScript: supabase-initdb

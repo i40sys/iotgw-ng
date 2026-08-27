@@ -54,6 +54,17 @@ k8s-deploy:
 k8s-build:
     kubectl kustomize deploy/k8s/overlays/kind
 
+# Fixes PostgREST/GoTrue CrashLooping on "password authentication failed" (and
+# the UI's "An invalid response was received from the upstream server"):
+# `authenticator` is co-owned by StackGres/Patroni, which reconciles it on a
+# schedule, so a bare ALTER ROLE reverts. `k8s-deploy` already runs this — the
+# recipe is for repairing a live cluster without a full redeploy. See
+# deploy/README.md § Postgres tier.
+
+# Re-sync the Supabase DB role passwords from the SOPS store onto the primary
+db-sync-roles:
+    deploy/kind/bootstrap.sh sync-roles
+
 # Smoke-test what is deployed in kind
 k8s-smoke:
     deploy/kind/bootstrap.sh smoke

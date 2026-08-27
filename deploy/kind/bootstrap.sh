@@ -7,6 +7,7 @@
 #   deploy/kind/bootstrap.sh functions # build + kind-load the edge-functions image
 #   deploy/kind/bootstrap.sh iotgw-ui # build + kind-load the iotgw-ui frontend+backend images
 #   deploy/kind/bootstrap.sh deploy  # build functions+iotgw-ui, then apply the kind overlay
+#   deploy/kind/bootstrap.sh sync-roles # re-sync DB role passwords from SOPS (fixes PostgREST 502)
 #   deploy/kind/bootstrap.sh smoke   # smoke-test deployed services
 #   deploy/kind/bootstrap.sh down    # delete the cluster
 #
@@ -193,6 +194,15 @@ SQL
   kubectl create secret generic supabase-db-initdb -n "$NS_DB" \
     --from-literal=90-secrets.sql="$sql" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
   echo "  supabase-db-initdb Secret applied to $NS_DB (StackGres SGScript 90-secrets)"
+
+  # `authenticator` is also owned by StackGres/Patroni, which reconciles it from
+  # its own generated password and would otherwise clobber the value 90-secrets
+  # sets — PostgREST then CrashLoops on "password authentication failed".
+  # sgcluster.yaml's spec.configurations.credentials points StackGres at this
+  # Secret so both converge on the SOPS value (decision-014).
+  kubectl create secret generic supabase-db-credentials -n "$NS_DB" \
+    --from-literal=authenticator-password="$pw" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+  echo "  supabase-db-credentials Secret applied to $NS_DB (StackGres authenticator password)"
 }
 
 build_functions() {
@@ -322,6 +332,45 @@ migrate_app_db() {
   echo "  app schema applied; PostgREST (ns $NS_APP) restarted to reload its schema cache"
 }
 
+# Reconcile the supabase role passwords on the RUNNING primary against the SOPS
+# store. This is NOT redundant with 90-secrets.sql: that script is StackGres
+# managed SQL, so it only runs on a fresh DB (or when the SGScript version
+# changes) — an existing cluster never re-applies it.
+#
+# It matters most for `authenticator`, which StackGres/Patroni ALSO owns: the
+# operator reconciles it from the `roles-update-sql` blob in its own
+# `supabase-db` Secret, on a schedule (not just at pod restart). sgcluster.yaml
+# points that Secret's source at the SOPS value so both sides agree, but
+# StackGres does NOT push a credentials change down to the live role — the CRD
+# says so explicitly. Without this step the role keeps the OLD password,
+# PostgREST CrashLoops on `password authentication failed for user
+# "authenticator"`, Kong answers 502, and the UI shows "An invalid response was
+# received from the upstream server". Idempotent — safe to re-run.
+sync_role_passwords() {
+  local env pw pod
+  env="$(tools/secrets/secrets.sh cat supabase 2>/dev/null)" || {
+    echo "  (skip role-password sync: cannot read supabase env)"; return 0; }
+  pw=$(printf '%s\n' "$env" | grep -E '^POSTGRES_PASSWORD=' | head -1 | cut -d= -f2-)
+  [ -z "$pw" ] && { echo "  (skip role-password sync: POSTGRES_PASSWORD empty)"; return 0; }
+  pod="$(sg_primary_pod)"
+  echo "==> syncing supabase role passwords on $pod (ns $NS_DB) from the SOPS store"
+  if kubectl -n "$NS_DB" exec -i "$pod" -c patroni -- \
+       psql -U postgres -d postgres --no-psqlrc -q -v ON_ERROR_STOP=1 -v pw="$pw" <<'SQL' >/dev/null 2>&1
+ALTER ROLE authenticator            WITH PASSWORD :'pw';
+ALTER ROLE supabase_admin           WITH PASSWORD :'pw';
+ALTER ROLE supabase_auth_admin      WITH PASSWORD :'pw';
+ALTER ROLE supabase_storage_admin   WITH PASSWORD :'pw';
+ALTER ROLE supabase_functions_admin WITH PASSWORD :'pw';
+SQL
+  then
+    echo "  role passwords in sync"
+    # PostgREST/GoTrue hold pooled connections opened with the old password.
+    kubectl -n "$NS_APP" rollout restart deploy/rest deploy/auth >/dev/null 2>&1 || true
+  else
+    echo "  WARNING: role-password sync failed — PostgREST/GoTrue may CrashLoop"
+  fi
+}
+
 deploy() {
   # build-local by default; IOTGW_IMAGE_SOURCE=registry pulls ghcr.io/i40sys/*.
   provision_functions
@@ -351,6 +400,7 @@ deploy() {
   kubectl -n "$NS_DB" wait pod \
     -l "stackgres.io/cluster=true,stackgres.io/cluster-name=supabase-db" \
     --for=condition=Ready --timeout=60s 2>/dev/null || true
+  sync_role_passwords
   migrate_app_db
 }
 
@@ -369,6 +419,33 @@ smoke() {
   else
     echo "  KMS not reachable"
   fi
+  # App tier: a CrashLooping rest/auth is the single most common breakage (DB
+  # role password drift — see sync_role_passwords) and it is INVISIBLE in the
+  # pod list above if you only skim for Running. Assert Available explicitly.
+  echo "==> supabase app tier (Deployment Available)"
+  local d ok=0
+  for d in kong rest auth meta functions; do
+    if [ "$(kubectl -n "$NS_APP" get deploy "$d" -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' 2>/dev/null)" = "True" ]; then
+      echo "  $d OK"
+    else
+      echo "  $d NOT Available  <-- kubectl -n $NS_APP logs deploy/$d --tail=20"
+      ok=1
+    fi
+  done
+  [ "$ok" -eq 0 ] || echo "  app tier degraded — if it is rest/auth, try: just db-sync-roles"
+  # End-to-end read through Kong -> PostgREST -> Postgres. Proves the
+  # authenticator login actually works, which the pod list alone does not.
+  local anon
+  anon=$(tools/secrets/secrets.sh cat supabase 2>/dev/null | grep -E '^ANON_KEY=' | head -1 | cut -d= -f2-)
+  if [ -n "$anon" ]; then
+    echo "==> Kong -> PostgREST query (/rest/v1/domains)"
+    if curl -fsS -m 10 -o /dev/null -H "apikey: $anon" -H "Authorization: Bearer $anon" \
+         "http://localhost:8000/rest/v1/domains?select=id&limit=1"; then
+      echo "  PostgREST OK (authenticator login works)"
+    else
+      echo "  PostgREST query FAILED — check: kubectl -n $NS_APP logs deploy/rest --tail=20"
+    fi
+  fi
 }
 
 case "${1:-}" in
@@ -378,6 +455,7 @@ case "${1:-}" in
   functions) provision_functions ;;
   iotgw-ui) provision_iotgw_ui ;;
   deploy) make_secrets; deploy ;;
+  sync-roles) sync_role_passwords ;;
   migrate) migrate_app_db ;;
   force-migrate)
     # Re-apply the app schema into a FRESH DB even if the guard table is missing
