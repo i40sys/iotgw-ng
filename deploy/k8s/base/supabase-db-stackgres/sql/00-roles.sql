@@ -76,6 +76,10 @@ GRANT CREATE ON DATABASE postgres TO supabase_auth_admin;
 CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
 GRANT ALL ON SCHEMA auth TO supabase_auth_admin;
 GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role, postgres;
+-- Belt-and-braces alongside `?search_path=auth` in the GoTrue DSN: a session
+-- that reaches the DB without it still resolves `auth` instead of failing with
+-- "no schema has been selected to create in" (SQLSTATE 3F000).
+ALTER ROLE supabase_auth_admin SET search_path = auth, public;
 
 -- `extensions` schema must exist before 98-webhooks.sql does
 -- `CREATE EXTENSION pg_net SCHEMA extensions`.

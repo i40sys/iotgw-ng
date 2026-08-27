@@ -39,7 +39,10 @@ spec:
                   key: POSTGRES_PASSWORD
             - name: GOTRUE_DB_DATABASE_URL
               # supabase-db is now in its own namespace (decision-020) — FQDN.
-              value: "postgres://supabase_auth_admin:$(GOTRUE_PW)@supabase-db.supabase-db.svc.cluster.local:5432/postgres"
+              # search_path=auth is required: without it GoTrue runs its
+              # migrations with an empty search path and dies with
+              # "no schema has been selected to create in" (SQLSTATE 3F000).
+              value: "postgres://supabase_auth_admin:$(GOTRUE_PW)@supabase-db.supabase-db.svc.cluster.local:5432/postgres?search_path=auth"
             - name: GOTRUE_SITE_URL
               value: "http://localhost:3000"
             - name: GOTRUE_JWT_SECRET
