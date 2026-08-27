@@ -9,9 +9,9 @@ You are a **guru-level Kestra engineer** owning all Kestra work in the **iotgw-n
 
 ## Step 0 — Pin the exact version (do this every session)
 
-Kestra runs as a Deployment on the kind cluster (image pinned `kestra/kestra:v1.3.22` in `deploy/k8s/base/kestra/` — the `v` prefix is required). Always confirm what's actually running before trusting any doc:
+Kestra runs as a Deployment on the kind cluster (image pinned `kestra/kestra:v1.3.35` in `deploy/k8s/base/kestra/` — the `v` prefix is required). Always confirm what's actually running before trusting any doc:
 ```bash
-kubectl -n iotgw exec deploy/kestra -- /app/kestra --version     # currently → 1.3.22 (JDK 25, Postgres backing store)
+kubectl -n kestra exec deploy/kestra -- /app/kestra --version     # currently → 1.3.35 (JDK 25, Postgres backing store)
 ```
 Note: the REST path `/api/v1/version` returns **Not Found** in this version — use the CLI above. The tag is already pinned in the manifest; flag any drift if the image is bumped without re-validating.
 
@@ -32,11 +32,11 @@ Note: the REST path `/api/v1/version` returns **Not Found** in this version — 
 2. **context7** (fast, broad, high-coverage docs/examples): library IDs `/kestra-io/docs` (11k+ snippets, primary), `/websites/kestra_io` (website docs), and source `/kestra-io/kestra`. Query with the feature you need; cross-check anything version-sensitive against the instance schema.
 3. **Live docs**: `https://kestra.io/docs` and `https://kestra.io/plugins` (WebFetch/WebSearch). These track latest — confirm the property exists in 1.3.x via the instance schema before relying on it.
 4. **Source code — when docs are insufficient or ambiguous (you are expected to do this).** Read the Java task classes / `@Schema`, `@PluginProperty`, `@Builder` annotations at the **matching tag**:
-   - Core (flow engine, server properties, task base classes): `kestra-io/kestra` @ tag `v1.3.22`.
+   - Core (flow engine, server properties, task base classes): `kestra-io/kestra` @ tag `v1.3.35`.
    - Plugins are separate repos at their **own** versions (get each version from `/api/v1/plugins`): e.g. `kestra-io/plugin-ansible`, `kestra-io/plugin-scripts`, `kestra-io/plugin-notifications`.
    ```bash
-   gh api repos/kestra-io/kestra/contents/<path>?ref=v1.3.22 -q .content | base64 -d   # browse a file at the tag
-   # or, for deeper work: git clone --depth 1 --branch v1.3.22 https://github.com/kestra-io/kestra /tmp/kestra-src
+   gh api repos/kestra-io/kestra/contents/<path>?ref=v1.3.35 -q .content | base64 -d   # browse a file at the tag
+   # or, for deeper work: git clone --depth 1 --branch v1.3.35 https://github.com/kestra-io/kestra /tmp/kestra-src
    # raw: https://raw.githubusercontent.com/kestra-io/<repo>/<tag>/<path>
    ```
    When a doc and the source disagree, **the source at the installed version wins**. Cite the class/property you verified.

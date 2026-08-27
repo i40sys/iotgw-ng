@@ -21,7 +21,7 @@ spec:
       serviceAccountName: kestra
       containers:
         - name: kestra
-          image: kestra/kestra:v1.3.22   # pinned (compose was :latest)
+          image: kestra/kestra:v1.3.35   # pinned (compose was :latest)
           command: ["/bin/bash", "-c", "/app/kestra server standalone"]
           env:
             # Secrets injected from the kestra-env Secret. KESTRA_CONFIGURATION

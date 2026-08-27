@@ -80,7 +80,7 @@ After rotating a value (`tools/secrets/secrets.sh edit <name>`), re-run `deploy/
 ## Known traps (carry these into any debugging)
 
 - **kind node is pinned `v1.31.12`** on purpose: kind's default v1.35 ships containerd 2.x whose symlink-escape hardening rejects the minimal `ghcr.io/cosmian/kms` image with *"path escapes from parent"*. Do NOT bump the node image without re-validating KMS. **StackGres operator is also pinned 1.17.4** (1.18.x is broken on k8s 1.31 — task-062.16).
-- **Kestra image tag is `kestra/kestra:v1.3.22`** — the `v` prefix is required (`1.3.22` does not exist on Docker Hub).
+- **Kestra image tag is `kestra/kestra:v1.3.35`** — the `v` prefix is required (`1.3.35` does not exist on Docker Hub).
 - **Kestra Ansible flows run on the k8s task runner** (`io.kestra.plugin.kubernetes.core.PodCreate`, `kestra` ServiceAccount + RBAC) — the host Docker/`docker.sock` runner is gone (task-054).
 - **Postgres is StackGres** (`supabase-db` SGCluster, decision-018), not a hand-authored StatefulSet — manage it via the StackGres CRDs (`SGCluster`/`SGScript`/`SGDbOps`), not by editing a StatefulSet directly. `disableConnectionPooling: true` → clients hit the direct primary at `supabase-db:5432` (no `:6543` pooler).
 - **pg_net webhook URLs** stored in the DB point at the in-cluster Kong Service URL, not `wsl.ymbihq.local:8000` (task-055).
