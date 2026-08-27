@@ -24,6 +24,27 @@ The StackGres replacement for the hand-authored `../supabase-db` StatefulSet
   1.31; `TASK-062.16`). `bootstrap.sh up` installs it.
 - `supabase-db-initdb` Secret (role passwords + jwt GUCs from the SOPS store).
   `bootstrap.sh secrets`/`deploy` generates it (`gen_initdb_secret`).
+- `supabase-db-credentials` Secret (`authenticator-password` from the SOPS
+  `POSTGRES_PASSWORD`), referenced by `sgcluster.yaml`'s
+  `spec.configurations.credentials.users.authenticator`. Same generator.
+
+## `authenticator` is co-owned by Patroni — read this before touching passwords
+
+StackGres/Patroni reconciles `postgres`, `replicator` and **`authenticator`**
+from its own `roles-update-sql` blob (in the operator-managed `supabase-db`
+Secret) **on a schedule**, not only at pod restart. `90-secrets.sql` is *managed
+SQL* and only runs on a fresh DB, so on a long-lived cluster StackGres wins and
+the password drifts away from `POSTGRES_PASSWORD`. PostgREST then CrashLoops
+(`password authentication failed for user "authenticator"`), Kong returns 502,
+and the UI shows *"An invalid response was received from the upstream server"*.
+
+`sgcluster.yaml` points StackGres at the SOPS-derived Secret so both agree, but
+a credentials change is **not** propagated to the live role by the operator —
+run `just db-sync-roles` (idempotent; `just k8s-deploy` does it for you). A bare
+`ALTER ROLE authenticator …` is **not** a fix: it holds for hours, then reverts.
+
+The blob also grants `authenticator` **SUPERUSER**, which conflicts with
+PostgREST's least-privilege `SET ROLE` model — unresolved, flag before prod.
 
 ## Activation (the cutover) is NOT done here
 This tree is authored + validated, but the base/overlays still deploy the

@@ -101,7 +101,7 @@ upstream service**, then updated via `secrets.sh edit <name>`.
 |---|---|---|---|---|
 | 1 | Netmaker master key | **critical** | **Not rotatable by us** — `api.netmaker.i40sys.com` is a shared production server managing other networks; rotating its `MASTER_KEY` would disrupt them. Mitigation instead: move our consumers to a **scoped, revocable Netmaker API key** (non-disruptive). | when swapping the credential: `secrets.sh edit supabase` + `netmaker` (same value in both), `just secrets-render`, refresh the kind `supabase-env` Secret, restart `functions`. See `backlog/docs/netmaker-credential-handling.md` |
 | 2 | Supabase `JWT_SECRET` (+ re-mint `ANON_KEY`/`SERVICE_ROLE_KEY`) | **critical** | regenerate secret; re-issue both JWTs | `secrets.sh edit supabase` + `iotgw-ui-backend`; restart stack |
-| 3 | Supabase `POSTGRES_PASSWORD` | **critical** | `ALTER ROLE` on the DB; update all service roles | `secrets.sh edit supabase` |
+| 3 | Supabase `POSTGRES_PASSWORD` | **critical** | `secrets.sh edit supabase`, then **`just db-sync-roles`** (see note below — a bare `ALTER ROLE` is not enough) | `secrets.sh edit supabase` |
 | 4 | Kestra basic-auth password (`oriol@joor.net`) | **high** (personal account) | Kestra user settings | `secrets.sh edit kestra` + `supabase` + `kestra-reporter` + `iotgw-ui-backend` |
 | 5 | Google Gemini API key | **high** | Google AI Studio | `secrets.sh edit kestra` |
 | 6 | OpenAI key (`sk-proj-…`) | **high** | OpenAI dashboard | `secrets.sh edit supabase` |
@@ -116,6 +116,20 @@ upstream service**, then updated via `secrets.sh edit <name>`.
 | 15 | Supabase `SECRET_KEY_BASE`, `VAULT_ENC_KEY`, `PG_META_CRYPTO_KEY`, `DB_ENC_KEY`, dashboard password, Logflare tokens | medium | regenerate random | `secrets.sh edit supabase` (note: `VAULT_ENC_KEY`/`DB_ENC_KEY` rotation requires re-encrypting existing vault/realtime data) |
 | 16 | Kestra Postgres password (`k3str4`) | low (internal) | `ALTER ROLE` | `secrets.sh edit kestra` |
 | 17 | MinIO creds (S3 overlay) | low (dev) | MinIO | `secrets.sh edit supabase` |
+
+> **Rotating `POSTGRES_PASSWORD` (item 3) — the non-obvious step.**
+> `authenticator` is **co-owned by StackGres/Patroni**, which reconciles it from
+> its own `roles-update-sql` blob **on a schedule**, not just at pod restart.
+> `90-secrets.sql` is StackGres *managed SQL* and only runs on a **fresh** DB,
+> so on an existing cluster a hand-run `ALTER ROLE` silently reverts within
+> hours — PostgREST then CrashLoops (`password authentication failed for user
+> "authenticator"`), Kong returns 502, and the UI shows *"An invalid response
+> was received from the upstream server"*. `sgcluster.yaml` points StackGres at
+> the SOPS-derived `supabase-db-credentials` Secret so SOPS stays the source of
+> truth, but the operator does **not** push a credentials change down to the
+> live role. So the rotation is: `secrets.sh edit supabase` → `just k8s-deploy`
+> (or `just db-sync-roles` on a live cluster) → verify with `just k8s-smoke`.
+> Full detail in [deploy/README.md](../../deploy/README.md#postgres-tier-stackgres-decision-018).
 
 **Git history**: the Traefik leaf key and the redacted doc keys remain
 reachable from earlier commits (`9d325f5`, `e56d1f5`) on this branch/`main`.

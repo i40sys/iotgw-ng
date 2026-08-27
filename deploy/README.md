@@ -108,6 +108,34 @@ supersedes the hand-authored `supabase-db` StatefulSet (which is retained in
   webhook fn, the event trigger, and the JWT GUCs.
 - **Operator is pinned to 1.17.4** (installed by `deploy/kind/bootstrap.sh`) —
   1.18.x is broken on k8s 1.31 (`TASK-062.16`).
+- **`authenticator` is co-owned — SOPS wins, but only if you sync the role.**
+  StackGres/Patroni reconciles `postgres`, `replicator` and **`authenticator`**
+  from the `roles-update-sql` blob inside the operator-managed `supabase-db`
+  Secret, **on a schedule** — not just at pod restart. `90-secrets.sql` also
+  sets those passwords, but it is *managed SQL*, so it only runs on a fresh DB.
+  Left alone the two diverge and **PostgREST CrashLoops** on `password
+  authentication failed for user "authenticator"` → Kong 502 → the UI reports
+  *"An invalid response was received from the upstream server"*.
+  `sgcluster.yaml` therefore sets
+  `spec.configurations.credentials.users.authenticator.password` → Secret
+  **`supabase-db-credentials`** (written by `bootstrap.sh` → `gen_initdb_secret`
+  from the SOPS `POSTGRES_PASSWORD`), making SOPS the single source of truth
+  (`decision-014`).
+  **Caveat:** changing that credentials Secret updates StackGres's *own* Secret
+  but does **not** push the new password down to the live Postgres role — the
+  CRD is explicit about this. So after any `POSTGRES_PASSWORD` rotation run:
+  ```bash
+  just db-sync-roles     # deploy/kind/bootstrap.sh sync-roles — idempotent
+  ```
+  `just k8s-deploy` runs it automatically (`sync_role_passwords`, right after
+  the primary goes Ready). Diagnose with:
+  ```bash
+  kubectl -n supabase-db get secret supabase-db -o jsonpath='{.data.roles-update-sql}' | base64 -d
+  ```
+  Any role named there is **operator-owned** — do not "fix" it with a bare
+  `ALTER ROLE`, it will silently revert. Note this blob also grants
+  `authenticator` **SUPERUSER**, which undercuts PostgREST's `SET ROLE`/RLS
+  model — open question before a prod overlay.
 
 ## Validation status (2026-06-18, kind v1.31.12)
 

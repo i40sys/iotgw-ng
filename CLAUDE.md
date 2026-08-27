@@ -125,8 +125,24 @@ Release + verify runbook: [deploy/RELEASE.md](deploy/RELEASE.md).
   (`iotgw-ui/supabase/migrations/`) → contract types
   (`iotgw-ui/packages/supabase-contract`) → backend/edge function → (for
   OpenWRT) Kestra flow → Ansible.
+- **`authenticator` is co-owned by StackGres — never just `ALTER ROLE` it.**
+  Patroni reconciles that role's password from the `roles-update-sql` blob in
+  the operator-managed `supabase-db` Secret **on a schedule**, not only at pod
+  restart, so a hand-set password silently reverts within hours. The symptom is
+  always the same chain: PostgREST CrashLoops on `password authentication
+  failed for user "authenticator"` → Kong 502 → the UI shows *"Failed to fetch
+  X: An invalid response was received from the upstream server"*. SOPS is the
+  source of truth (`sgcluster.yaml` → `spec.configurations.credentials`), but
+  StackGres does **not** push a credentials change down to the live role — run
+  **`just db-sync-roles`** after rotating `POSTGRES_PASSWORD` (`just k8s-deploy`
+  does it automatically). Before re-setting any Postgres role password, check
+  whether the operator owns it:
+  `kubectl -n supabase-db get secret supabase-db -o jsonpath='{.data.roles-update-sql}' | base64 -d`.
 - Run `just verify` for a repeatable check (secret hygiene, SOPS round-trip,
   kustomize render, ui typecheck+tests, kind smoke).
+- **Pod `Running` is not "working."** `just k8s-smoke` now asserts the app-tier
+  Deployments are `Available` and does a real `Kong → PostgREST → Postgres`
+  read; a green pod list alone hid a dead PostgREST for 23h.
 - Task management goes through the `backlog` CLI against `backlog/`.
 
 ## Service Ports (host `wsl.ymbihq.local`)
