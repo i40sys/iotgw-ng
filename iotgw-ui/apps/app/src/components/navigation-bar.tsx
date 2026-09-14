@@ -1,157 +1,239 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LanguageSwitcher } from "./language-switcher";
-import { ModeToggle } from "./mode-toggle";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faHouse,
-  faGlobe,
-  faNetworkWired,
-  faServer,
-  faRocket,
-  faClipboardList,
-  faBug,
+  faBars,
+  faCheck,
+  faGear,
+  faMoon,
+  faSun,
+  faDisplay,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "@/hooks/use-theme";
+import { cn } from "@/lib/utils";
+import { getAppVersion } from "@/utils/version";
+import { NAV_SECTIONS, findActiveSection } from "./navigation/nav-config";
+import { SectionNav } from "./section-nav";
+
+const LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "es", label: "Español" },
+] as const;
+
+const THEMES = [
+  { value: "light", labelKey: "navigation.themeLight", icon: faSun },
+  { value: "dark", labelKey: "navigation.themeDark", icon: faMoon },
+  { value: "system", labelKey: "navigation.themeSystem", icon: faDisplay },
+] as const;
+
+function Brand() {
+  return (
+    <Link
+      to="/"
+      className="flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight"
+    >
+      <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-blue-400">
+        Edge
+      </span>
+      <span className="text-foreground -ml-1">Manager</span>
+    </Link>
+  );
+}
+
+/**
+ * Language + theme + version in one menu. They are preferences, not features,
+ * so they no longer compete with the section links for attention.
+ */
+function PreferencesMenu() {
+  const { t, i18n } = useTranslation();
+  const { theme, setTheme } = useTheme();
+  const version = getAppVersion();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("navigation.preferences")}
+        >
+          <FontAwesomeIcon icon={faGear} aria-hidden="true" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuLabel className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+          {t("navigation.language")}
+        </DropdownMenuLabel>
+        {LANGUAGES.map((lang) => (
+          <DropdownMenuItem
+            key={lang.code}
+            onClick={() => void i18n.changeLanguage(lang.code)}
+            className="justify-between"
+          >
+            {lang.label}
+            {i18n.language.startsWith(lang.code) && (
+              <FontAwesomeIcon icon={faCheck} className="h-3 w-3" />
+            )}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+          {t("navigation.theme")}
+        </DropdownMenuLabel>
+        {THEMES.map((item) => (
+          <DropdownMenuItem
+            key={item.value}
+            onClick={() => setTheme(item.value)}
+            className="justify-between"
+          >
+            <span className="flex items-center gap-2">
+              <FontAwesomeIcon
+                icon={item.icon}
+                className="text-muted-foreground h-3.5 w-3.5"
+                aria-hidden="true"
+              />
+              {t(item.labelKey)}
+            </span>
+            {theme === item.value && (
+              <FontAwesomeIcon icon={faCheck} className="h-3 w-3" />
+            )}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <div className="text-muted-foreground px-2 py-1.5 font-mono text-xs">
+          v{version}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 export function NavigationBar() {
   const { t } = useTranslation();
-
-  const navItems = [
-    {
-      id: "/",
-      label: t("navigation.home"),
-      description: t("navigation.homeDescription"),
-      icon: faHouse,
-    },
-    {
-      id: "/domains",
-      label: t("navigation.domains"),
-      description: t("domains.description"),
-      icon: faGlobe,
-    },
-    {
-      id: "/networks",
-      label: t("navigation.networks"),
-      description: t("networks.description"),
-      icon: faNetworkWired,
-    },
-    {
-      id: "/devices",
-      label: t("navigation.devices"),
-      description: t("navigation.devicesDescription"),
-      icon: faServer,
-    },
-    {
-      id: "/deployments",
-      label: t("navigation.deployments"),
-      description: t("deployments.pageDescription"),
-      icon: faRocket,
-    },
-    {
-      id: "/deployments/jobs",
-      label: t("navigation.deploymentJobs"),
-      description: t("deploymentJobs.pageDescription"),
-      icon: faClipboardList,
-    },
-  ];
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const activeSection = findActiveSection(pathname);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <nav className="bg-background border-border border-b px-4 py-2.5">
-      <div className="mx-auto flex max-w-screen-xl flex-wrap items-center justify-between">
-        <div className="flex items-center">
-          <span className="self-center whitespace-nowrap text-xl font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-blue-400">
-              Edge
-            </span>
-            <span className="text-foreground ml-1">Manager</span>
-          </span>
-          <div className="ml-8 hidden md:block">
-            <ul className="flex space-x-8">
-              {navItems.map((item) => (
-                <li key={item.id}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+    <header className="bg-background border-border sticky top-0 z-40 border-b">
+      <nav
+        aria-label={t("navigation.primary")}
+        className="mx-auto flex h-14 max-w-screen-2xl items-center gap-6 px-4"
+      >
+        <Brand />
+
+        {/* Section tabs — the four things you can do in the product. */}
+        <ul className="hidden h-full items-stretch gap-1 md:flex">
+          {NAV_SECTIONS.map((section) => {
+            const isActive = section.id === activeSection.id;
+            return (
+              <li key={section.id} className="flex">
+                <Link
+                  to={section.to}
+                  aria-current={isActive ? "page" : undefined}
+                  title={t(section.descriptionKey)}
+                  className={cn(
+                    "relative flex items-center gap-2 px-3 text-sm transition-colors",
+                    "after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:transition-colors",
+                    isActive
+                      ? "text-foreground after:bg-primary font-medium"
+                      : "text-muted-foreground hover:text-foreground after:bg-transparent",
+                  )}
+                >
+                  <FontAwesomeIcon
+                    icon={section.icon}
+                    className="h-3.5 w-3.5"
+                    aria-hidden="true"
+                  />
+                  {t(section.labelKey)}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="ml-auto flex items-center gap-1">
+          <PreferencesMenu />
+
+          {/* Mobile: whole tree in a sheet. */}
+          <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                aria-label={t("navigation.openMenu")}
+              >
+                <FontAwesomeIcon icon={faBars} aria-hidden="true" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72">
+              <SheetHeader>
+                <SheetTitle>
+                  <Brand />
+                </SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col gap-5 px-4 pb-6">
+                {NAV_SECTIONS.map((section) => (
+                  <div key={section.id} className="flex flex-col gap-1">
+                    <Link
+                      to={section.to}
+                      onClick={() => setIsMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2 text-sm font-semibold",
+                        section.id === activeSection.id
+                          ? "text-foreground"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      <FontAwesomeIcon
+                        icon={section.icon}
+                        className="h-3.5 w-3.5"
+                        aria-hidden="true"
+                      />
+                      {t(section.labelKey)}
+                    </Link>
+                    {section.items.map((item) => (
                       <Link
-                        to={item.id}
-                        activeOptions={{
-                          exact: item.id === "/",
-                        }}
-                        className="text-muted-foreground hover:text-primary [&.active]:text-primary block py-2 [&.active]:font-medium"
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => setIsMobileOpen(false)}
+                        className="text-muted-foreground hover:text-foreground [&.active]:text-primary flex items-center gap-2 py-1 pl-6 text-sm"
                       >
                         <FontAwesomeIcon
                           icon={item.icon}
-                          className="mr-2"
+                          className="h-3 w-3"
                           aria-hidden="true"
                         />
-                        {item.label}
+                        {t(item.labelKey)}
                       </Link>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{item.description}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </li>
-              ))}
-            </ul>
-          </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
-        <div className="flex items-center space-x-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <FontAwesomeIcon
-                  icon={faBug}
-                  className="mr-2"
-                  aria-hidden="true"
-                />
-                {t("navigation.debug")}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link
-                  to="/debug/network-jobs"
-                  className="flex w-full cursor-pointer items-center"
-                >
-                  <FontAwesomeIcon
-                    icon={faNetworkWired}
-                    className="mr-2"
-                    aria-hidden="true"
-                  />
-                  {t("navigation.networkJobs")}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  to="/debug/device-jobs"
-                  className="flex w-full cursor-pointer items-center"
-                >
-                  <FontAwesomeIcon
-                    icon={faServer}
-                    className="mr-2"
-                    aria-hidden="true"
-                  />
-                  {t("navigation.deviceJobs")}
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <LanguageSwitcher />
-          <ModeToggle />
-        </div>
-      </div>
-    </nav>
+      </nav>
+
+      <SectionNav section={activeSection} />
+    </header>
   );
 }
