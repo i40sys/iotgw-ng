@@ -5,6 +5,8 @@ import { useState, useMemo } from "react";
 import { z } from "zod";
 import type { Network } from "@iotgw/supabase-contract";
 import { ErrorDisplay } from "@/components/ui/error-display";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { ipSortValue, useTableSort } from "@/hooks/use-table-sort";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -150,6 +152,26 @@ function NetworksPage() {
     return filtered;
   }, [networksQuery.data, networkSearchQuery, domainSearchQuery]);
 
+  const sortAccessors = useMemo(
+    () => ({
+      name: (n: (typeof filteredNetworks)[number]) => n.name,
+      id: (n: (typeof filteredNetworks)[number]) => n.id,
+      domain: (n: (typeof filteredNetworks)[number]) => n.domain?.name,
+      ipv4: (n: (typeof filteredNetworks)[number]) =>
+        ipSortValue(n.ipv4_cidr?.split("/")[0]),
+      ipv6: (n: (typeof filteredNetworks)[number]) => n.ipv6_cidr,
+      created: (n: (typeof filteredNetworks)[number]) =>
+        new Date(n.created_at).getTime(),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const {
+    sort,
+    toggleSort,
+    sortedRows: sortedNetworks,
+  } = useTableSort(filteredNetworks, sortAccessors);
+
   const createNetworkMutation = useMutation({
     ...trpc.createNetwork.mutationOptions(),
     onSuccess: () => {
@@ -292,7 +314,7 @@ function NetworksPage() {
           <div className="flex gap-3">
             {/* Network Name Search */}
             <div className="relative w-64">
-              <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <Input
                 type="text"
                 placeholder="Filter by network name..."
@@ -304,7 +326,7 @@ function NetworksPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2"
+                  className="absolute top-1/2 right-1 h-7 -translate-y-1/2 px-2"
                   onClick={() => setNetworkSearchQuery("")}
                 >
                   <X className="h-4 w-4" />
@@ -314,7 +336,7 @@ function NetworksPage() {
 
             {/* Domain Search */}
             <div className="relative w-64">
-              <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <Input
                 type="text"
                 placeholder={
@@ -328,7 +350,7 @@ function NetworksPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2"
+                  className="absolute top-1/2 right-1 h-7 -translate-y-1/2 px-2"
                   onClick={() => setDomainSearchQuery("")}
                 >
                   <X className="h-4 w-4" />
@@ -365,7 +387,7 @@ function NetworksPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, domain_id: e.target.value })
                     }
-                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring col-span-3 flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring col-span-3 flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="">Select a domain</option>
                     {domainsQuery.data?.map((domain) => (
@@ -483,19 +505,51 @@ function NetworksPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("networks.name")}</TableHead>
-                <TableHead>Network ID</TableHead>
-                <TableHead>{t("domains.domain")}</TableHead>
-                <TableHead>{t("networks.ipv4Cidr")}</TableHead>
-                <TableHead>{t("networks.ipv6Cidr")}</TableHead>
-                <TableHead>{t("common.createdAt")}</TableHead>
+                <SortableTableHead
+                  sortKey="name"
+                  sort={sort}
+                  onSort={toggleSort}
+                >
+                  {t("networks.name")}
+                </SortableTableHead>
+                <SortableTableHead sortKey="id" sort={sort} onSort={toggleSort}>
+                  Network ID
+                </SortableTableHead>
+                <SortableTableHead
+                  sortKey="domain"
+                  sort={sort}
+                  onSort={toggleSort}
+                >
+                  {t("domains.domain")}
+                </SortableTableHead>
+                <SortableTableHead
+                  sortKey="ipv4"
+                  sort={sort}
+                  onSort={toggleSort}
+                >
+                  {t("networks.ipv4Cidr")}
+                </SortableTableHead>
+                <SortableTableHead
+                  sortKey="ipv6"
+                  sort={sort}
+                  onSort={toggleSort}
+                >
+                  {t("networks.ipv6Cidr")}
+                </SortableTableHead>
+                <SortableTableHead
+                  sortKey="created"
+                  sort={sort}
+                  onSort={toggleSort}
+                >
+                  {t("common.createdAt")}
+                </SortableTableHead>
                 <TableHead className="text-right">
                   {t("common.actions")}
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredNetworks.map((network) => (
+              {sortedNetworks.map((network) => (
                 <TableRow key={network.id} className="hover:bg-muted/50">
                   <TableCell className="font-medium">
                     <Link

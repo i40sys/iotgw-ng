@@ -6,6 +6,8 @@ import { z } from "zod";
 import type { Device } from "@iotgw/supabase-contract";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { ipSortValue, useTableSort } from "@/hooks/use-table-sort";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -299,13 +301,17 @@ function DevicesPage() {
         <TooltipTrigger asChild>
           <Badge
             variant="outline"
-            className={`gap-1 text-xs ${
+            className={`gap-1 text-xs whitespace-nowrap ${
               hasSshKey
                 ? "border-green-600 text-green-600"
                 : "border-amber-600 text-amber-600"
             }`}
           >
-            <FontAwesomeIcon icon={faKey} className="h-3 w-3" aria-hidden="true" />
+            <FontAwesomeIcon
+              icon={faKey}
+              className="h-3 w-3"
+              aria-hidden="true"
+            />
             {hasSshKey
               ? t("devices.sshKey.label")
               : t("devices.sshKey.labelMissing")}
@@ -391,6 +397,14 @@ function DevicesPage() {
   }, [networksQuery.data, formData.domain_id]);
 
   // Filter devices based on search queries
+  type DeviceSortKey =
+    | "name"
+    | "network"
+    | "ip"
+    | "description"
+    | "keys"
+    | "created";
+
   const filteredDevices = useMemo(() => {
     if (!devicesQuery.data) return [];
 
@@ -417,6 +431,26 @@ function DevicesPage() {
     networksQuery.data,
   ]);
 
+  const sortAccessors = useMemo(
+    () => ({
+      name: (d: Device) => d.name,
+      network: (d: Device) => getNetworkName(d.network_id),
+      ip: (d: Device) => ipSortValue(d.ip_address),
+      description: (d: Device) => d.description,
+      // 2 = KMS key + WireGuard keys, 1 = KMS key only, 0 = nothing yet
+      keys: (d: Device) =>
+        (d.ssh_key_id ? 1 : 0) + (d.public_key && d.private_key ? 1 : 0),
+      created: (d: Device) => new Date(d.created_at).getTime(),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [networksQuery.data],
+  );
+  const {
+    sort,
+    toggleSort,
+    sortedRows: sortedDevices,
+  } = useTableSort<Device, DeviceSortKey>(filteredDevices, sortAccessors);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mx-auto max-w-7xl">
@@ -427,7 +461,7 @@ function DevicesPage() {
             <div className="relative w-64">
               <FontAwesomeIcon
                 icon={faSearch}
-                className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+                className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
                 aria-hidden="true"
               />
               <Input
@@ -440,7 +474,7 @@ function DevicesPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2"
+                  className="absolute top-1/2 right-1 h-7 -translate-y-1/2 px-2"
                   onClick={() => setNetworkSearchQuery("")}
                 >
                   <FontAwesomeIcon icon={faX} className="h-3 w-3" />
@@ -452,7 +486,7 @@ function DevicesPage() {
             <div className="relative w-64">
               <FontAwesomeIcon
                 icon={faSearch}
-                className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+                className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
                 aria-hidden="true"
               />
               <Input
@@ -465,7 +499,7 @@ function DevicesPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2"
+                  className="absolute top-1/2 right-1 h-7 -translate-y-1/2 px-2"
                   onClick={() => setDeviceSearchQuery("")}
                 >
                   <FontAwesomeIcon icon={faX} className="h-3 w-3" />
@@ -651,20 +685,55 @@ function DevicesPage() {
         )}
 
         <div className="border-border bg-card overflow-hidden rounded-lg border">
-          <Table>
+          <Table className="[&_td]:px-3 [&_th]:px-3">
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Network</TableHead>
-                <TableHead>IP Address</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Keys</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead>Actions</TableHead>
+                <SortableTableHead
+                  sortKey="name"
+                  sort={sort}
+                  onSort={toggleSort}
+                >
+                  Name
+                </SortableTableHead>
+                <SortableTableHead
+                  sortKey="network"
+                  sort={sort}
+                  onSort={toggleSort}
+                  className="hidden md:table-cell"
+                >
+                  Network
+                </SortableTableHead>
+                <SortableTableHead sortKey="ip" sort={sort} onSort={toggleSort}>
+                  IP Address
+                </SortableTableHead>
+                <SortableTableHead
+                  sortKey="description"
+                  sort={sort}
+                  onSort={toggleSort}
+                  className="hidden lg:table-cell"
+                >
+                  Description
+                </SortableTableHead>
+                <SortableTableHead
+                  sortKey="keys"
+                  sort={sort}
+                  onSort={toggleSort}
+                >
+                  Keys
+                </SortableTableHead>
+                <SortableTableHead
+                  sortKey="created"
+                  sort={sort}
+                  onSort={toggleSort}
+                  className="hidden xl:table-cell"
+                >
+                  Created At
+                </SortableTableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredDevices.map((device) => (
+              {sortedDevices.map((device) => (
                 <TableRow key={device.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
@@ -677,10 +746,18 @@ function DevicesPage() {
                         <Link
                           to="/devices/$id"
                           params={{ id: device.id }}
-                          className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                          className="font-medium whitespace-nowrap text-blue-600 hover:underline dark:text-blue-400"
                         >
                           {device.name}
                         </Link>
+                        <div className="text-muted-foreground text-xs md:hidden">
+                          {getNetworkName(device.network_id)}
+                        </div>
+                        {device.description && (
+                          <div className="text-muted-foreground max-w-[10rem] truncate text-xs lg:hidden">
+                            {device.description}
+                          </div>
+                        )}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="text-muted-foreground cursor-help font-mono text-xs">
@@ -694,7 +771,7 @@ function DevicesPage() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <div className="flex items-center gap-2">
                       <FontAwesomeIcon
                         icon={faNetworkWired}
@@ -707,7 +784,7 @@ function DevicesPage() {
                           search={{
                             networkName: getNetworkName(device.network_id),
                           }}
-                          className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                          className="font-medium whitespace-nowrap text-blue-600 hover:underline dark:text-blue-400"
                         >
                           {getNetworkName(device.network_id)}
                         </Link>
@@ -727,15 +804,18 @@ function DevicesPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="font-mono">
+                    <Badge
+                      variant="secondary"
+                      className="font-mono whitespace-nowrap"
+                    >
                       {device.ip_address}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-xs truncate">
+                  <TableCell className="hidden max-w-[12rem] truncate lg:table-cell xl:max-w-xs">
                     {device.description ?? "-"}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
+                    <div className="flex max-w-[7rem] flex-wrap items-center gap-1 lg:max-w-[11rem]">
                       {renderSshKeyStatus(device.ssh_key_id ?? null)}
                       {device.public_key && (
                         <Badge variant="outline" className="text-xs">
@@ -767,11 +847,11 @@ function DevicesPage() {
                         ))}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden whitespace-nowrap xl:table-cell">
                     {new Date(device.created_at).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-2">
+                  <TableCell className="text-right">
+                    <div className="ml-auto inline-grid grid-cols-[repeat(2,max-content)] gap-1 lg:grid-cols-[repeat(3,max-content)] xl:flex xl:items-center xl:justify-end">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="sm" asChild>

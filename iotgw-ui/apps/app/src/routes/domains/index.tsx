@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useState, useMemo } from "react";
 import type { Domain } from "@iotgw/supabase-contract";
 import { ErrorDisplay } from "@/components/ui/error-display";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useTableSort } from "@/hooks/use-table-sort";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -112,6 +114,24 @@ function DomainsPage() {
       );
     });
   }, [domainsQuery.data, filterQuery]);
+
+  const sortAccessors = useMemo(
+    () => ({
+      name: (d: (typeof filteredDomains)[number]) => d.name,
+      displayName: (d: (typeof filteredDomains)[number]) => d.display_name,
+      networks: (d: (typeof filteredDomains)[number]) =>
+        networkCountsQuery.data?.[d.id] ?? 0,
+      created: (d: (typeof filteredDomains)[number]) =>
+        new Date(d.created_at).getTime(),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [networkCountsQuery.data],
+  );
+  const {
+    sort,
+    toggleSort,
+    sortedRows: sortedDomains,
+  } = useTableSort(filteredDomains, sortAccessors);
 
   // Debug query states
   console.log("[DomainsPage] Domains query status:", domainsQuery.status);
@@ -237,7 +257,7 @@ function DomainsPage() {
           {/* Filter Section (left) and Create Button (right) - Same Row */}
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="relative max-w-md">
-              <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <Input
                 type="text"
                 placeholder="Filter domains by name..."
@@ -249,7 +269,7 @@ function DomainsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2"
+                  className="absolute top-1/2 right-1 h-7 -translate-y-1/2 px-2"
                   onClick={() => setFilterQuery("")}
                 >
                   <X className="h-4 w-4" />
@@ -340,15 +360,39 @@ function DomainsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("domains.name")}</TableHead>
-                  <TableHead>{t("domains.displayName")}</TableHead>
-                  <TableHead>Networks</TableHead>
-                  <TableHead>Created At</TableHead>
+                  <SortableTableHead
+                    sortKey="name"
+                    sort={sort}
+                    onSort={toggleSort}
+                  >
+                    {t("domains.name")}
+                  </SortableTableHead>
+                  <SortableTableHead
+                    sortKey="displayName"
+                    sort={sort}
+                    onSort={toggleSort}
+                  >
+                    {t("domains.displayName")}
+                  </SortableTableHead>
+                  <SortableTableHead
+                    sortKey="networks"
+                    sort={sort}
+                    onSort={toggleSort}
+                  >
+                    Networks
+                  </SortableTableHead>
+                  <SortableTableHead
+                    sortKey="created"
+                    sort={sort}
+                    onSort={toggleSort}
+                  >
+                    Created At
+                  </SortableTableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDomains.map((domain) => (
+                {sortedDomains.map((domain) => (
                   <TableRow key={domain.id}>
                     <TableCell className="font-medium">
                       <Link
