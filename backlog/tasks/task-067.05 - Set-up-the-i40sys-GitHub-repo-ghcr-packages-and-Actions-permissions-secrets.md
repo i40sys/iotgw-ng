@@ -20,7 +20,7 @@ references:
   - deploy/k8s/overlays/prod/kustomization.yaml
   - iotgw-ui/apps/app/.docker/Dockerfile
   - task-062.03
-  - backlog/decisions/decision-020 - Namespace-per-subproject-topology.md
+  - backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
 parent_task_id: TASK-067
 priority: high
 ---

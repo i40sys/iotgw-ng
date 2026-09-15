@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-25 14:16'
-updated_date: '2026-06-25 14:34'
+updated_date: '2026-09-14 07:35'
 labels:
   - ansible
   - galaxy
@@ -16,14 +16,11 @@ milestone: Extract netmaker collection to its own repo
 dependencies: []
 references:
   - >-
-    backlog/decisions/decision-012 -
-    Workspace-Git-Consolidation-into-a-Single-Root-Repository.md
+    backlog/decisions/decision-012-workspace-git-consolidation-into-a-single-root-repository.md
   - >-
-    backlog/decisions/decision-013 -
-    Monorepo-Organization-Single-Repo-with-Logical-Grouping.md
+    backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md
   - >-
-    backlog/decisions/decision-021 -
-    Container-image-CI-CD-and-ghcr.io-i40sys-conventions.md
+    backlog/decisions/decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions.md
 parent_task_id: TASK-068
 priority: high
 ---

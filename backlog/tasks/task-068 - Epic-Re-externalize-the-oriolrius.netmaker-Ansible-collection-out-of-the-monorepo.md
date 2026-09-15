@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-25 14:15'
-updated_date: '2026-06-25 14:51'
+updated_date: '2026-09-14 07:35'
 labels:
   - ansible
   - galaxy
@@ -19,8 +19,10 @@ references:
   - ansible/netmaker/
   - 'https://github.com/oriolrius/netmaker-ansible-automation'
   - 'https://galaxy.ansible.com/ui/repo/published/oriolrius/netmaker/'
-  - decision-012
-  - decision-013
+  - >-
+    backlog/decisions/decision-012-workspace-git-consolidation-into-a-single-root-repository.md
+  - >-
+    backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md
 priority: high
 ---
 

@@ -4,7 +4,7 @@ title: Reusable build-and-push workflow (workflow_call) for ghcr.io/i40sys image
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 08:32'
+updated_date: '2026-09-14 07:35'
 labels:
   - ci
   - cicd
@@ -19,8 +19,10 @@ references:
   - ansible/netmaker/.github/workflows/publish-collection.yml
   - deploy/kind/bootstrap.sh
   - task-062.03
-  - decision-015
-  - decision-020
+  - >-
+    backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md
+  - >-
+    backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
 parent_task_id: TASK-067
 priority: high
 ---

@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-18 08:48'
-updated_date: '2026-06-18 13:22'
+updated_date: '2026-09-14 07:34'
 labels:
   - stackgres
   - migration
@@ -18,8 +18,7 @@ dependencies:
   - TASK-062.16
 references:
   - >-
-    backlog/decisions/decision-018 -
-    Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md
+    backlog/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md
 parent_task_id: TASK-062
 priority: high
 ---

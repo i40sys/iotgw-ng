@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 08:32'
+updated_date: '2026-09-14 07:35'
 labels:
   - deploy
   - ghcr
@@ -23,8 +23,10 @@ references:
   - deploy/k8s/base/supabase-app/functions.yaml
   - deploy/README.md
   - task-062.03
-  - decision-020
-  - decision-014
+  - >-
+    backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
+  - >-
+    backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md
 parent_task_id: TASK-067
 priority: medium
 ---

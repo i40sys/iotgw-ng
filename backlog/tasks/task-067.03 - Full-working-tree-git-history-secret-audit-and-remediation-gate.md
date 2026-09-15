@@ -19,7 +19,7 @@ references:
   - .sops.yaml
   - secrets/supabase.enc.env
   - secrets/traefik-tls.enc.yaml
-  - backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md
+  - backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md
 parent_task_id: TASK-067
 priority: high
 ---

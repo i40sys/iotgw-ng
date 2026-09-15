@@ -11,7 +11,7 @@ labels:
 milestone: Namespace-per-subproject split
 dependencies: []
 modified_files:
-  - backlog/decisions/decision-020 - Namespace-per-subproject-topology.md
+  - backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
 parent_task_id: TASK-064
 priority: high
 ---

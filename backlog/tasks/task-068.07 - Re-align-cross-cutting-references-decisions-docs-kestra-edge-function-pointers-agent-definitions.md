@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-25 14:17'
-updated_date: '2026-06-25 14:35'
+updated_date: '2026-09-14 07:35'
 labels:
   - docs
   - repo-extraction
@@ -15,12 +15,10 @@ dependencies:
   - TASK-068.04
 references:
   - >-
-    backlog/decisions/decision-012 -
-    Workspace-Git-Consolidation-into-a-Single-Root-Repository.md
+    backlog/decisions/decision-012-workspace-git-consolidation-into-a-single-root-repository.md
   - >-
-    backlog/decisions/decision-013 -
-    Monorepo-Organization-Single-Repo-with-Logical-Grouping.md
-  - backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md
+    backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md
+  - backlog/docs/doc-016-database-change-provisioning-automation-pattern.md
   - kestra/CLAUDE.md
   - supabase/volumes/functions/netmaker-call/CLAUDE.md
   - .claude/agents/supabase-function-developer.md

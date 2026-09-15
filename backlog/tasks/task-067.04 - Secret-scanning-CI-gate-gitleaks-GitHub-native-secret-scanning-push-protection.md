@@ -20,7 +20,7 @@ references:
   - .gitleaks.toml
   - .pre-commit-config.yaml
   - ansible/netmaker/.github/workflows/publish-collection.yml
-  - backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md
+  - backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md
 parent_task_id: TASK-067
 priority: high
 ---

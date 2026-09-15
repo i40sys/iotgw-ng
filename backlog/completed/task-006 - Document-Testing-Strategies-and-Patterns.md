@@ -31,4 +31,4 @@ Create comprehensive testing documentation covering unit tests, integration test
 
 ## Implementation Notes
 
-Created comprehensive testing strategies documentation at /backlog/docs/doc-002 - Testing-Strategies-and-Patterns.md covering unit testing for React components, tRPC procedure testing, Supabase integration testing, TanStack Query testing, mocking strategies, and CI/CD pipeline integration.
+Created comprehensive testing strategies documentation at /backlog/docs/doc-002-testing-strategies-and-patterns.md covering unit testing for React components, tRPC procedure testing, Supabase integration testing, TanStack Query testing, mocking strategies, and CI/CD pipeline integration.

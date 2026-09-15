@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 08:32'
+updated_date: '2026-09-14 07:35'
 labels:
   - deploy
   - ghcr
@@ -22,8 +22,10 @@ references:
   - deploy/k8s/overlays/kind/kustomization.yaml
   - deploy/kind/cluster.yaml
   - iotgw-ui/apps/app/.docker/Dockerfile
-  - decision-015
-  - decision-014
+  - >-
+    backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md
+  - >-
+    backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md
 parent_task_id: TASK-067
 priority: medium
 ---

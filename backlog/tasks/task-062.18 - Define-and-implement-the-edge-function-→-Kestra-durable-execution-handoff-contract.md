@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-18 10:19'
-updated_date: '2026-06-18 19:15'
+updated_date: '2026-09-14 07:34'
 labels:
   - kestra
   - supabase
@@ -19,8 +19,7 @@ dependencies:
   - TASK-062.04
 references:
   - >-
-    backlog/decisions/decision-016 -
-    Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md
+    backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md
 parent_task_id: TASK-062
 priority: medium
 ---

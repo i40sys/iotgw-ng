@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-25 14:17'
-updated_date: '2026-06-25 14:35'
+updated_date: '2026-09-14 07:38'
 labels:
   - ansible
   - secrets
@@ -19,8 +19,8 @@ references:
   - tools/secrets/secrets.sh
   - secrets/README.md
   - secrets/netmaker.enc.env
-  - backlog/docs/netmaker-credential-handling.md
   - supabase/volumes/functions/netmaker-call/index.ts
+  - backlog/docs/doc-018-netmaker-credential-handling.md
 parent_task_id: TASK-068
 priority: high
 ---

@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 08:32'
+updated_date: '2026-09-14 07:35'
 labels:
   - docs
   - ghcr
@@ -25,7 +25,8 @@ references:
   - deploy/k8s/overlays/prod/kustomization.yaml
   - deploy/kind/bootstrap.sh
   - task-062.03
-  - decision-020
+  - >-
+    backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
 parent_task_id: TASK-067
 priority: medium
 ---

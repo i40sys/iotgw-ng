@@ -4,7 +4,7 @@ title: Remove BACKUP/ and relocate the reversibility net before the i40sys migra
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 08:32'
+updated_date: '2026-09-14 07:35'
 labels:
   - security
   - secrets
@@ -17,9 +17,9 @@ references:
   - BACKUP/supabase-2025-10-20/
   - BACKUP/COMPOSE-DECOMMISSION-RECOVERY.md
   - >-
-    backlog/decisions/decision-013 -
-    Monorepo-Organization-Single-Repo-with-Logical-Grouping.md
-  - decision-012
+    backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md
+  - >-
+    backlog/decisions/decision-012-workspace-git-consolidation-into-a-single-root-repository.md
 parent_task_id: TASK-067
 priority: high
 ---

@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-06-18 05:43'
-updated_date: '2026-06-18 13:22'
+updated_date: '2026-09-14 07:34'
 labels:
   - migration
   - compose-removal
@@ -16,8 +16,7 @@ milestone: Decommission docker-compose
 dependencies: []
 references:
   - >-
-    backlog/decisions/decision-017 -
-    Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime.md
+    backlog/decisions/decision-017-authorize-docker-compose-decommission-and-make-kubernetes-the-sole-supported-runtime.md
 parent_task_id: TASK-062
 priority: high
 ---

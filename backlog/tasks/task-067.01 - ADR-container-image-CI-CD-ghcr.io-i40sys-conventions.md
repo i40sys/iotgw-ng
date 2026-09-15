@@ -4,7 +4,7 @@ title: 'ADR: container image CI/CD + ghcr.io/i40sys conventions'
 status: Done
 assignee: []
 created_date: '2026-06-23 08:01'
-updated_date: '2026-06-25 08:32'
+updated_date: '2026-09-14 07:34'
 labels:
   - adr
   - cicd
@@ -13,9 +13,12 @@ labels:
 milestone: Container image CI/CD (ghcr.io/i40sys)
 dependencies: []
 references:
-  - backlog/decisions/decision-021
-  - backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md
-  - backlog/decisions/decision-020 - Namespace-per-subproject-topology.md
+  - >-
+    backlog/decisions/decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions.md
+  - >-
+    backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md
+  - >-
+    backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
   - deploy/k8s/overlays/prod/kustomization.yaml
   - deploy/k8s/base/supabase-app/Dockerfile.functions
   - iotgw-ui/apps/backend/.docker/Dockerfile
