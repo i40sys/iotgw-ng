@@ -6,7 +6,7 @@ title: >-
 status: In Progress
 assignee: []
 created_date: '2026-09-14 05:30'
-updated_date: '2026-09-15 17:33'
+updated_date: '2026-09-15 17:42'
 labels:
   - ssh-ca
   - ansible
@@ -52,11 +52,7 @@ Lands in `owrt_iot_gw/playbooks/` and in the Kestra flow source `github.com/i40s
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**PROVEN END-TO-END via the actual playbook + live edge fn 2026-09-15** (i40sys/iotgw-kestra c753b0b). Ran tasks/ssh_ca.yaml against the real OpenWRT gateway 10.2.0.210 as device iot-gateway-warehouse: encrypt request with the device TOTP -> POST to the ssh-ca edge fn -> decrypt the AES-enveloped reply -> install host cert (edge-fn, serial 4, 90-day, principals iot-gateway-warehouse.*.warehouse.iotgw + 172.16.1.30) + User CA + auth_principals + empty RevokedKeys + 50-/60- drop-ins -> sshd -t gate -> /etc/init.d/sshd reload (never restart) -> assert cert auth AND break-glass both live. Run: ok=21 changed=4 failed=0. Verified after: iotgw-admin user-cert login accepted (sshd log, serial 9) + host cert verified via @cert-authority (0 known_hosts pins) + break-glass works. AC#1 DONE.
+**AC#3 idempotence PROVEN 2026-09-15** (i40sys/iotgw-kestra 24fb299): added a guard — skip enrollment when the installed host cert still certifies the current host key and has > ssh_ca_renew_margin_seconds (default 30 d, decision-028 §1 renew-at-60d) of life left; ssh_ca_force=true forces renewal. Verified on the canary: a no-force re-run reported "Skipping enrollment", changed=0, host cert serial UNCHANGED.
 
-TWO REFINEMENTS still open (do not block the proven flow):
-- AC#3 idempotence: the playbook currently RE-ISSUES a host cert on every run (new serial); add a guard that skips enrollment when the installed host cert is still valid and matches the device, to make re-runs a true no-op.
-- AC#2: the rollback block (remove drop-ins + reload back + fail on sshd -t failure) is implemented AND the sshd -t fail-safe was proven MANUALLY (task-097 AC#5), but it has not been triggered THROUGH the task with a task-produced malformed drop-in.
-
-Two bugs found + fixed while proving this: (1) the edge fn returns the reply AES-encrypted (not plain JSON) — decrypt with the TOTP; (2) the encrypt|POST|decrypt pipe needs /bin/bash (set -o pipefail not portable to dash).
+**AC#2 rollback — BUG FOUND + FIXED, re-verify pending.** Testing the rollback via the task (force=true + an injected foreign bad drop-in 70-BAD) exposed that the rollback reloaded sshd UNCONDITIONALLY after removing our drop-ins; on OpenWRT `/etc/init.d/sshd reload` with a STILL-invalid config takes sshd DOWN — the canary lost sshd (Connection refused). Fixed (24fb299): the rollback now re-runs sshd -t after removing our drop-ins and reloads ONLY if valid again, else leaves the running sshd untouched. Needs re-verification on a working gateway (the canary sshd is currently down; recovering via the fresh-reinstall test).
 <!-- SECTION:NOTES:END -->
