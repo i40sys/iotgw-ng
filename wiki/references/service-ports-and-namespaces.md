@@ -3,8 +3,8 @@ title: Service Ports & Namespaces
 category: references
 tags: [infra/kubernetes, infra/networking, status/current]
 sources:
-  - backlog/decisions/decision-020 - Namespace-per-subproject-topology.md
-  - backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md
+  - backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
+  - backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md
 summary: Lookup table of the platform's k8s services — namespace, port, NodePort, and the cross-namespace FQDNs that became load-bearing after the namespace split.
 provenance:
   extracted: 0.92
@@ -61,5 +61,5 @@ the Keycloak **realm** `iotgw`, and the **Kestra flow namespace** `iotgw-ng`.
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-020 - Namespace-per-subproject-topology|decision-020 - Namespace-per-subproject-topology]]
-- [[_sources/decisions/decision-015 - Kubernetes-Migration-with-local-kind|decision-015 - Kubernetes-Migration-with-local-kind]]
+- [[_sources/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace|decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace]]
+- [[_sources/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing|decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing]]

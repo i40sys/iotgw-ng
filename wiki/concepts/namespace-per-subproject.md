@@ -6,7 +6,7 @@ relationships:
   - target: "[[concepts/kubernetes-migration-kind]]"
     type: extends
 sources:
-  - backlog/decisions/decision-020 - Namespace-per-subproject-topology.md
+  - backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
   - backlog/tasks/task-064 - Epic-Namespace-per-subproject-split-iotgw-becomes-the-cluster-not-a-namespace.md
 summary: iotgw is the kind CLUSTER name only; the platform is split into one namespace per subproject (kestra/kms/supabase-db/supabase-app/iotgw-ui), making FQDNs and NetworkPolicies load-bearing.
 provenance:
@@ -89,5 +89,5 @@ runtime-state repoints it required.
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-020 - Namespace-per-subproject-topology|decision-020 - Namespace-per-subproject-topology]]
+- [[_sources/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace|decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace]]
 - [[_sources/tasks/task-064 - Epic-Namespace-per-subproject-split-iotgw-becomes-the-cluster-not-a-namespace|task-064 - Epic-Namespace-per-subproject-split-iotgw-becomes-the-cluster-not-a-namespace]]

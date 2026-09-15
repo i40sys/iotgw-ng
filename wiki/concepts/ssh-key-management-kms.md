@@ -8,7 +8,7 @@ relationships:
   - target: "[[concepts/domains-networks-devices]]"
     type: related_to
 sources:
-  - backlog/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS.md
+  - backlog/decisions/decision-010-ssh-key-management-with-cosmian-kms.md
   - backlog/completed/task-040 - Update-Kestra-devices-workflow-for-SSH-key-generation-in-KMS.md
   - backlog/tasks/task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3.md
 summary: Device SSH keys live in Cosmian KMS, not the DB â€” the iotgw-ui backend mints them via the KMIP REST API; devices store only ssh_key_id; Kestra/Ansible fetches them at deploy time.
@@ -91,6 +91,6 @@ API-token auth + NetworkPolicy), task-069 (in-pod KMS fetch in the runner pod â€
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS|decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS]]
+- [[_sources/decisions/decision-010-ssh-key-management-with-cosmian-kms|decision-010-ssh-key-management-with-cosmian-kms]]
 - [[_sources/completed/task-040 - Update-Kestra-devices-workflow-for-SSH-key-generation-in-KMS|task-040 - Update-Kestra-devices-workflow-for-SSH-key-generation-in-KMS]]
 - [[_sources/tasks/task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3|task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3]]

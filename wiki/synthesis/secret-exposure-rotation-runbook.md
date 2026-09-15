@@ -3,7 +3,7 @@ title: Secret Exposure & Rotation Runbook
 category: synthesis
 tags: [secrets/sops, vpn/netmaker, status/current]
 sources:
-  - backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md
+  - backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md
   - backlog/docs/netmaker-credential-handling.md
 relationships:
   - target: "[[concepts/secrets-management-sops-age]]"
@@ -79,5 +79,5 @@ full-history secret audit — [[references/container-image-cicd]].)
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-014 - Secrets-Management-with-SOPS-and-age|decision-014 - Secrets-Management-with-SOPS-and-age]]
+- [[_sources/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook|decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook]]
 - [[_sources/docs/netmaker-credential-handling|netmaker-credential-handling]]

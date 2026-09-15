@@ -10,8 +10,8 @@ relationships:
   - target: "[[synthesis/docker-compose-decommission]]"
     type: related_to
 sources:
-  - backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md
-  - backlog/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime.md
+  - backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md
+  - backlog/decisions/decision-017-authorize-docker-compose-decommission-and-make-kubernetes-the-sole-supported-runtime.md
 summary: kustomize (base + kind/prod overlays) on a pinned single-node kind cluster is the sole supported runtime; secrets come from SOPS, the Postgres tier moved to StackGres.
 provenance:
   extracted: 0.88
@@ -86,5 +86,5 @@ the SOPS files to a cluster/KMS age recipient (`sops updatekeys`).
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-015 - Kubernetes-Migration-with-local-kind|decision-015 - Kubernetes-Migration-with-local-kind]]
-- [[_sources/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime|decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime]]
+- [[_sources/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing|decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing]]
+- [[_sources/decisions/decision-017-authorize-docker-compose-decommission-and-make-kubernetes-the-sole-supported-runtime|decision-017-authorize-docker-compose-decommission-and-make-kubernetes-the-sole-supported-runtime]]

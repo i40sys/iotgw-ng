@@ -3,8 +3,8 @@ title: Deployments Page Behavior
 category: references
 tags: [app/frontend, provisioning/openwrt, orchestration/kestra, status/current]
 sources:
-  - backlog/docs/doc-013 - Deployments-Page-Behavior-Specification.md
-  - backlog/docs/doc-011 - Deployment-Section-Redesign-Interface-Specification.md
+  - backlog/docs/doc-013-deployments-page-behavior-specification.md
+  - backlog/docs/doc-011-deployment-section-redesign-interface-specification.md
   - backlog/archive/tasks/task-001 - Create-database-schema-for-deployments-table.md
 relationships:
   - target: "[[entities/kestra]]"
@@ -74,6 +74,6 @@ in the archived `task-001..021` epic ([[synthesis/deployments-feature-history]])
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/docs/doc-013 - Deployments-Page-Behavior-Specification|doc-013 - Deployments-Page-Behavior-Specification]]
-- [[_sources/docs/doc-011 - Deployment-Section-Redesign-Interface-Specification|doc-011 - Deployment-Section-Redesign-Interface-Specification]]
+- [[_sources/docs/doc-013-deployments-page-behavior-specification|doc-013-deployments-page-behavior-specification]]
+- [[_sources/docs/doc-011-deployment-section-redesign-interface-specification|doc-011-deployment-section-redesign-interface-specification]]
 - [[_sources/archive/tasks/task-001 - Create-database-schema-for-deployments-table|task-001 - Create-database-schema-for-deployments-table]]

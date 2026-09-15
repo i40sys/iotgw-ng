@@ -8,16 +8,16 @@ relationships:
   - target: "[[entities/supabase]]"
     type: uses
 sources:
-  - backlog/decisions/decision-001 - Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem.md
-  - backlog/decisions/decision-002 - Backend-Architecture-Fastify-and-tRPC-API-Design.md
-  - backlog/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure.md
-  - backlog/decisions/decision-005 - Development-Tooling-Build-and-Development-Experience.md
-  - backlog/decisions/decision-006 - Testing-Framework-Vitest-Choice.md
-  - backlog/decisions/decision-011 - Debug-Logging-Configuration.md
-  - backlog/docs/doc-005 - tRPC-API-Development-Patterns.md
-  - backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md
-  - backlog/docs/doc-006 - React-Component-Development-Guidelines.md
-  - backlog/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements.md
+  - backlog/decisions/decision-001-frontend-technology-stack-react-19-and-tanstack-ecosystem.md
+  - backlog/decisions/decision-002-backend-architecture-fastify-and-trpc-api-design.md
+  - backlog/decisions/decision-004-monorepo-architecture-pnpm-workspaces-and-package-structure.md
+  - backlog/decisions/decision-005-development-tooling-build-and-development-experience.md
+  - backlog/decisions/decision-006-testing-framework-vitest-choice.md
+  - backlog/decisions/decision-011-get-debug-of-the-connectivity-check-button.md
+  - backlog/docs/doc-005-trpc-api-development-patterns.md
+  - backlog/docs/doc-003-supabase-rls-policy-implementation-patterns.md
+  - backlog/docs/doc-006-react-component-development-guidelines.md
+  - backlog/docs/doc-015-claude-code-skills-and-knowledge-requirements.md
 summary: The iotgw-ui app — React 19 + TanStack + Tailwind v4/Shadcn on the front, Fastify + tRPC v11 + Zod + Pino on the back, end-to-end type-safe over a pnpm workspace.
 provenance:
   extracted: 0.85
@@ -85,13 +85,13 @@ single source of truth, regenerated via `pnpm generate:contract`.
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-001 - Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem|decision-001 - Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem]]
-- [[_sources/decisions/decision-002 - Backend-Architecture-Fastify-and-tRPC-API-Design|decision-002 - Backend-Architecture-Fastify-and-tRPC-API-Design]]
-- [[_sources/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure|decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure]]
-- [[_sources/decisions/decision-005 - Development-Tooling-Build-and-Development-Experience|decision-005 - Development-Tooling-Build-and-Development-Experience]]
-- [[_sources/decisions/decision-006 - Testing-Framework-Vitest-Choice|decision-006 - Testing-Framework-Vitest-Choice]]
-- [[_sources/decisions/decision-011 - Debug-Logging-Configuration|decision-011 - Debug-Logging-Configuration]]
-- [[_sources/docs/doc-005 - tRPC-API-Development-Patterns|doc-005 - tRPC-API-Development-Patterns]]
-- [[_sources/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns|doc-003 - Supabase-RLS-Policy-Implementation-Patterns]]
-- [[_sources/docs/doc-006 - React-Component-Development-Guidelines|doc-006 - React-Component-Development-Guidelines]]
-- [[_sources/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements|doc-015 - Claude-Code-Skills-and-Knowledge-Requirements]]
+- [[_sources/decisions/decision-001-frontend-technology-stack-react-19-and-tanstack-ecosystem|decision-001-frontend-technology-stack-react-19-and-tanstack-ecosystem]]
+- [[_sources/decisions/decision-002-backend-architecture-fastify-and-trpc-api-design|decision-002-backend-architecture-fastify-and-trpc-api-design]]
+- [[_sources/decisions/decision-004-monorepo-architecture-pnpm-workspaces-and-package-structure|decision-004-monorepo-architecture-pnpm-workspaces-and-package-structure]]
+- [[_sources/decisions/decision-005-development-tooling-build-and-development-experience|decision-005-development-tooling-build-and-development-experience]]
+- [[_sources/decisions/decision-006-testing-framework-vitest-choice|decision-006-testing-framework-vitest-choice]]
+- [[_sources/decisions/decision-011-get-debug-of-the-connectivity-check-button|decision-011-get-debug-of-the-connectivity-check-button]]
+- [[_sources/docs/doc-005-trpc-api-development-patterns|doc-005-trpc-api-development-patterns]]
+- [[_sources/docs/doc-003-supabase-rls-policy-implementation-patterns|doc-003-supabase-rls-policy-implementation-patterns]]
+- [[_sources/docs/doc-006-react-component-development-guidelines|doc-006-react-component-development-guidelines]]
+- [[_sources/docs/doc-015-claude-code-skills-and-knowledge-requirements|doc-015-claude-code-skills-and-knowledge-requirements]]

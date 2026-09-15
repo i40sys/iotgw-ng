@@ -6,8 +6,8 @@ relationships:
   - target: "[[entities/keycloak]]"
     type: uses
 sources:
-  - backlog/decisions/decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver.md
-  - backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md
+  - backlog/decisions/decision-019-headlamp-sso-via-keycloak-oidc-on-the-kube-apiserver.md
+  - backlog/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access.md
 summary: The in-cluster Kubernetes web dashboard, in its own headlamp namespace, authenticated via Keycloak OIDC validated by the kube-apiserver (with an SA-token fallback).
 provenance:
   extracted: 0.88
@@ -64,5 +64,5 @@ becomes an RBAC identity ([[entities/keycloak]], decision-019):
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver|decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver]]
-- [[_sources/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access|doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access]]
+- [[_sources/decisions/decision-019-headlamp-sso-via-keycloak-oidc-on-the-kube-apiserver|decision-019-headlamp-sso-via-keycloak-oidc-on-the-kube-apiserver]]
+- [[_sources/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access|doc-017-headlamp-kubernetes-dashboard-deployment-and-access]]

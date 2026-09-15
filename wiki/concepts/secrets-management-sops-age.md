@@ -8,7 +8,7 @@ relationships:
   - target: "[[concepts/kubernetes-migration-kind]]"
     type: related_to
 sources:
-  - backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md
+  - backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md
 summary: SOPS + age is the single secrets mechanism — encrypted *.enc.{env,yaml} are committed, plaintext never is; tools/secrets/secrets.sh renders .env and emits k8s Secrets.
 provenance:
   extracted: 0.9
@@ -79,4 +79,4 @@ A repo-root `.gitleaks.toml` (allowlisting only `*.enc.*` ciphertext) backs a
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-014 - Secrets-Management-with-SOPS-and-age|decision-014 - Secrets-Management-with-SOPS-and-age]]
+- [[_sources/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook|decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook]]

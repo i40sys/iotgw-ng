@@ -6,8 +6,8 @@ relationships:
   - target: "[[concepts/kubernetes-migration-kind]]"
     type: related_to
 sources:
-  - backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md
-  - backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md
+  - backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md
+  - backlog/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md
 summary: Kubernetes-in-Docker — the local single-node cluster (name iotgw) pinned to kindest/node:v1.31.12, where the whole platform is built and validated.
 provenance:
   extracted: 0.9
@@ -56,5 +56,5 @@ context `kind-iotgw` ([[concepts/namespace-per-subproject]]).
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-015 - Kubernetes-Migration-with-local-kind|decision-015 - Kubernetes-Migration-with-local-kind]]
-- [[_sources/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod|decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod]]
+- [[_sources/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing|decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing]]
+- [[_sources/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod|decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod]]

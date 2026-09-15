@@ -3,10 +3,10 @@ title: docker-compose Decommission → k8s-only Runtime
 category: synthesis
 tags: [infra/kubernetes, infra/kind, data/postgres, status/current]
 sources:
-  - backlog/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime.md
-  - backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md
-  - backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md
-  - backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md
+  - backlog/decisions/decision-017-authorize-docker-compose-decommission-and-make-kubernetes-the-sole-supported-runtime.md
+  - backlog/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md
+  - backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md
+  - backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md
   - backlog/tasks/task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind.md
 relationships:
   - target: "[[concepts/kubernetes-migration-kind]]"
@@ -84,8 +84,8 @@ parity) is in [[synthesis/k8s-migration-epic]].
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime|decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime]]
-- [[_sources/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod|decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod]]
-- [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
-- [[_sources/decisions/decision-015 - Kubernetes-Migration-with-local-kind|decision-015 - Kubernetes-Migration-with-local-kind]]
+- [[_sources/decisions/decision-017-authorize-docker-compose-decommission-and-make-kubernetes-the-sole-supported-runtime|decision-017-authorize-docker-compose-decommission-and-make-kubernetes-the-sole-supported-runtime]]
+- [[_sources/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod|decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod]]
+- [[_sources/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration|decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration]]
+- [[_sources/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing|decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing]]
 - [[_sources/tasks/task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind|task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind]]

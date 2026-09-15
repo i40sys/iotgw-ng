@@ -8,10 +8,10 @@ relationships:
   - target: "[[concepts/provisioning-call-chain]]"
     type: related_to
 sources:
-  - backlog/decisions/decision-003 - Database-and-Infrastructure-Supabase-PostgreSQL-Choice.md
-  - backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md
-  - backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md
-  - backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md
+  - backlog/decisions/decision-003-database-and-infrastructure-supabase-postgresql-choice.md
+  - backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md
+  - backlog/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md
+  - backlog/docs/doc-003-supabase-rls-policy-implementation-patterns.md
 summary: Self-hosted Supabase — PostgreSQL + RLS + Kong/auth/rest/meta/functions app tier; trimmed to essentials (no studio/realtime/storage/analytics), split across supabase-db / supabase-app namespaces.
 provenance:
   extracted: 0.85
@@ -72,7 +72,7 @@ Split per [[concepts/namespace-per-subproject]]:
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-003 - Database-and-Infrastructure-Supabase-PostgreSQL-Choice|decision-003 - Database-and-Infrastructure-Supabase-PostgreSQL-Choice]]
-- [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
-- [[_sources/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod|decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod]]
-- [[_sources/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns|doc-003 - Supabase-RLS-Policy-Implementation-Patterns]]
+- [[_sources/decisions/decision-003-database-and-infrastructure-supabase-postgresql-choice|decision-003-database-and-infrastructure-supabase-postgresql-choice]]
+- [[_sources/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration|decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration]]
+- [[_sources/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod|decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod]]
+- [[_sources/docs/doc-003-supabase-rls-policy-implementation-patterns|doc-003-supabase-rls-policy-implementation-patterns]]

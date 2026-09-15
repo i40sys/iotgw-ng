@@ -6,7 +6,7 @@ relationships:
   - target: "[[entities/edge-functions]]"
     type: uses
 sources:
-  - backlog/decisions/decision-009 - TOTP-Authentication-for-Device-VPN-Access.md
+  - backlog/decisions/decision-009-totp-authentication-for-device-vpn-access.md
 summary: Devices retrieve their WireGuard config from the vpn/ edge function using a counter-based TOTP — stateless, time-limited, encrypted transport, no long-term device credentials.
 provenance:
   extracted: 0.88
@@ -69,4 +69,4 @@ Password) validated by the stateless `vpn/` edge function.
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-009 - TOTP-Authentication-for-Device-VPN-Access|decision-009 - TOTP-Authentication-for-Device-VPN-Access]]
+- [[_sources/decisions/decision-009-totp-authentication-for-device-vpn-access|decision-009-totp-authentication-for-device-vpn-access]]

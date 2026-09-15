@@ -3,7 +3,7 @@ title: Database Migrations & Webhooks Guide
 category: references
 tags: [data/migrations, data/supabase, data/edge-functions, status/current]
 sources:
-  - backlog/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide.md
+  - backlog/docs/doc-010-database-migration-and-webhook-management-guide.md
 relationships:
   - target: "[[concepts/provisioning-call-chain]]"
     type: related_to
@@ -82,4 +82,4 @@ select * from device_jobs order by started_at desc limit 5;   -- and network_job
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide|doc-010 - Database-Migration-and-Webhook-Management-Guide]]
+- [[_sources/docs/doc-010-database-migration-and-webhook-management-guide|doc-010-database-migration-and-webhook-management-guide]]

@@ -6,8 +6,8 @@ relationships:
   - target: "[[concepts/ssh-key-management-kms]]"
     type: related_to
 sources:
-  - backlog/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS.md
-  - backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md
+  - backlog/decisions/decision-010-ssh-key-management-with-cosmian-kms.md
+  - backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md
   - backlog/tasks/task-057 - Add-authentication-NetworkPolicy-to-Cosmian-KMS.md
 summary: The KMIP-compliant key store (cosmian/kms 5.20.0) that holds device SSH keys; runs in the kms namespace, API-token-auth + NetworkPolicy-hardened, reached in-cluster.
 provenance:
@@ -64,6 +64,6 @@ The hardening was delivered as **task-057** (Done): verified KMIP-without-token 
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS|decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS]]
-- [[_sources/decisions/decision-015 - Kubernetes-Migration-with-local-kind|decision-015 - Kubernetes-Migration-with-local-kind]]
+- [[_sources/decisions/decision-010-ssh-key-management-with-cosmian-kms|decision-010-ssh-key-management-with-cosmian-kms]]
+- [[_sources/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing|decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing]]
 - [[_sources/tasks/task-057 - Add-authentication-NetworkPolicy-to-Cosmian-KMS|task-057 - Add-authentication-NetworkPolicy-to-Cosmian-KMS]]

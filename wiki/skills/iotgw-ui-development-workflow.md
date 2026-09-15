@@ -3,10 +3,10 @@ title: iotgw-ui Development Workflow
 category: skills
 tags: [app/iotgw-ui, app/backend, app/frontend, status/current]
 sources:
-  - backlog/docs/doc-007 - Workspace-Development-Workflow.md
-  - backlog/decisions/decision-005 - Development-Tooling-Build-and-Development-Experience.md
-  - backlog/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure.md
-  - backlog/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements.md
+  - backlog/docs/doc-007-workspace-development-workflow.md
+  - backlog/decisions/decision-005-development-tooling-build-and-development-experience.md
+  - backlog/decisions/decision-004-monorepo-architecture-pnpm-workspaces-and-package-structure.md
+  - backlog/docs/doc-015-claude-code-skills-and-knowledge-requirements.md
 relationships:
   - target: "[[concepts/iotgw-ui-architecture]]"
     type: related_to
@@ -81,7 +81,7 @@ valid local convenience even though the platform services run on k8s, not compos
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/docs/doc-007 - Workspace-Development-Workflow|doc-007 - Workspace-Development-Workflow]]
-- [[_sources/decisions/decision-005 - Development-Tooling-Build-and-Development-Experience|decision-005 - Development-Tooling-Build-and-Development-Experience]]
-- [[_sources/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure|decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure]]
-- [[_sources/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements|doc-015 - Claude-Code-Skills-and-Knowledge-Requirements]]
+- [[_sources/docs/doc-007-workspace-development-workflow|doc-007-workspace-development-workflow]]
+- [[_sources/decisions/decision-005-development-tooling-build-and-development-experience|decision-005-development-tooling-build-and-development-experience]]
+- [[_sources/decisions/decision-004-monorepo-architecture-pnpm-workspaces-and-package-structure|decision-004-monorepo-architecture-pnpm-workspaces-and-package-structure]]
+- [[_sources/docs/doc-015-claude-code-skills-and-knowledge-requirements|doc-015-claude-code-skills-and-knowledge-requirements]]

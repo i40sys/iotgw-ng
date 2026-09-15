@@ -3,7 +3,7 @@ title: Container Image CI/CD (ghcr.io/i40sys)
 category: references
 tags: [cicd/images, cicd/github-actions, infra/kubernetes, status/current]
 sources:
-  - backlog/decisions/decision-021 - Container-image-CI-CD-and-ghcr.io-i40sys-conventions.md
+  - backlog/decisions/decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions.md
   - backlog/tasks/task-067 - Epic-Container-image-CI-CD-GitHub-Actions-ghcr.io-i40sys.md
 summary: The three custom images, their build contexts, the tag/digest strategy, and the Trivy+cosign+SBOM+SLSA supply-chain policy — everything else is upstream pull-only.
 provenance:
@@ -84,5 +84,5 @@ shipped and the secret-audit gate that preceded going public.
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-021 - Container-image-CI-CD-and-ghcr.io-i40sys-conventions|decision-021 - Container-image-CI-CD-and-ghcr.io-i40sys-conventions]]
+- [[_sources/decisions/decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions|decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions]]
 - [[_sources/tasks/task-067 - Epic-Container-image-CI-CD-GitHub-Actions-ghcr.io-i40sys|task-067 - Epic-Container-image-CI-CD-GitHub-Actions-ghcr.io-i40sys]]

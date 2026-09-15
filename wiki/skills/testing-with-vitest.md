@@ -3,9 +3,9 @@ title: Testing with Vitest
 category: skills
 tags: [app/iotgw-ui, app/frontend, app/backend, status/current]
 sources:
-  - backlog/decisions/decision-006 - Testing-Framework-Vitest-Choice.md
-  - backlog/docs/doc-009 - Testing-with-Vitest.md
-  - backlog/docs/doc-002 - Testing-Strategies-and-Patterns.md
+  - backlog/decisions/decision-006-testing-framework-vitest-choice.md
+  - backlog/docs/doc-009-testing-with-vitest.md
+  - backlog/docs/doc-002-testing-strategies-and-patterns.md
 relationships:
   - target: "[[concepts/iotgw-ui-architecture]]"
     type: related_to
@@ -59,6 +59,6 @@ productivity, and ESM-first removes the `ts-jest` transformation friction.
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-006 - Testing-Framework-Vitest-Choice|decision-006 - Testing-Framework-Vitest-Choice]]
-- [[_sources/docs/doc-009 - Testing-with-Vitest|doc-009 - Testing-with-Vitest]]
-- [[_sources/docs/doc-002 - Testing-Strategies-and-Patterns|doc-002 - Testing-Strategies-and-Patterns]]
+- [[_sources/decisions/decision-006-testing-framework-vitest-choice|decision-006-testing-framework-vitest-choice]]
+- [[_sources/docs/doc-009-testing-with-vitest|doc-009-testing-with-vitest]]
+- [[_sources/docs/doc-002-testing-strategies-and-patterns|doc-002-testing-strategies-and-patterns]]

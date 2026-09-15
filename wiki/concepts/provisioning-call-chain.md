@@ -10,9 +10,9 @@ relationships:
   - target: "[[concepts/domains-networks-devices]]"
     type: related_to
 sources:
-  - backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md
-  - backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md
-  - backlog/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide.md
+  - backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md
+  - backlog/docs/doc-016-database-change-provisioning-automation-pattern.md
+  - backlog/docs/doc-010-database-migration-and-webhook-management-guide.md
 summary: The platform spine — a UI device/network change becomes a real Netmaker resource via a Postgres pg_net trigger that POSTs to the netmaker-call edge function (no Kestra, no Ansible).
 provenance:
   extracted: 0.9
@@ -103,6 +103,6 @@ seam change. See [[concepts/kubernetes-migration-kind]],
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
-- [[_sources/docs/doc-016 - Kestra-Notification-Automation-Pattern|doc-016 - Kestra-Notification-Automation-Pattern]]
-- [[_sources/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide|doc-010 - Database-Migration-and-Webhook-Management-Guide]]
+- [[_sources/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration|decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration]]
+- [[_sources/docs/doc-016-database-change-provisioning-automation-pattern|doc-016-database-change-provisioning-automation-pattern]]
+- [[_sources/docs/doc-010-database-migration-and-webhook-management-guide|doc-010-database-migration-and-webhook-management-guide]]

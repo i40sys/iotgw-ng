@@ -5,7 +5,7 @@
   "updated": "2026-06-26",
   "note": "Full backlog ingested in two passes. Pass 1: backlog/decisions + backlog/docs + backlog/archive/milestones (the high-authority backbone). Pass 2: backlog/tasks + backlog/completed + backlog/archive/tasks (transactional task history distilled into 7 synthesis epic/feature-history pages + 1 journal snapshot, and merged as provenance into the backbone pages). NOTE: backlog/completed and backlog/archive/tasks contain duplicate task-NNN stems (parallel doc-writing vs feature series, and the archived deployments epic); sources are keyed by full relative path so collisions are avoided. All task files are status=Done. The m-0 milestone is an empty placeholder (no page).",
   "sources": {
-    "backlog/decisions/decision-001 - Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem.md": {
+    "backlog/decisions/decision-001-frontend-technology-stack-react-19-and-tanstack-ecosystem.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 2723,
       "modified_at": 1759390544,
@@ -18,7 +18,7 @@
       "pages_updated": [],
       "note": "produced: concepts/iotgw-ui-architecture.md"
     },
-    "backlog/decisions/decision-002 - Backend-Architecture-Fastify-and-tRPC-API-Design.md": {
+    "backlog/decisions/decision-002-backend-architecture-fastify-and-trpc-api-design.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 2695,
       "modified_at": 1759390544,
@@ -31,7 +31,7 @@
       "pages_updated": [],
       "note": "produced: concepts/iotgw-ui-architecture.md"
     },
-    "backlog/decisions/decision-003 - Database-and-Infrastructure-Supabase-PostgreSQL-Choice.md": {
+    "backlog/decisions/decision-003-database-and-infrastructure-supabase-postgresql-choice.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 3184,
       "modified_at": 1759390544,
@@ -45,7 +45,7 @@
       "pages_updated": [],
       "note": "produced: entities/supabase.md, concepts/iotgw-ui-architecture.md"
     },
-    "backlog/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure.md": {
+    "backlog/decisions/decision-004-monorepo-architecture-pnpm-workspaces-and-package-structure.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 3278,
       "modified_at": 1782104138,
@@ -60,7 +60,7 @@
       "pages_updated": [],
       "note": "produced: concepts/iotgw-ui-architecture.md, concepts/monorepo-organization.md, skills/iotgw-ui-development-workflow.md"
     },
-    "backlog/decisions/decision-005 - Development-Tooling-Build-and-Development-Experience.md": {
+    "backlog/decisions/decision-005-development-tooling-build-and-development-experience.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 3548,
       "modified_at": 1759390544,
@@ -74,7 +74,7 @@
       "pages_updated": [],
       "note": "produced: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
     },
-    "backlog/decisions/decision-006 - Testing-Framework-Vitest-Choice.md": {
+    "backlog/decisions/decision-006-testing-framework-vitest-choice.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 2614,
       "modified_at": 1759390544,
@@ -88,7 +88,7 @@
       "pages_updated": [],
       "note": "produced: concepts/iotgw-ui-architecture.md, skills/testing-with-vitest.md"
     },
-    "backlog/decisions/decision-009 - TOTP-Authentication-for-Device-VPN-Access.md": {
+    "backlog/decisions/decision-009-totp-authentication-for-device-vpn-access.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 11346,
       "modified_at": 1763451913,
@@ -101,7 +101,7 @@
       "pages_updated": [],
       "note": "produced: concepts/totp-device-vpn-auth.md"
     },
-    "backlog/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS.md": {
+    "backlog/decisions/decision-010-ssh-key-management-with-cosmian-kms.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 12902,
       "modified_at": 1782104138,
@@ -115,7 +115,7 @@
       "pages_updated": [],
       "note": "produced: concepts/ssh-key-management-kms.md, entities/cosmian-kms.md"
     },
-    "backlog/decisions/decision-011 - Debug-Logging-Configuration.md": {
+    "backlog/decisions/decision-011-get-debug-of-the-connectivity-check-button.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 3259,
       "modified_at": 1780288952,
@@ -129,7 +129,7 @@
       "pages_updated": [],
       "note": "produced: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
     },
-    "backlog/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository.md": {
+    "backlog/decisions/decision-012-workspace-git-consolidation-into-a-single-root-repository.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 10624,
       "modified_at": 1782399263,
@@ -143,7 +143,7 @@
       "pages_updated": [],
       "note": "produced: concepts/monorepo-organization.md, synthesis/netmaker-collection-externalization.md"
     },
-    "backlog/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping.md": {
+    "backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 6495,
       "modified_at": 1782399263,
@@ -158,7 +158,7 @@
       "pages_updated": [],
       "note": "produced: concepts/monorepo-organization.md, entities/ingress-nginx.md, synthesis/netmaker-collection-externalization.md"
     },
-    "backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md": {
+    "backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 9614,
       "modified_at": 1782104138,
@@ -173,7 +173,7 @@
       "pages_updated": [],
       "note": "produced: concepts/secrets-management-sops-age.md, synthesis/secret-exposure-rotation-runbook.md, skills/deploy-on-kind.md"
     },
-    "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md": {
+    "backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 6351,
       "modified_at": 1782104138,
@@ -191,7 +191,7 @@
       "pages_updated": [],
       "note": "produced: concepts/kubernetes-migration-kind.md, entities/kind.md, entities/cosmian-kms.md, entities/ingress-nginx.md, references/service-ports-and-namespaces.md, skills/deploy-on-kind.md"
     },
-    "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md": {
+    "backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 29022,
       "modified_at": 1782104138,
@@ -209,7 +209,7 @@
       "pages_updated": [],
       "note": "produced: concepts/provisioning-call-chain.md, entities/edge-functions.md, entities/netmaker.md, entities/kestra.md, entities/supabase.md, synthesis/docker-compose-decommission.md"
     },
-    "backlog/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime.md": {
+    "backlog/decisions/decision-017-authorize-docker-compose-decommission-and-make-kubernetes-the-sole-supported-runtime.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 3936,
       "modified_at": 1782104138,
@@ -223,7 +223,7 @@
       "pages_updated": [],
       "note": "produced: synthesis/docker-compose-decommission.md, concepts/kubernetes-migration-kind.md"
     },
-    "backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md": {
+    "backlog/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 5613,
       "modified_at": 1782104138,
@@ -239,7 +239,7 @@
       "pages_updated": [],
       "note": "produced: entities/stackgres.md, entities/supabase.md, synthesis/docker-compose-decommission.md, entities/kind.md"
     },
-    "backlog/decisions/decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver.md": {
+    "backlog/decisions/decision-019-headlamp-sso-via-keycloak-oidc-on-the-kube-apiserver.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 4133,
       "modified_at": 1782199989,
@@ -253,7 +253,7 @@
       "pages_updated": [],
       "note": "produced: entities/headlamp.md, entities/keycloak.md"
     },
-    "backlog/decisions/decision-020 - Namespace-per-subproject-topology.md": {
+    "backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 5855,
       "modified_at": 1782199989,
@@ -267,7 +267,7 @@
       "pages_updated": [],
       "note": "produced: concepts/namespace-per-subproject.md, references/service-ports-and-namespaces.md"
     },
-    "backlog/decisions/decision-021 - Container-image-CI-CD-and-ghcr.io-i40sys-conventions.md": {
+    "backlog/decisions/decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 8543,
       "modified_at": 1782362950,
@@ -280,7 +280,7 @@
       "pages_updated": [],
       "note": "produced: references/container-image-cicd.md"
     },
-    "backlog/decisions/decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection.md": {
+    "backlog/decisions/decision-022-re-externalize-the-oriolrius-netmaker-ansible-collection-out-of-the-monorepo.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 6084,
       "modified_at": 1782399263,
@@ -294,7 +294,7 @@
       "pages_updated": [],
       "note": "produced: synthesis/netmaker-collection-externalization.md, entities/netmaker.md"
     },
-    "backlog/docs/doc-002 - Testing-Strategies-and-Patterns.md": {
+    "backlog/docs/doc-002-testing-strategies-and-patterns.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 26727,
       "modified_at": 1759390544,
@@ -307,7 +307,7 @@
       "pages_updated": [],
       "note": "produced: skills/testing-with-vitest.md"
     },
-    "backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md": {
+    "backlog/docs/doc-003-supabase-rls-policy-implementation-patterns.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 19439,
       "modified_at": 1759390544,
@@ -321,7 +321,7 @@
       "pages_updated": [],
       "note": "produced: entities/supabase.md, concepts/iotgw-ui-architecture.md"
     },
-    "backlog/docs/doc-005 - tRPC-API-Development-Patterns.md": {
+    "backlog/docs/doc-005-trpc-api-development-patterns.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 44618,
       "modified_at": 1763376986,
@@ -334,7 +334,7 @@
       "pages_updated": [],
       "note": "produced: concepts/iotgw-ui-architecture.md"
     },
-    "backlog/docs/doc-006 - React-Component-Development-Guidelines.md": {
+    "backlog/docs/doc-006-react-component-development-guidelines.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 41342,
       "modified_at": 1759390544,
@@ -347,7 +347,7 @@
       "pages_updated": [],
       "note": "produced: concepts/iotgw-ui-architecture.md"
     },
-    "backlog/docs/doc-007 - Workspace-Development-Workflow.md": {
+    "backlog/docs/doc-007-workspace-development-workflow.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 20638,
       "modified_at": 1759390545,
@@ -360,7 +360,7 @@
       "pages_updated": [],
       "note": "produced: skills/iotgw-ui-development-workflow.md"
     },
-    "backlog/docs/doc-008 - Domains-Networks-and-Devices-Architecture.md": {
+    "backlog/docs/doc-008-domains-networks-and-devices-architecture.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 9820,
       "modified_at": 1782104138,
@@ -373,7 +373,7 @@
       "pages_updated": [],
       "note": "produced: concepts/domains-networks-devices.md"
     },
-    "backlog/docs/doc-009 - Testing-with-Vitest.md": {
+    "backlog/docs/doc-009-testing-with-vitest.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 18297,
       "modified_at": 1759390544,
@@ -386,7 +386,7 @@
       "pages_updated": [],
       "note": "produced: skills/testing-with-vitest.md"
     },
-    "backlog/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide.md": {
+    "backlog/docs/doc-010-database-migration-and-webhook-management-guide.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 7637,
       "modified_at": 1782199989,
@@ -400,7 +400,7 @@
       "pages_updated": [],
       "note": "produced: references/database-migrations-webhooks.md, concepts/provisioning-call-chain.md"
     },
-    "backlog/docs/doc-011 - Deployment-Section-Redesign-Interface-Specification.md": {
+    "backlog/docs/doc-011-deployment-section-redesign-interface-specification.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 4427,
       "modified_at": 1764138392,
@@ -413,7 +413,7 @@
       "pages_updated": [],
       "note": "produced: references/deployments-page-behavior.md"
     },
-    "backlog/docs/doc-013 - Deployments-Page-Behavior-Specification.md": {
+    "backlog/docs/doc-013-deployments-page-behavior-specification.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 8588,
       "modified_at": 1764741161,
@@ -427,7 +427,7 @@
       "pages_updated": [],
       "note": "produced: references/deployments-page-behavior.md, entities/kestra.md"
     },
-    "backlog/docs/doc-014 - OpenWRT Wireguard.md": {
+    "backlog/docs/doc-014-openwrt-wireguard-setup-guide.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 2160,
       "modified_at": 1782104138,
@@ -440,7 +440,7 @@
       "pages_updated": [],
       "note": "produced: references/openwrt-wireguard-config.md"
     },
-    "backlog/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements.md": {
+    "backlog/docs/doc-015-claude-code-skills-and-knowledge-requirements.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 18572,
       "modified_at": 1780288944,
@@ -454,7 +454,7 @@
       "pages_updated": [],
       "note": "produced: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
     },
-    "backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md": {
+    "backlog/docs/doc-016-database-change-provisioning-automation-pattern.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 8813,
       "modified_at": 1782399263,
@@ -470,7 +470,7 @@
       "pages_updated": [],
       "note": "produced: concepts/provisioning-call-chain.md, entities/netmaker.md, entities/kestra.md, entities/edge-functions.md"
     },
-    "backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md": {
+    "backlog/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 10589,
       "modified_at": 1782199989,
@@ -2331,24 +2331,24 @@
   "pages": {
     "concepts/domains-networks-devices.md": {
       "sources": [
-        "backlog/docs/doc-008 - Domains-Networks-and-Devices-Architecture.md",
+        "backlog/docs/doc-008-domains-networks-and-devices-architecture.md",
         "backlog/completed/task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage.md",
         "backlog/completed/task-028 - Fix-Supabase-row-level-security-for-database-queries.md"
       ]
     },
     "concepts/iotgw-ui-architecture.md": {
       "sources": [
-        "backlog/decisions/decision-001 - Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem.md",
-        "backlog/decisions/decision-002 - Backend-Architecture-Fastify-and-tRPC-API-Design.md",
-        "backlog/decisions/decision-003 - Database-and-Infrastructure-Supabase-PostgreSQL-Choice.md",
-        "backlog/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure.md",
-        "backlog/decisions/decision-005 - Development-Tooling-Build-and-Development-Experience.md",
-        "backlog/decisions/decision-006 - Testing-Framework-Vitest-Choice.md",
-        "backlog/decisions/decision-011 - Debug-Logging-Configuration.md",
-        "backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md",
-        "backlog/docs/doc-005 - tRPC-API-Development-Patterns.md",
-        "backlog/docs/doc-006 - React-Component-Development-Guidelines.md",
-        "backlog/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements.md",
+        "backlog/decisions/decision-001-frontend-technology-stack-react-19-and-tanstack-ecosystem.md",
+        "backlog/decisions/decision-002-backend-architecture-fastify-and-trpc-api-design.md",
+        "backlog/decisions/decision-003-database-and-infrastructure-supabase-postgresql-choice.md",
+        "backlog/decisions/decision-004-monorepo-architecture-pnpm-workspaces-and-package-structure.md",
+        "backlog/decisions/decision-005-development-tooling-build-and-development-experience.md",
+        "backlog/decisions/decision-006-testing-framework-vitest-choice.md",
+        "backlog/decisions/decision-011-get-debug-of-the-connectivity-check-button.md",
+        "backlog/docs/doc-003-supabase-rls-policy-implementation-patterns.md",
+        "backlog/docs/doc-005-trpc-api-development-patterns.md",
+        "backlog/docs/doc-006-react-component-development-guidelines.md",
+        "backlog/docs/doc-015-claude-code-skills-and-knowledge-requirements.md",
         "backlog/completed/task-001 - Document-tRPC-API-Development-Patterns.md",
         "backlog/completed/task-002 - Document-React-Component-Development-Guidelines.md",
         "backlog/completed/task-003 - Document-Supabase-RLS-Policy-Implementation-Patterns.md",
@@ -2359,117 +2359,117 @@
     },
     "concepts/kubernetes-migration-kind.md": {
       "sources": [
-        "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md",
-        "backlog/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime.md"
+        "backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md",
+        "backlog/decisions/decision-017-authorize-docker-compose-decommission-and-make-kubernetes-the-sole-supported-runtime.md"
       ]
     },
     "concepts/monorepo-organization.md": {
       "sources": [
-        "backlog/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure.md",
-        "backlog/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository.md",
-        "backlog/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping.md",
+        "backlog/decisions/decision-004-monorepo-architecture-pnpm-workspaces-and-package-structure.md",
+        "backlog/decisions/decision-012-workspace-git-consolidation-into-a-single-root-repository.md",
+        "backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md",
         "backlog/tasks/task-068 - Epic-Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo.md"
       ]
     },
     "concepts/namespace-per-subproject.md": {
       "sources": [
-        "backlog/decisions/decision-020 - Namespace-per-subproject-topology.md",
+        "backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md",
         "backlog/tasks/task-064 - Epic-Namespace-per-subproject-split-iotgw-becomes-the-cluster-not-a-namespace.md"
       ]
     },
     "concepts/provisioning-call-chain.md": {
       "sources": [
-        "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md",
-        "backlog/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide.md",
-        "backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md",
+        "backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md",
+        "backlog/docs/doc-010-database-migration-and-webhook-management-guide.md",
+        "backlog/docs/doc-016-database-change-provisioning-automation-pattern.md",
         "backlog/tasks/task-055 - Re-point-pg_net-webhook-URLs-to-in-cluster-Service-for-k8s.md"
       ]
     },
     "concepts/secrets-management-sops-age.md": {
       "sources": [
-        "backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md"
+        "backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md"
       ]
     },
     "concepts/ssh-key-management-kms.md": {
       "sources": [
-        "backlog/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS.md",
+        "backlog/decisions/decision-010-ssh-key-management-with-cosmian-kms.md",
         "backlog/tasks/task-069 - Inject-device-SSH-key-from-Cosmian-KMS-into-Kestra-OpenWRT-runner-pods-task-065-AC3.md",
         "backlog/completed/task-040 - Update-Kestra-devices-workflow-for-SSH-key-generation-in-KMS.md"
       ]
     },
     "concepts/totp-device-vpn-auth.md": {
       "sources": [
-        "backlog/decisions/decision-009 - TOTP-Authentication-for-Device-VPN-Access.md"
+        "backlog/decisions/decision-009-totp-authentication-for-device-vpn-access.md"
       ]
     },
     "entities/cosmian-kms.md": {
       "sources": [
-        "backlog/decisions/decision-010 - ADR-001-SSH-Key-Management-with-Cosmian-KMS.md",
-        "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md",
+        "backlog/decisions/decision-010-ssh-key-management-with-cosmian-kms.md",
+        "backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md",
         "backlog/tasks/task-057 - Add-authentication-NetworkPolicy-to-Cosmian-KMS.md"
       ]
     },
     "entities/edge-functions.md": {
       "sources": [
-        "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md",
-        "backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md",
+        "backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md",
+        "backlog/docs/doc-016-database-change-provisioning-automation-pattern.md",
         "backlog/tasks/task-062.18 - Define-and-implement-the-edge-function-\u2192-Kestra-durable-execution-handoff-contract.md"
       ]
     },
     "entities/headlamp.md": {
       "sources": [
-        "backlog/decisions/decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver.md",
-        "backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md",
+        "backlog/decisions/decision-019-headlamp-sso-via-keycloak-oidc-on-the-kube-apiserver.md",
+        "backlog/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access.md",
         "backlog/tasks/task-063 - Deploy-Headlamp-Kubernetes-dashboard-into-the-kind-cluster.md"
       ]
     },
     "entities/ingress-nginx.md": {
       "sources": [
-        "backlog/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping.md",
-        "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md",
-        "backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md"
+        "backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md",
+        "backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md",
+        "backlog/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access.md"
       ]
     },
     "entities/kestra.md": {
       "sources": [
-        "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md",
-        "backlog/docs/doc-013 - Deployments-Page-Behavior-Specification.md",
-        "backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md",
+        "backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md",
+        "backlog/docs/doc-013-deployments-page-behavior-specification.md",
+        "backlog/docs/doc-016-database-change-provisioning-automation-pattern.md",
         "backlog/tasks/task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner.md",
         "backlog/tasks/task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods.md"
       ]
     },
     "entities/keycloak.md": {
       "sources": [
-        "backlog/decisions/decision-019 - Headlamp-SSO-via-Keycloak-OIDC-on-the-kube-apiserver.md",
-        "backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md"
+        "backlog/decisions/decision-019-headlamp-sso-via-keycloak-oidc-on-the-kube-apiserver.md",
+        "backlog/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access.md"
       ]
     },
     "entities/kind.md": {
       "sources": [
-        "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md",
-        "backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md"
+        "backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md",
+        "backlog/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md"
       ]
     },
     "entities/netmaker.md": {
       "sources": [
-        "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md",
-        "backlog/decisions/decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection.md",
-        "backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md",
+        "backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md",
+        "backlog/decisions/decision-022-re-externalize-the-oriolrius-netmaker-ansible-collection-out-of-the-monorepo.md",
+        "backlog/docs/doc-016-database-change-provisioning-automation-pattern.md",
         "backlog/docs/netmaker-credential-handling.md"
       ]
     },
     "entities/stackgres.md": {
       "sources": [
-        "backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md"
+        "backlog/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md"
       ]
     },
     "entities/supabase.md": {
       "sources": [
-        "backlog/decisions/decision-003 - Database-and-Infrastructure-Supabase-PostgreSQL-Choice.md",
-        "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md",
-        "backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md",
-        "backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md",
+        "backlog/decisions/decision-003-database-and-infrastructure-supabase-postgresql-choice.md",
+        "backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md",
+        "backlog/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md",
+        "backlog/docs/doc-003-supabase-rls-policy-implementation-patterns.md",
         "backlog/completed/task-028 - Fix-Supabase-row-level-security-for-database-queries.md"
       ]
     },
@@ -2480,46 +2480,46 @@
     },
     "references/container-image-cicd.md": {
       "sources": [
-        "backlog/decisions/decision-021 - Container-image-CI-CD-and-ghcr.io-i40sys-conventions.md",
+        "backlog/decisions/decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions.md",
         "backlog/tasks/task-067 - Epic-Container-image-CI-CD-GitHub-Actions-ghcr.io-i40sys.md"
       ]
     },
     "references/database-migrations-webhooks.md": {
       "sources": [
-        "backlog/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide.md"
+        "backlog/docs/doc-010-database-migration-and-webhook-management-guide.md"
       ]
     },
     "references/deployments-page-behavior.md": {
       "sources": [
-        "backlog/docs/doc-011 - Deployment-Section-Redesign-Interface-Specification.md",
-        "backlog/docs/doc-013 - Deployments-Page-Behavior-Specification.md",
+        "backlog/docs/doc-011-deployment-section-redesign-interface-specification.md",
+        "backlog/docs/doc-013-deployments-page-behavior-specification.md",
         "backlog/archive/tasks/task-001 - Create-database-schema-for-deployments-table.md"
       ]
     },
     "references/openwrt-wireguard-config.md": {
       "sources": [
-        "backlog/docs/doc-014 - OpenWRT Wireguard.md"
+        "backlog/docs/doc-014-openwrt-wireguard-setup-guide.md"
       ]
     },
     "references/service-ports-and-namespaces.md": {
       "sources": [
-        "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md",
-        "backlog/decisions/decision-020 - Namespace-per-subproject-topology.md"
+        "backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md",
+        "backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md"
       ]
     },
     "skills/deploy-on-kind.md": {
       "sources": [
-        "backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md",
-        "backlog/decisions/decision-015 - Kubernetes-Migration-with-local-kind.md"
+        "backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md",
+        "backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md"
       ]
     },
     "skills/iotgw-ui-development-workflow.md": {
       "sources": [
-        "backlog/decisions/decision-004 - Monorepo-Architecture-pnpm-Workspaces-and-Package-Structure.md",
-        "backlog/decisions/decision-005 - Development-Tooling-Build-and-Development-Experience.md",
-        "backlog/decisions/decision-011 - Debug-Logging-Configuration.md",
-        "backlog/docs/doc-007 - Workspace-Development-Workflow.md",
-        "backlog/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements.md",
+        "backlog/decisions/decision-004-monorepo-architecture-pnpm-workspaces-and-package-structure.md",
+        "backlog/decisions/decision-005-development-tooling-build-and-development-experience.md",
+        "backlog/decisions/decision-011-get-debug-of-the-connectivity-check-button.md",
+        "backlog/docs/doc-007-workspace-development-workflow.md",
+        "backlog/docs/doc-015-claude-code-skills-and-knowledge-requirements.md",
         "backlog/completed/task-001 - Document-tRPC-API-Development-Patterns.md",
         "backlog/completed/task-002 - Document-React-Component-Development-Guidelines.md",
         "backlog/completed/task-003 - Document-Supabase-RLS-Policy-Implementation-Patterns.md",
@@ -2530,24 +2530,24 @@
     },
     "skills/testing-with-vitest.md": {
       "sources": [
-        "backlog/decisions/decision-006 - Testing-Framework-Vitest-Choice.md",
-        "backlog/docs/doc-002 - Testing-Strategies-and-Patterns.md",
-        "backlog/docs/doc-009 - Testing-with-Vitest.md"
+        "backlog/decisions/decision-006-testing-framework-vitest-choice.md",
+        "backlog/docs/doc-002-testing-strategies-and-patterns.md",
+        "backlog/docs/doc-009-testing-with-vitest.md"
       ]
     },
     "synthesis/docker-compose-decommission.md": {
       "sources": [
-        "backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md",
-        "backlog/decisions/decision-017 - Authorize-docker-compose-Decommission-and-make-Kubernetes-the-sole-supported-runtime.md",
-        "backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md",
+        "backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md",
+        "backlog/decisions/decision-017-authorize-docker-compose-decommission-and-make-kubernetes-the-sole-supported-runtime.md",
+        "backlog/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md",
         "backlog/tasks/task-062 - Epic-Decommission-docker-compose-migrate-fully-to-k8s-kind.md"
       ]
     },
     "synthesis/netmaker-collection-externalization.md": {
       "sources": [
-        "backlog/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository.md",
-        "backlog/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping.md",
-        "backlog/decisions/decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection.md",
+        "backlog/decisions/decision-012-workspace-git-consolidation-into-a-single-root-repository.md",
+        "backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md",
+        "backlog/decisions/decision-022-re-externalize-the-oriolrius-netmaker-ansible-collection-out-of-the-monorepo.md",
         "backlog/docs/netmaker-credential-handling.md",
         "backlog/tasks/task-068.01 - ADR-decision-022-re-externalize-the-netmaker-collection-adopt-the-existing-oriolrius-repo-as-canonical.md",
         "backlog/tasks/task-068.02 - Reconcile-the-monorepo-copy-against-the-standalone-repo-and-port-monorepo-only-changes-back.md",
@@ -2562,7 +2562,7 @@
     },
     "synthesis/secret-exposure-rotation-runbook.md": {
       "sources": [
-        "backlog/decisions/decision-014 - Secrets-Management-with-SOPS-and-age.md",
+        "backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md",
         "backlog/docs/netmaker-credential-handling.md",
         "backlog/tasks/task-067.16 - Post-public-secret-exposure-incident-literal-secret-tripwire-leak-credential-rotations.md"
       ]

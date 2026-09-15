@@ -3,9 +3,9 @@ title: Netmaker Collection Externalization
 category: synthesis
 tags: [orchestration/ansible, vpn/netmaker, type/decision, status/current]
 sources:
-  - backlog/decisions/decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection.md
-  - backlog/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository.md
-  - backlog/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping.md
+  - backlog/decisions/decision-022-re-externalize-the-oriolrius-netmaker-ansible-collection-out-of-the-monorepo.md
+  - backlog/decisions/decision-012-workspace-git-consolidation-into-a-single-root-repository.md
+  - backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md
   - backlog/tasks/task-068 - Epic-Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo.md
 relationships:
   - target: "[[concepts/monorepo-organization]]"
@@ -86,7 +86,7 @@ adopt-as-canonical + de-dupe. `ansible/` removed entirely; mirrors the
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection|decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection]]
-- [[_sources/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository|decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository]]
-- [[_sources/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping|decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping]]
+- [[_sources/decisions/decision-022-re-externalize-the-oriolrius-netmaker-ansible-collection-out-of-the-monorepo|decision-022-re-externalize-the-oriolrius-netmaker-ansible-collection-out-of-the-monorepo]]
+- [[_sources/decisions/decision-012-workspace-git-consolidation-into-a-single-root-repository|decision-012-workspace-git-consolidation-into-a-single-root-repository]]
+- [[_sources/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012|decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012]]
 - [[_sources/tasks/task-068 - Epic-Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo|task-068 - Epic-Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo]]

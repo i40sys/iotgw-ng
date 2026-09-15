@@ -6,10 +6,10 @@ relationships:
   - target: "[[concepts/provisioning-call-chain]]"
     type: related_to
 sources:
-  - backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md
-  - backlog/docs/doc-016 - Kestra-Notification-Automation-Pattern.md
+  - backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md
+  - backlog/docs/doc-016-database-change-provisioning-automation-pattern.md
   - backlog/docs/netmaker-credential-handling.md
-  - backlog/decisions/decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection.md
+  - backlog/decisions/decision-022-re-externalize-the-oriolrius-netmaker-ansible-collection-out-of-the-monorepo.md
 summary: The WireGuard VPN control plane (api.netmaker.i40sys.com) the platform provisions extclients and networks against — a SHARED PRODUCTION server outside our control.
 provenance:
   extracted: 0.85
@@ -65,7 +65,7 @@ credential is limited and independently revocable.
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
-- [[_sources/docs/doc-016 - Kestra-Notification-Automation-Pattern|doc-016 - Kestra-Notification-Automation-Pattern]]
+- [[_sources/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration|decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration]]
+- [[_sources/docs/doc-016-database-change-provisioning-automation-pattern|doc-016-database-change-provisioning-automation-pattern]]
 - [[_sources/docs/netmaker-credential-handling|netmaker-credential-handling]]
-- [[_sources/decisions/decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection|decision-022 - Re-externalize-the-oriolrius.netmaker-Ansible-collection]]
+- [[_sources/decisions/decision-022-re-externalize-the-oriolrius-netmaker-ansible-collection-out-of-the-monorepo|decision-022-re-externalize-the-oriolrius-netmaker-ansible-collection-out-of-the-monorepo]]

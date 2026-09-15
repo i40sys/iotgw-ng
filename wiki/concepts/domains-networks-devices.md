@@ -8,7 +8,7 @@ relationships:
   - target: "[[concepts/ssh-key-management-kms]]"
     type: related_to
 sources:
-  - backlog/docs/doc-008 - Domains-Networks-and-Devices-Architecture.md
+  - backlog/docs/doc-008-domains-networks-and-devices-architecture.md
   - backlog/completed/task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage.md
   - backlog/completed/task-028 - Fix-Supabase-row-level-security-for-database-queries.md
 summary: The three-level org model — Domain → Network(s) → Device(s) — with cascade-delete FKs, scoped uniqueness, RLS, and a tRPC router per entity.
@@ -82,6 +82,6 @@ series — see [[synthesis/network-crud-and-jobs-feature-history]].
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/docs/doc-008 - Domains-Networks-and-Devices-Architecture|doc-008 - Domains-Networks-and-Devices-Architecture]]
+- [[_sources/docs/doc-008-domains-networks-and-devices-architecture|doc-008-domains-networks-and-devices-architecture]]
 - [[_sources/completed/task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage|task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage]]
 - [[_sources/completed/task-028 - Fix-Supabase-row-level-security-for-database-queries|task-028 - Fix-Supabase-row-level-security-for-database-queries]]
