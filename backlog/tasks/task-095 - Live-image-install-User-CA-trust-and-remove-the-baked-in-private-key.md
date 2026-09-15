@@ -4,7 +4,7 @@ title: 'Live image: install User CA trust and remove the baked-in private key'
 status: Done
 assignee: []
 created_date: '2026-09-14 05:30'
-updated_date: '2026-09-15 14:36'
+updated_date: '2026-09-15 16:01'
 labels:
   - ssh-ca
   - live-image
@@ -51,17 +51,5 @@ Requires the rebuild tooling from the live-image rebuild task; the squashfs is r
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**Done 2026-09-15 — proven on a real PXE boot of the rebuilt image (10.2.0.210), then swapped in.**
-
-- AC#1: served image has NO root/.ssh/id_ed25519 (verified in the swapped filesystem.squashfs).
-- AC#2: sshd log line — "Accepted publickey for root ... ED25519-CERT SHA256:zhtXlGD9… ID oriol@iotgw-lab (serial 5) CA ECDSA SHA256:SoEpWf…" — an iotgw-admin user cert (minted via scripts/ssh-ca/user-cert.sh against live pki.joor.net) accepted for root.
-- AC#3: break-glass RSA (oriol@mini6, kxhsZf7…) still accepted on the booted image.
-- AC#4: authorized_keys trimmed to the 2 attributed keys (oriol@mini6, root@iot-gw); VMJ3Hr removed (task-107).
-- AC#5: sshd -t OK; sshd -T shows only the intended additions (trustedusercakeys/authorizedprincipalsfile/revokedkeys) + authorizedkeysfile restated to its default.
-
-Swapped in on the primary/install tree (…-80072992); previous image kept as .bak.
-
-**FOLLOW-UP (not this tree):** the vpn-path tree clonezilla-debian-3.1.2-9-2025-11-06 still carries the baked id_ed25519 and no trust — it needs the SAME rebuild (render-trust.sh + rebuild.sh --sync-from --harden --drop-key-fp) and a boot test via the vpn/OTP path before it is clean too.
-
-Side effects on live pki.joor.net: granted the iotgw-admin entitlement to identity oriol@iotgw-lab (desired state), and issued short-lived (1h) test user certs (serials ~4/5) that self-expire.
+**Follow-up CLOSED 2026-09-15 — the vpn-path tree is now hardened too.** The …-2025-11-06 tree was rebuilt with the same render-trust + rebuild.sh --sync-from --harden --drop-key-fp, boot-tested on 10.2.0.210 (booted from its candidate: no private key, break-glass oriol@mini6 works, iotgw-admin cert accepted — "Accepted … ED25519-CERT … ID oriol@iotgw-lab (serial 6) CA SHA256:SoEpWf…", sshd -t OK), then --swap-installed with a .bak rollback. Both served live images (…-80072992 install path and …-2025-11-06 vpn path) now contain no baked-in private key and trust the iotgw-lab User CA.
 <!-- SECTION:NOTES:END -->
