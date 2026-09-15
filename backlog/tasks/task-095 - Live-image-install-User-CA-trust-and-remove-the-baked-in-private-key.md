@@ -1,10 +1,10 @@
 ---
 id: TASK-095
 title: 'Live image: install User CA trust and remove the baked-in private key'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-09-14 05:30'
-updated_date: '2026-09-15 09:03'
+updated_date: '2026-09-15 14:36'
 labels:
   - ssh-ca
   - live-image
@@ -42,20 +42,26 @@ Requires the rebuild tooling from the live-image rebuild task; the squashfs is r
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 The live image contains no private key material
-- [ ] #2 A machine booted from the rebuilt image accepts a user certificate for the agreed principal, evidenced by the sshd certificate-acceptance log line
-- [ ] #3 The named break-glass keys still work on a machine booted from the rebuilt image
+- [x] #2 A machine booted from the rebuilt image accepts a user certificate for the agreed principal, evidenced by the sshd certificate-acceptance log line
+- [x] #3 The named break-glass keys still work on a machine booted from the rebuilt image
 - [x] #4 Every remaining authorized_keys entry has a documented owner
-- [ ] #5 No pre-existing sshd setting is weakened — sshd -T before and after differ only in the intended keys
+- [x] #5 No pre-existing sshd setting is weakened — sshd -T before and after differ only in the intended keys
 <!-- AC:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**2026-09-15 — rebuild tooling for the trust bake-in built + validated (no boot yet).**
+**Done 2026-09-15 — proven on a real PXE boot of the rebuilt image (10.2.0.210), then swapped in.**
 
-- render-trust.sh renders the additions-only overlay from live pki.joor.net (iotgw-lab User CA SHA256:SoEpWf… — matches the §5 lab evidence): ssh-user-ca.pub (0444, every zones User CA), auth_principals/root (iotgw-admin/iotgw-ops), empty revoked_keys, 50-/60- sshd drop-ins.
-- rebuild.sh --harden removes baked-in root/.ssh/id_ed25519{,.pub} (AC#1); --drop-key-fp removes the unattributed break-glass key (task-107), leaving the two attributed ones (AC#4).
-- Validated end-to-end on a local fixture: candidate has NO private key, authorized_keys trimmed to 2, all 5 trust files present, and the content diff vs the served image is EXACTLY the 6 intended paths and nothing else (file-level evidence toward AC#5).
+- AC#1: served image has NO root/.ssh/id_ed25519 (verified in the swapped filesystem.squashfs).
+- AC#2: sshd log line — "Accepted publickey for root ... ED25519-CERT SHA256:zhtXlGD9… ID oriol@iotgw-lab (serial 5) CA ECDSA SHA256:SoEpWf…" — an iotgw-admin user cert (minted via scripts/ssh-ca/user-cert.sh against live pki.joor.net) accepted for root.
+- AC#3: break-glass RSA (oriol@mini6, kxhsZf7…) still accepted on the booted image.
+- AC#4: authorized_keys trimmed to the 2 attributed keys (oriol@mini6, root@iot-gw); VMJ3Hr removed (task-107).
+- AC#5: sshd -t OK; sshd -T shows only the intended additions (trustedusercakeys/authorizedprincipalsfile/revokedkeys) + authorizedkeysfile restated to its default.
 
-**OPEN (need a real PXE boot — operator step):** AC#2 (booted machine accepts an iotgw-admin user cert; sshd "Accepted certificate ID" log line), AC#3 (named break-glass keys still work on the booted machine), AC#5 (sshd -T before/after diff on the running image). Path: render → rebuild --sync-from --harden --drop-key-fp --stage on y0 → boot one machine from the -candidate path → confirm → --swap. Depends also on task-094 (tooling, done to 3/4) and the trust content re-rendering on rotation (task-103).
+Swapped in on the primary/install tree (…-80072992); previous image kept as .bak.
+
+**FOLLOW-UP (not this tree):** the vpn-path tree clonezilla-debian-3.1.2-9-2025-11-06 still carries the baked id_ed25519 and no trust — it needs the SAME rebuild (render-trust.sh + rebuild.sh --sync-from --harden --drop-key-fp) and a boot test via the vpn/OTP path before it is clean too.
+
+Side effects on live pki.joor.net: granted the iotgw-admin entitlement to identity oriol@iotgw-lab (desired state), and issued short-lived (1h) test user certs (serials ~4/5) that self-expire.
 <!-- SECTION:NOTES:END -->

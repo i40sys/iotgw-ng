@@ -118,12 +118,15 @@ try:
     d = json.loads(sys.argv[1])
 except Exception:
     print("", end=""); sys.exit(0)
-# `certOpenssh` is the field the verified sign-host path returns; accept a few
-# defensive fallbacks in case the user route names it differently.
-for k in ("certOpenssh", "certificate", "cert", "opensshCertificate", "sshCertificate"):
-    v = d.get(k)
-    if isinstance(v, str) and v.strip():
-        print(v.strip(), end=""); break
+# /ssh/users/issue wraps the cert in a `cert` object: {"cert":{"certOpenssh":…}}.
+# Look there first, then at the top level, with a few defensive field-name
+# fallbacks (the sign-host path uses `certOpenssh` too).
+scopes = [d.get("cert"), d] if isinstance(d.get("cert"), dict) else [d]
+for scope in scopes:
+    for k in ("certOpenssh", "certificate", "cert", "opensshCertificate", "sshCertificate"):
+        v = scope.get(k)
+        if isinstance(v, str) and v.strip():
+            print(v.strip(), end=""); sys.exit(0)
 PY
 )"
 case "$CERT" in
