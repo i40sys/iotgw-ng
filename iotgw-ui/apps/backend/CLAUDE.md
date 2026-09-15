@@ -54,10 +54,10 @@ HTTP POST to the Kestra API for OpenWRT gateway operations — **deployment** (`
 
 ## Cosmian KMS Integration (SSH keys)
 
-Device SSH keys are generated **directly in Cosmian KMS** by `src/services/kms.ts` — a `fetch`-based client speaking the KMIP 2.1 JSON REST API (`POST <KMS_URL>/kmip/2_1`), deriving the OpenSSH public key locally with `node:crypto` (no `cosmian` CLI / Python). `ensureDeviceSshKey({deviceId,…})` is idempotent (key id `device_ssh_<deviceId>`) with a `force` regenerate path. It runs automatically in `createDevice` (best-effort — a KMS failure leaves the device without a key rather than failing creation) and on demand via `generateMissingSshKey`. Config: `KMS_URL` (env, from `secrets/`; default the dev host); auth-header-ready for when the KMS gains auth. See [decision-010](../../backlog/decisions/decision-010%20-%20ADR-001-SSH-Key-Management-with-Cosmian-KMS.md).
+Device SSH keys are generated **directly in Cosmian KMS** by `src/services/kms.ts` — a `fetch`-based client speaking the KMIP 2.1 JSON REST API (`POST <KMS_URL>/kmip/2_1`), deriving the OpenSSH public key locally with `node:crypto` (no `cosmian` CLI / Python). `ensureDeviceSshKey({deviceId,…})` is idempotent (key id `device_ssh_<deviceId>`) with a `force` regenerate path. It runs automatically in `createDevice` (best-effort — a KMS failure leaves the device without a key rather than failing creation) and on demand via `generateMissingSshKey`. Config: `KMS_URL` (env, from `secrets/`; default the dev host); auth-header-ready for when the KMS gains auth. See [decision-010](../../../backlog/decisions/decision-010-ssh-key-management-with-cosmian-kms.md).
 
 ## References
 
-- [decision-002](../../backlog/decisions/decision-002%20-%20Backend-Architecture-Fastify-and-tRPC-API-Design.md) — why Fastify + tRPC
-- [doc-005](../../backlog/docs/doc-005%20-%20tRPC-API-Development-Patterns.md) — tRPC procedure/router patterns used here
-- [decision-011](../../backlog/decisions/decision-011%20-%20Debug-Logging-Configuration.md) — Pino logging setup
+- [decision-002](../../../backlog/decisions/decision-002-backend-architecture-fastify-and-trpc-api-design.md) — why Fastify + tRPC
+- [doc-005](../../../backlog/docs/doc-005-trpc-api-development-patterns.md) — tRPC procedure/router patterns used here
+- [decision-011](../../../backlog/decisions/decision-011-get-debug-of-the-connectivity-check-button.md) — Pino logging setup

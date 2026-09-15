@@ -29,6 +29,6 @@ PostgreSQL schema managed via Supabase CLI migrations.
 
 ## References
 
-- [doc-010](../backlog/docs/doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md) — full migration + webhook workflow (devices/networks triggers live here)
-- [doc-003](../backlog/docs/doc-003%20-%20Supabase-RLS-Policy-Implementation-Patterns.md) — RLS patterns
-- [doc-008](../backlog/docs/doc-008%20-%20Domains-Networks-and-Devices-Architecture.md) — data model hierarchy
+- [doc-010](../../backlog/docs/doc-010-database-migration-and-webhook-management-guide.md) — full migration + webhook workflow (devices/networks triggers live here)
+- [doc-003](../../backlog/docs/doc-003-supabase-rls-policy-implementation-patterns.md) — RLS patterns
+- [doc-008](../../backlog/docs/doc-008-domains-networks-and-devices-architecture.md) — data model hierarchy

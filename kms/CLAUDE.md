@@ -4,7 +4,7 @@ Self-hosted Cosmian KMS for SSH key and X.509 PKI management. Full details in [R
 
 ## Role in iotgw-ng
 
-This KMS is the authoritative store for device SSH keys. The Supabase `devices` table stores only `ssh_key_id` — the actual key material lives here. Reference architecture in [iotgw-ui decision-010](../backlog/decisions/decision-010%20-%20ADR-001-SSH-Key-Management-with-Cosmian-KMS.md).
+This KMS is the authoritative store for device SSH keys. The Supabase `devices` table stores only `ssh_key_id` — the actual key material lives here. Reference architecture in [iotgw-ui decision-010](../backlog/decisions/decision-010-ssh-key-management-with-cosmian-kms.md).
 
 The `pki-test/` CA also mints the certs used for TLS termination at the k8s
 Ingress (which replaced the former `traefik-poc/` PoC).

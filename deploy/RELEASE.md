@@ -1,6 +1,6 @@
 # Release runbook — custom container images (ghcr.io/i40sys)
 
-Source of truth for conventions: **[decision-021](../backlog/decisions/decision-021%20-%20Container-image-CI-CD-and-ghcr.io-i40sys-conventions.md)**.
+Source of truth for conventions: **[decision-021](../backlog/decisions/decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions.md)**.
 Milestone: `TASK-067` (Container image CI/CD). Resolves `TASK-062.03`.
 
 The platform builds **three** custom images; everything else is upstream

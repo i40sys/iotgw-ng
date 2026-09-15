@@ -335,8 +335,8 @@ No automated test suite is currently configured in package.json. Consider adding
 
 ## References
 
-- [decision-003](../backlog/decisions/decision-003%20-%20Database-and-Infrastructure-Supabase-PostgreSQL-Choice.md) — why Supabase was chosen
-- [decision-020](../backlog/decisions/decision-020%20-%20Namespace-per-subproject-topology.md) — namespace-per-subproject split (`supabase-app` / `supabase-db`; `iotgw` is the cluster, not a namespace)
-- [doc-010](../backlog/docs/doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md) — migration + webhook management (devices/networks triggers)
-- [doc-016](../backlog/docs/doc-016%20-%20Kestra-Notification-Automation-Pattern.md) — the DB-trigger → netmaker-call → Netmaker REST provisioning pattern
+- [decision-003](../backlog/decisions/decision-003-database-and-infrastructure-supabase-postgresql-choice.md) — why Supabase was chosen
+- [decision-020](../backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md) — namespace-per-subproject split (`supabase-app` / `supabase-db`; `iotgw` is the cluster, not a namespace)
+- [doc-010](../backlog/docs/doc-010-database-migration-and-webhook-management-guide.md) — migration + webhook management (devices/networks triggers)
+- [doc-016](../backlog/docs/doc-016-database-change-provisioning-automation-pattern.md) — the DB-trigger → netmaker-call → Netmaker REST provisioning pattern
 - [volumes/functions/CLAUDE.md](volumes/functions/CLAUDE.md) — edge function map

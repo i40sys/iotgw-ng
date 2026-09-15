@@ -77,7 +77,7 @@ kubectl -n headlamp create token headlamp
 ```
 
 Full deploy + SSO + token runbook:
-[`backlog/docs/doc-017`](../backlog/docs/doc-017%20-%20Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md).
+[`backlog/docs/doc-017`](../backlog/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access.md).
 
 ## Postgres tier: StackGres (decision-018)
 
@@ -85,7 +85,7 @@ The Supabase Postgres tier is a **StackGres `SGCluster` named `supabase-db`**
 (`base/supabase-db-stackgres/`, PG 15.14) in **both kind-dev and prod** — it
 supersedes the hand-authored `supabase-db` StatefulSet (which is retained in
 `base/supabase-db/` as the documented NO-GO rollback only, not deployed). See
-[`decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md`](../backlog/decisions/decision-018%20-%20Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md).
+[`decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md`](../backlog/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md).
 
 - **Topology.** `dev+prod` parity on the same SGCluster definition: `instances: 1`
   in kind (set `>=2` in prod for Patroni HA/failover). The cluster is named

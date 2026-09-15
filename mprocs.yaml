@@ -1,0 +1,26 @@
+# iotgw-ng dev stack — launched by `just dev` (scripts/dev-session.sh) inside a
+# tmux session. mprocs reads this from the repo root, so the backlog proc runs
+# against the monorepo-root backlog/ store. cwd is relative to <CONFIG_DIR>
+# (this file's directory = repo root).
+#
+# All dev ports are clustered around 52173 so the stack coexists with the other
+# projects in the Orca runtime (5173 = Keycloak, 6430 = pki-manager backlog):
+#   52173 = frontend (vite, pinned in apps/app/vite.config.ts)
+#   52174 = backend  (PORT in the SOPS-rendered .env; server.ts honors it)
+#   52175 = backlog browser
+# These must match scripts/dev-session.sh (which reclaims exactly these ports).
+procs:
+  app:
+    cwd: <CONFIG_DIR>/iotgw-ui/apps/app
+    shell: pnpm dev
+    autostart: true
+
+  backend:
+    cwd: <CONFIG_DIR>/iotgw-ui/apps/backend
+    shell: pnpm dev
+    autostart: true
+
+  backlog:
+    cwd: <CONFIG_DIR>
+    shell: backlog browser --no-open -p 52175
+    autostart: true

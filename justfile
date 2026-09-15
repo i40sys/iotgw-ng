@@ -2,7 +2,8 @@
 # One entry point for the whole monorepo. Run `just` to list recipes.
 # The platform runs on Kubernetes (kind locally) — `just bootstrap` brings the
 # whole stack up on kind. See deploy/README.md and decision-015/017/018.
-# iotgw-ui dev servers run via pnpm (`just dev`).
+# The dev stack (iotgw-ui app + backend + backlog) runs via `just dev`
+# (tmux + mprocs, attach-or-create — scripts/dev-session.sh).
 
 set shell := ["bash", "-uc"]
 
@@ -28,9 +29,12 @@ secrets-edit name:
 
 # ─────────────────────────── iotgw-ui (pnpm) ───────────────────────────
 
-# Run the app (frontend + backend) in dev
-dev:
-    cd iotgw-ui && pnpm dev
+# Run the dev stack (iotgw-ui app + backend + backlog) in tmux+mprocs.
+# Attach-or-create: reuses a running stack, never duplicates it, and reclaims
+# only THIS repo's orphaned ports (52173/52174/52175). Also: `just dev status`,
+# `just dev stop`, `just dev up --force` (kill our orphans without prompting).
+dev *args:
+    scripts/dev-session.sh {{args}}
 
 # Type-check + lint + test the app
 ui-check:
