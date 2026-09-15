@@ -6,7 +6,7 @@ title: >-
 status: In Progress
 assignee: []
 created_date: '2026-09-14 05:30'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-15 17:14'
 labels:
   - ssh-ca
   - ansible
@@ -52,20 +52,5 @@ Lands in `owrt_iot_gw/playbooks/` and in the Kestra flow source `github.com/i40s
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**Written and unit-verified; not yet run against a gateway.**
-
-**What changed:**
-- `owrt_iot_gw/playbooks/tasks/ssh_ca.yaml` (mirrored to the Kestra flow source, commit `5cbde41` in `~/iotgw-kestra`, **not pushed**).
-- `owrt_iot_gw/playbooks/files/ssh_ca_enroll.py` — the controller-side client for the `ssh-ca` edge function.
-- Imported under `tags: ssh_ca` in `i11_install_iotgw.yaml` (after chrony — a certificate is time-bound) and in `i11_provisioning_iotgw.yaml`.
-- `Flow.yaml` passes `SUPABASE_ANON_KEY` via an optional `secretKeyRef` (Kong credential only; the PKI fleet token never reaches a runner pod).
-- `deployments.ts` packs `iotgw_ssh_ca_base_url`, `device_id`, `device_uuid`, `network_id`, `domain_id`, `totp_counter` into the flow's `json_data`.
-
-**Guard rails, in the order that matters:** host key generated on the gateway and never copied off → `sshd -t` before anything is applied → `reload`, never `restart` → assert from `sshd -T` that certificate auth **and** the break-glass `authorizedkeysfile` are both live → on any failure, remove both drop-ins, reload back onto the previous config, and fail loudly.
-
-**AC#3 (idempotent):** the edge function's `Idempotency-Key` is live-verified — a second enroll with the same key returned serial 1 again, so a re-run issues no new certificate. The host key is `creates:`-guarded and every file task is declarative.
-
-**AC#4 (no Include line to begin with):** handled by a `lineinfile` with `insertbefore: BOF` + `validate: sshd -t -f %s`. OpenWRT ships upstream's `sshd_config`, which has **no** `Include` (unlike Debian), so without this the drop-ins would be inert. Verified as a construct, not on OpenWRT.
-
-**Still to verify (AC#1, AC#2):** a real run against a gateway. The full bundle→sshd→login chain was proven against a real `sshd` in task-086, but not through this task file.
+**Playbook AUTHORED + pushed 2026-09-15** (i40sys/iotgw-kestra ed11155, tasks/ssh_ca.yaml). Implements the full flow: ecdsa-P256 host key -> enroll via the ssh-ca edge fn over the device TOTP (AES-encrypted on the controller) -> install host cert + User CA + auth_principals + empty RevokedKeys + 50-/60- drop-ins -> sshd -t gate -> reload (never restart) -> ROLLBACK block (remove drop-ins + fail) -> assert cert auth AND break-glass live. YAML syntax-checked. Gateway-side + fail-safe PROVEN manually on real OpenWRT (task-097). AC#1/#2 (run via the actual task through the edge fn + malformed-drop-in via the task) will tick when the edge-fn path runs end-to-end (needs a device row + live ssh-ca fn + task-105 anon secret) — that is the option-(2) work.
 <!-- SECTION:NOTES:END -->

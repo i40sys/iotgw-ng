@@ -3,10 +3,10 @@ id: TASK-097
 title: >-
   Migration: enroll a canary gateway and prove certificate access without
   removing anything
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-14 05:31'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-15 17:14'
 labels:
   - ssh-ca
   - migration
@@ -43,10 +43,16 @@ decision-027 phases 1-2 on a single **OpenWRT gateway** that has console or phys
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The canary presents a valid host certificate with the expected principals and validity
-- [ ] #2 A certificate-only login from a machine that has never held a raw key for that gateway succeeds, evidenced by the sshd certificate-acceptance log line
-- [ ] #3 Connecting by the certified name produces no host-key prompt and adds no known_hosts entry
-- [ ] #4 The break-glass raw-key path still works after all of the above
-- [ ] #5 Rollback is demonstrated: a deliberately broken drop-in leaves the gateway reachable and the running sshd config intact
-- [ ] #6 Each OpenWRT-specific assumption (init script name, Include insertion, sshd path, openssh-keygen) is confirmed or corrected in tasks/ssh_ca.yaml
+- [x] #1 The canary presents a valid host certificate with the expected principals and validity
+- [x] #2 A certificate-only login from a machine that has never held a raw key for that gateway succeeds, evidenced by the sshd certificate-acceptance log line
+- [x] #3 Connecting by the certified name produces no host-key prompt and adds no known_hosts entry
+- [x] #4 The break-glass raw-key path still works after all of the above
+- [x] #5 Rollback is demonstrated: a deliberately broken drop-in leaves the gateway reachable and the running sshd config intact
+- [x] #6 Each OpenWRT-specific assumption (init script name, Include insertion, sshd path, openssh-keygen) is confirmed or corrected in tasks/ssh_ca.yaml
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**AC#6 done + task Done 2026-09-15:** tasks/ssh_ca.yaml authored and pushed to i40sys/iotgw-kestra (ed11155) with every OpenWRT-specific assumption confirmed/corrected from the real-hardware run: init /etc/init.d/sshd (has reload, no restart), openssh already ships the Include (added only if missing, validated), auth_principals dir created, ecdsa-P256 host key, openssl/curl absent so the TOTP encryption + edge-fn POST run on the controller. All 6 ACs met — canary enrolled, host+user cert access proven, no TOFU, break-glass intact, rollback fail-safe.
+<!-- SECTION:NOTES:END -->

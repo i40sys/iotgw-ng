@@ -6,7 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-09-14 05:30'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-15 17:15'
 labels:
   - ssh-ca
   - ansible
@@ -34,5 +34,11 @@ files/enable_ansible.sh builds a freshly installed gateway's /root/.ssh/authoriz
 <!-- AC:BEGIN -->
 - [ ] #1 A freshly installed gateway has no key material that was fetched from a third-party host at install time
 - [ ] #2 A freshly installed gateway accepts an iotgw-admin certificate on first boot, before any provisioning run
-- [ ] #3 The vendored break-glass set is attributed — every key has a known owner
+- [x] #3 The vendored break-glass set is attributed — every key has a known owner
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Fix authored + pushed 2026-09-15** (i40sys/iotgw-kestra ed11155). files/enable_ansible.sh no longer does `wget github.com/example-org.keys` / `links.example.com/ssh-pub-key` over plain HTTP; it installs a vendored files/authorized_keys (shipped to /tmp by d01_install_owrt.yml) into the target rootfs. AC#3 done: the vendored set is the two ATTRIBUTED break-glass keys — SHA256:kxhsZf7… (oriol@mini6) and SHA256:pi/rPhD… (root@iot-gw). AC#1 (fresh install has no third-party-fetched key material) and AC#2 (accepts an iotgw-admin cert on first boot) need verification on a gateway freshly installed WITH this fix — deferred (gateway reboot in progress; will re-run install + verify when the box is available).
+<!-- SECTION:NOTES:END -->
