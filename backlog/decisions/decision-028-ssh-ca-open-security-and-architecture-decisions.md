@@ -73,7 +73,7 @@ renewal would have been required away from a workstation.
 
 ## §2 — Principal naming strategy
 
-**Status: DECIDED, with one UNRESOLVED sub-point.**
+**Status: DECIDED.**
 
 **DECIDED — user principals:** exactly two per zone, `iotgw-admin` and
 `iotgw-ops`, both mapped to `root` in `/etc/ssh/auth_principals/root`.
@@ -103,6 +103,18 @@ for the new occupant's address. **Recommendation:** include the IP, and make
 is always preceded by a revocation. **Evidence needed:** confirm Netmaker's IP
 reuse behaviour for deleted extclients.
 
+### Decision (2026-09-15, task-102)
+
+- **The WireGuard IP is included as a host-certificate principal.** Operators
+  work by `ssh root@10.121.x.y` today; dropping the IP would break that flow for
+  no proportional gain.
+- **Compensating control (mandatory):** `offboard-host` on device delete is
+  **required and monitored** (§10), so a recycled IP is always preceded by a
+  revocation of the previous occupant's cert. The IP-reuse risk is accepted only
+  under that guarantee.
+- **Follow-up (not blocking):** confirm Netmaker's IP-reuse behaviour for deleted
+  extclients, to size how quickly a recycled IP can reappear.
+
 ---
 
 ## §3 — CA separation and scope
@@ -128,7 +140,7 @@ cannot mint user certificates.
 
 ## §4 — CA rotation
 
-**Status: UNRESOLVED (mechanism is clear; cadence and trigger are not).**
+**Status: DECIDED (task-103) — event-driven, ≥120-day overlap.**
 
 `pki-manager` supports one `active` + one `rotating` CA per `(zone, type)`, and
 publishes both anchors during the overlap, so rotation is mechanically
@@ -144,6 +156,19 @@ proving every device re-issued before the old CA is retired. **Evidence
 needed:** confirm `pki-manager` publishes `rotating` anchors on the endpoints
 the `ssh-ca` edge function reads (`/api/v1/ssh/trust-anchors`), not only on the
 public routes.
+
+### Decision (2026-09-15, task-103)
+
+- **No scheduled rotation.** Rotate only on compromise or a documented policy
+  event — periodic rotation would churn the fleet for no security gain and risks
+  stranding offline gateways whose overlap window lapsed.
+- **Overlap ≥ 120 days**, comfortably exceeding the 90-day host-cert TTL (§1), so
+  every gateway re-enrolls/renews onto the new anchors before the old CA retires.
+- **Retirement gate:** a fleet report must prove every device re-issued under the
+  new CA before the old anchor is removed.
+- **Follow-up (not blocking):** confirm `pki-manager` serves `rotating` anchors
+  on `/api/v1/ssh/trust-anchors` (the endpoint the `ssh-ca` edge function reads),
+  not only the public routes.
 
 ---
 
@@ -258,7 +283,7 @@ production gateway access.
 
 ## §6 — Revocation and KRL behaviour
 
-**Status: DECIDED (strategy), UNRESOLVED (transport).**
+**Status: DECIDED (strategy + transport).**
 
 **DECIDED:** three tiers, in order of reliance —
 1. **Short TTLs** (§1) are the primary mechanism.
@@ -284,11 +309,23 @@ start if `RevokedKeys` points at a missing file — the empty-file step in
 static `krl-client` binary run on OpenWRT 23.05 x86-64 (musl vs glibc), and what
 is its footprint on a gateway's flash?
 
+### Decision (2026-09-15, task-072)
+
+- **KRL transport = `krl-client` + ECIES** (brokered or direct). Encrypted
+  per-host KRL, Host-CA-signed, anti-rollback, verified before install — no fleet
+  token ever lands on the device, and per-host deny intel is not leaked
+  unauthenticated (which the public bare-KRL option would do). This is why
+  `decision-024` mandates **ecdsa-P256** host keys.
+- **Blocking validation (task-072):** confirm the static `krl-client` binary runs
+  on OpenWRT 23.05 x86-64 (musl vs glibc) and measure its flash footprint. If it
+  cannot run on the target, fall back to the edge-function **broker** of opaque
+  ECIES bytes (still device-decrypted); the public bare KRL is the last resort.
+
 ---
 
 ## §7 — Fate of `devices.ssh_key_id` (the per-device Cosmian KMS key)
 
-**Status: UNRESOLVED.**
+**Status: DECIDED (task-073) — retire inbound (A) + repurpose as outbound (B).**
 
 `decision-010` mints an Ed25519 key per device in Cosmian KMS; `task-069` makes
 the Kestra runner fetch it as `keys/id_rsa`. But **nothing ever installs its
@@ -313,6 +350,19 @@ credential to manage per device.
 **Cannot be decided without:** an inventory of what actually consumes
 `/root/.ssh/id_rsa` on a live gateway (12 task files reference it as a docker
 `key_file`, but whether those connections are real or vestigial is unverified).
+
+### Decision (2026-09-15, task-073)
+
+- **A + B.** The Kestra runner moves to an `iotgw-ops` **user certificate** (A),
+  so the per-device Cosmian KMS key is no longer an inbound client credential;
+  and that KMS key is **repurposed as the gateway's outbound identity** (B),
+  replacing the shared `credentials/id_rsa` for `autossh`/backup connections.
+  Together these finally remove R1 (the fleet-wide shared private key).
+- **Option C rejected** — a second per-device inbound credential to manage, for
+  no gain over the certificate path.
+- **Blocking prerequisite (task-073):** inventory what actually consumes
+  `/root/.ssh/id_rsa` on a live gateway before cutting over B, so no real
+  outbound connection is broken; `decision-010` is superseded for the inbound use.
 
 ---
 
@@ -340,7 +390,7 @@ problem into a security one.
 
 ## §9 — Authentication and authorisation between `iotgw-ng` and `pki-manager`
 
-**Status: DECIDED (split), UNRESOLVED (service-account scoping).**
+**Status: DECIDED (split + scoping — global admin accepted as documented interim).**
 
 **DECIDED — two credentials, least-privilege split:**
 
@@ -364,6 +414,23 @@ tenants of `pki.joor.net`. That is more authority than this integration needs.
 the blast radius is the `iotgw-ng` fleet only. **Evidence needed:** who else
 depends on `pki.joor.net` today, and is a second instance acceptable
 operationally?
+
+### Decision (2026-09-15, task-074)
+
+- **Interim: accept the backend's global-admin OIDC authority over
+  `pki.joor.net`, documented as a known exposure.** `pki-manager` has no per-zone
+  OIDC RBAC yet, so scoping it now would block the milestone on an upstream
+  feature.
+- **Accepted residual:** a compromise of the `iotgw-ui` backend's service account
+  can act as admin across *all* tenants of `pki.joor.net`, not just the
+  `iotgw-ng` fleet. Contained by protecting that credential as a high-value
+  secret and by `pki-manager`'s audit log.
+- **Exit path (either resolves it):** (a) `pki-manager` adds zone-scoped roles
+  (`ssh-admin:<zone>`), or (b) `iotgw-ng` runs its own `pki-manager` instance.
+  Revisit before onboarding a tenant to `pki.joor.net` whose compromise via this
+  path would be unacceptable.
+- **Follow-up:** record who else depends on `pki.joor.net` today, to size the
+  real blast radius of the interim.
 
 ---
 
@@ -497,17 +564,17 @@ make the address binding available).
 | 1 | Host cert validity (90 d / renew at 60 d) | **DECIDED** |
 | 1 | User cert validity | **DECIDED** (task-070) — 24 h admin (+offline path) / 2 h ops, backend-minted |
 | 2 | User + host principal naming | **DECIDED** |
-| 2 | IP address as a host principal | **UNRESOLVED** — rec. include + mandatory offboard |
+| 2 | IP address as a host principal | **DECIDED** (task-102) — include IP; mandatory monitored offboard on delete |
 | 3 | CA separation (zone per domain, split user/host) | **DECIDED** |
-| 4 | CA rotation cadence | **UNRESOLVED** — rec. event-driven, ≥120 d overlap |
+| 4 | CA rotation cadence | **DECIDED** (task-103) — event-driven only, ≥120 d overlap, re-issue report gate |
 | 5 | Live-image host identity / bootstrap trust | **DECIDED** (task-071) — self-enroll (C) bound to device_id+OTP; TOFU accepted until task-095 |
 | 5 | Live-image User CA scope | **DECIDED** (task-071) — trust every zone's User CA; isolated bench; revisit if used off-prem |
 | 6 | Revocation strategy (TTL → block → offboard) | **DECIDED** |
-| 6 | KRL transport | **UNRESOLVED** — rec. `krl-client` + ECIES |
-| 7 | Fate of `devices.ssh_key_id` | **UNRESOLVED** — rec. retire inbound, repurpose outbound |
+| 6 | KRL transport | **DECIDED** (task-072) — `krl-client` + ECIES; validate on OpenWRT, broker fallback |
+| 7 | Fate of `devices.ssh_key_id` | **DECIDED** (task-073) — retire inbound (A) + repurpose as outbound (B) |
 | 8 | Offline gateways / expiry | **DECIDED** |
 | 9 | iotgw-ng ↔ pki-manager credential split | **DECIDED** |
-| 9 | OIDC service-account scoping | **UNRESOLVED** — rec. zone-scoped RBAC or own instance |
+| 9 | OIDC service-account scoping | **DECIDED** (task-074) — accept global admin as documented interim; exit via zone RBAC or own instance |
 | 10 | Host registration + offboard ownership | **DECIDED** (terminal-offboard caveat) |
 | 11 | Break-glass emergency access | **DECIDED** |
 | 12 | Gateway identity binding at enrollment | **DECIDED** (task-075) — proof-of-continuity (one-shot first enroll + existing-host-key re-enroll); address binding dropped (NAT) |

@@ -1,10 +1,10 @@
 ---
 id: TASK-074
 title: 'Resolve decision-028 §9: scope of the pki-manager credential iotgw-ng holds'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-09-14 05:28'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-15 05:06'
 labels:
   - ssh-ca
   - decision
@@ -34,7 +34,13 @@ Note the asymmetry that already exists and is fine: the `ssh-ca` edge function �
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 The full set of pki.joor.net tenants is enumerated across both the SSH and X.509 surfaces, so the blast radius is a known quantity
-- [ ] #2 decision-028 §9 records the chosen option and its status flips to DECIDED
-- [ ] #3 If a shared instance is kept, the backend credential's scope is written down along with what it can reach that it should not
+- [x] #2 decision-028 §9 records the chosen option and its status flips to DECIDED
+- [x] #3 If a shared instance is kept, the backend credential's scope is written down along with what it can reach that it should not
 - [ ] #4 The credential is stored SOPS-encrypted in secrets/ and just secrets-check passes
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Decision 2026-09-15 (decision-028 §9):** accept the backend service accounts GLOBAL admin over pki.joor.net as a documented interim (no per-zone OIDC RBAC upstream yet). Residual written down (admin across all tenants). §9 → DECIDED. Exit path: zone-scoped roles or own pki-manager instance; revisit before onboarding a sensitive tenant. Open: AC#1 enumerate pki.joor.net tenants; AC#4 SOPS-store the credential + just secrets-check.
+<!-- SECTION:NOTES:END -->

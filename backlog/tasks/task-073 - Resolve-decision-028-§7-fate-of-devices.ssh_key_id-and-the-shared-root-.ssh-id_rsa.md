@@ -3,10 +3,10 @@ id: TASK-073
 title: >-
   Resolve decision-028 §7: fate of devices.ssh_key_id and the shared
   /root/.ssh/id_rsa
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-09-14 05:28'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-15 05:06'
 labels:
   - ssh-ca
   - decision
@@ -40,7 +40,13 @@ Two loose ends that have to be resolved together, because the answer to one chan
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 Each of the twelve key_file references is classified as a live remote docker connection or inert config, by inspection on a real gateway
-- [ ] #2 decision-028 §7 records the chosen option for the KMS key and its status flips to DECIDED
+- [x] #2 decision-028 §7 records the chosen option for the KMS key and its status flips to DECIDED
 - [ ] #3 decision-010 is amended or explicitly superseded for the parts the choice invalidates
 - [ ] #4 The decision is applied to both playbook copies, preserving their intentional divergence
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Decision 2026-09-15 (decision-028 §7):** A+B — runner moves to iotgw-ops user cert (A); KMS per-device key repurposed as the gateway OUTBOUND identity replacing shared credentials/id_rsa (B); removes R1. Option C rejected. §7 → DECIDED. Open: AC#1 inventory the 12 key_file consumers on a real gateway; AC#3 amend/supersede decision-010; AC#4 apply to both playbook copies.
+<!-- SECTION:NOTES:END -->

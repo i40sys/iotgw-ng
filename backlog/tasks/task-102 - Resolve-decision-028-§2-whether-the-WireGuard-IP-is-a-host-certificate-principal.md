@@ -3,10 +3,10 @@ id: TASK-102
 title: >-
   Resolve decision-028 §2: whether the WireGuard IP is a host-certificate
   principal
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-09-14 07:08'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-15 05:06'
 labels:
   - ssh-ca
   - decision
@@ -33,7 +33,13 @@ decision-028 §2 leaves this UNRESOLVED and no task covered it. The `ssh-ca` edg
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 Netmaker's IP reuse behaviour for deleted extclients is established by observation, not assumption
-- [ ] #2 decision-028 §2 records whether the IP stays a principal and its status flips to DECIDED
+- [x] #2 decision-028 §2 records whether the IP stays a principal and its status flips to DECIDED
 - [ ] #3 If the IP stays, offboard-on-delete is mandatory and there is a check that catches a device deleted without one
 - [ ] #4 The ssh-ca edge function matches the decision
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Decision 2026-09-15 (decision-028 §2):** the WireGuard IP STAYS a host-cert principal; mitigated by mandatory, monitored offboard-on-delete (§10). §2 sub-point → DECIDED. Open: AC#1 observe Netmaker IP-reuse for deleted extclients; AC#3 a check that catches a device deleted without offboard; AC#4 ssh-ca edge fn matches.
+<!-- SECTION:NOTES:END -->

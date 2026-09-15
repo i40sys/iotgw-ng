@@ -3,10 +3,10 @@ id: TASK-072
 title: >-
   Resolve decision-028 §6: KRL transport for gateways (validate krl-client on
   OpenWRT)
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-09-14 05:28'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-15 05:06'
 labels:
   - ssh-ca
   - decision
@@ -40,7 +40,13 @@ decision-028 §6 leaves the KRL delivery channel open. This is the difference be
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 krl-client is shown to run or not run on OpenWRT 23.05 x86-64, with the binary size and the gateway's free flash recorded
-- [ ] #2 decision-028 §6 names the chosen transport and its status flips to DECIDED
+- [x] #2 decision-028 §6 names the chosen transport and its status flips to DECIDED
 - [ ] #3 A revocation is observed to actually deny a login on a gateway, and the un-revocation to restore it
 - [ ] #4 If the public-KRL path is chosen, the SSH_HOST_KRL_PUBLIC exposure is explicitly accepted in writing
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Decision 2026-09-15 (decision-028 §6):** KRL transport = krl-client + ECIES (brokered or direct); ecdsa-P256 host keys mandated. §6 → DECIDED. Open (code/evidence): AC#1 run krl-client on OpenWRT 23.05 x86-64 + footprint; AC#3 observe a real revoke/un-revoke; broker fallback if the binary cannot run.
+<!-- SECTION:NOTES:END -->
