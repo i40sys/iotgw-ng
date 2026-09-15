@@ -45,7 +45,7 @@ server.register(ws);
 
 void (async () => {
   try {
-    await server.listen({ port: 4444, host: "0.0.0.0" });
+    await server.listen({ port: Number(process.env.PORT) || 4444, host: "0.0.0.0" });
   } catch (err) {
     server.log.error(err);
     process.exit(1);
