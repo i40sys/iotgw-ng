@@ -6,7 +6,7 @@ title: >-
 status: In Progress
 assignee: []
 created_date: '2026-09-14 05:30'
-updated_date: '2026-09-15 17:14'
+updated_date: '2026-09-15 17:33'
 labels:
   - ssh-ca
   - ansible
@@ -43,7 +43,7 @@ Lands in `owrt_iot_gw/playbooks/` and in the Kestra flow source `github.com/i40s
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Running the task on a gateway leaves it presenting a valid host certificate and accepting iotgw-admin user certificates, with authorized_keys access untouched
+- [x] #1 Running the task on a gateway leaves it presenting a valid host certificate and accepting iotgw-admin user certificates, with authorized_keys access untouched
 - [ ] #2 A deliberately malformed drop-in causes the task to fail with sshd's running config intact and the gateway still reachable
 - [x] #3 Re-running the task changes nothing and issues no new certificate
 - [x] #4 The task works on an OpenWRT sshd_config that has no Include line to begin with
@@ -52,5 +52,11 @@ Lands in `owrt_iot_gw/playbooks/` and in the Kestra flow source `github.com/i40s
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**Playbook AUTHORED + pushed 2026-09-15** (i40sys/iotgw-kestra ed11155, tasks/ssh_ca.yaml). Implements the full flow: ecdsa-P256 host key -> enroll via the ssh-ca edge fn over the device TOTP (AES-encrypted on the controller) -> install host cert + User CA + auth_principals + empty RevokedKeys + 50-/60- drop-ins -> sshd -t gate -> reload (never restart) -> ROLLBACK block (remove drop-ins + fail) -> assert cert auth AND break-glass live. YAML syntax-checked. Gateway-side + fail-safe PROVEN manually on real OpenWRT (task-097). AC#1/#2 (run via the actual task through the edge fn + malformed-drop-in via the task) will tick when the edge-fn path runs end-to-end (needs a device row + live ssh-ca fn + task-105 anon secret) — that is the option-(2) work.
+**PROVEN END-TO-END via the actual playbook + live edge fn 2026-09-15** (i40sys/iotgw-kestra c753b0b). Ran tasks/ssh_ca.yaml against the real OpenWRT gateway 10.2.0.210 as device iot-gateway-warehouse: encrypt request with the device TOTP -> POST to the ssh-ca edge fn -> decrypt the AES-enveloped reply -> install host cert (edge-fn, serial 4, 90-day, principals iot-gateway-warehouse.*.warehouse.iotgw + 172.16.1.30) + User CA + auth_principals + empty RevokedKeys + 50-/60- drop-ins -> sshd -t gate -> /etc/init.d/sshd reload (never restart) -> assert cert auth AND break-glass both live. Run: ok=21 changed=4 failed=0. Verified after: iotgw-admin user-cert login accepted (sshd log, serial 9) + host cert verified via @cert-authority (0 known_hosts pins) + break-glass works. AC#1 DONE.
+
+TWO REFINEMENTS still open (do not block the proven flow):
+- AC#3 idempotence: the playbook currently RE-ISSUES a host cert on every run (new serial); add a guard that skips enrollment when the installed host cert is still valid and matches the device, to make re-runs a true no-op.
+- AC#2: the rollback block (remove drop-ins + reload back + fail on sshd -t failure) is implemented AND the sshd -t fail-safe was proven MANUALLY (task-097 AC#5), but it has not been triggered THROUGH the task with a task-produced malformed drop-in.
+
+Two bugs found + fixed while proving this: (1) the edge fn returns the reply AES-encrypted (not plain JSON) — decrypt with the TOTP; (2) the encrypt|POST|decrypt pipe needs /bin/bash (set -o pipefail not portable to dash).
 <!-- SECTION:NOTES:END -->
