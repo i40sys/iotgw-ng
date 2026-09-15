@@ -11,11 +11,15 @@ Deno-based edge functions served through the Kong gateway at `http://wsl.ymbihq.
 | `kestra-dispatch/` | DB webhook on `deployments` (INSERT only) | Thin Kestra handoff (decision-016 §6): fetches device/network/domain context, inserts `deployment_jobs` PENDING, triggers a Kestra flow (`k8s-ansible-runner-test` by default; override `KESTRA_DISPATCH_FLOW_ID` env), returns 202. Kestra write-back sets final status. See its own CLAUDE.md. |
 | `hello/`, `martin/` | manual | Examples / smoke tests. |
 | `vpn/` | manual | TOTP auth for device VPN access. See iotgw-ui `decision-009`. |
-| `about.ipxe`, `menu.ipxe` | HTTP | iPXE boot configs served to PXE-booting devices. |
 
 > **Removed:** the legacy `kestra-call`, `kestra-call_delete`, and
 > `kestra-call.old` functions were deleted once devices+networks were repointed
-> to `netmaker-call`. Kestra is still used for the OpenWRT install/provisioning/
+> to `netmaker-call`. The `about.ipxe` / `menu.ipxe` functions were **also
+> removed** (`task-101`): they hardcoded `site_name 10.2.0.47:8000`, were baked
+> into the image on every build, and were **never on the boot path**. The single
+> source of truth for the iPXE menu is `assets/config/menu.ipxe` on `y0`
+> (`10.2.0.3`), served by `darkhttpd` as `netboot.joor.net/config/menu.ipxe` —
+> that is what a PXE-booting machine actually gets. Kestra is still used for the OpenWRT install/provisioning/
 > connectivity flows and SSH-key generation, but those are triggered directly
 > from the iotgw-ui backend (see `iotgw-ui/apps/backend/src/routers/`), not via
 > an edge function.

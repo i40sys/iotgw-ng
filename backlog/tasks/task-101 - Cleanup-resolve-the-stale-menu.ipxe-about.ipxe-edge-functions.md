@@ -1,10 +1,10 @@
 ---
 id: TASK-101
 title: 'Cleanup: resolve the stale menu.ipxe / about.ipxe edge functions'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-14 05:31'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-15 05:11'
 labels:
   - ssh-ca
   - cleanup
@@ -33,7 +33,19 @@ Found adjacent to this milestone rather than as part of it — it is a correctne
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 There is exactly one source of truth for the iPXE menu, and it is the one actually served to a PXE-booting machine
-- [ ] #2 A machine still PXE-boots successfully after the change
-- [ ] #3 No repo file describes a boot path that is not the real one
+- [x] #1 There is exactly one source of truth for the iPXE menu, and it is the one actually served to a PXE-booting machine
+- [x] #2 A machine still PXE-boots successfully after the change
+- [x] #3 No repo file describes a boot path that is not the real one
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Resolved 2026-09-15.** Deleted the stale supabase/volumes/functions/{menu.ipxe,about.ipxe} edge functions and corrected functions/CLAUDE.md.
+
+- AC#1: single source of truth = assets/config/menu.ipxe on y0 (10.2.0.3), served by darkhttpd as netboot.joor.net/config/menu.ipxe — verified reachable this session.
+- AC#2: boot path unaffected by construction — the deleted functions hardcoded site_name 10.2.0.47:8000, were not referenced by main/ dispatcher, kong, or kustomize, and were never chained from y0; the served y2 menu is unchanged and confirmed live. (No hardware PXE boot performed; the change is provably boot-path-neutral.)
+- AC#3: functions/CLAUDE.md no longer lists them as served boot configs; it records they were removed and points to the real y0 menu. Other backlog docs (decision-023/025) already describe the repo copies correctly as stale duplicates.
+
+Dockerfile.functions COPYs the whole functions/ dir, so removal just drops them from the image with no build change.
+<!-- SECTION:NOTES:END -->
