@@ -79,6 +79,26 @@ spec:
                 secretKeyRef:
                   name: supabase-env
                   key: KESTRA_PASSWORD
+            # --- SSH CA (decision-024 / decision-026) ---------------------
+            # The `ssh-ca` function brokers gateway enrollment to pki-manager.
+            # PKI_FLEET_TOKENS is a JSON map of zone slug -> `pkimg_…` token,
+            # each scoped to that zone's HOST CA with op-set
+            # sign-host,register-host-pubkey,get-principals — it cannot create
+            # CAs, issue user certificates, or offboard hosts (decision-028 §9).
+            # `optional: true` so a cluster without the keys still starts; the
+            # function then answers 503 instead of the pod CrashLooping.
+            - name: PKI_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: PKI_BASE_URL
+                  optional: true
+            - name: PKI_FLEET_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: PKI_FLEET_TOKENS
+                  optional: true
             - name: VERIFY_JWT
               value: "false"
           resources:

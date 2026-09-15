@@ -13,6 +13,15 @@ const KESTRA_API_URL = (
   process.env.KESTRA_API_URL ?? "http://kestra.kestra.svc.cluster.local:8080"
 ).replace(/\/+$/, "");
 
+// Kong base URL, as seen from inside a Kestra Ansible runner pod. The runner
+// reaches the `ssh-ca` edge function through it to enroll a gateway
+// (decision-026 phase 3); it is NOT a PKI credential — the fleet token stays in
+// the edge function.
+const SUPABASE_GATEWAY_URL = (
+  process.env.SUPABASE_GATEWAY_URL ??
+  "http://kong.supabase-app.svc.cluster.local:8000"
+).replace(/\/+$/, "");
+
 // JSON schema matching the database Json type
 const jsonSchema: z.ZodType<import("@iotgw/supabase-contract").Json> = z.lazy(
   () =>
@@ -644,7 +653,9 @@ export const deploymentsRouter = {
         // Step 1: Fetch device record from database
         const { data: deviceData, error: deviceError } = await supabase
           .from("devices")
-          .select("id, name, description, ip_address, network_id, ssh_key_id")
+          .select(
+            "id, name, description, ip_address, network_id, ssh_key_id, totp_counter",
+          )
           .eq("id", input.device_id)
           .single();
 
@@ -727,12 +738,29 @@ export const deploymentsRouter = {
         // Add target_ip to the configuration for Kestra
         // This is only sent to Kestra and saved in deployment_jobs.configuration_json
         // It is NOT saved in the deployments table
+        // SSH CA enrollment inputs (decision-026 phase 3). The Ansible
+        // `ssh_ca` task derives the device TOTP from these identifiers and
+        // calls the `ssh-ca` edge function with the gateway's host PUBLIC key.
+        // They are identifiers, not secrets — the PKI fleet token lives in the
+        // edge function and never reaches the runner. `tasks/ssh_ca.yaml`
+        // no-ops if any of them is missing, so an older payload just skips
+        // enrollment instead of failing the deployment.
+        const sshCaVars = {
+          iotgw_ssh_ca_base_url: SUPABASE_GATEWAY_URL,
+          device_id: `${deviceData.name}@${networkData.id.slice(0, 8)}`,
+          device_uuid: deviceData.id,
+          network_id: networkData.id,
+          domain_id: domainData.id,
+          totp_counter: deviceData.totp_counter ?? 0,
+        };
+
         const configWithTargetIp =
           typeof configToUse === "object" && configToUse !== null
             ? {
                 ...configToUse,
                 target_ip: deviceIpAddress,
                 ssh_key_id: sshKeyId,
+                ...sshCaVars,
               }
             : configToUse;
 

@@ -18,6 +18,15 @@ export default defineConfig({
     },
   },
   server: {
+    // Fixed, IPv4-visible bind: Orca's Windows browser resolves localhost on
+    // Windows and WSL2 only forwards 0.0.0.0 binds, and strictPort keeps the
+    // port deterministic so scripts/dev-session.sh can detect our own orphans.
+    host: "0.0.0.0",
+    // 52173, not Vite's default 5173: in the Orca runtime 5173 is squatted by
+    // another service (Keycloak) we can't kill. A unique fixed port lets
+    // `just dev` always coexist. (The k8s NodePort 5173 is separate.)
+    port: 52173,
+    strictPort: true,
     allowedHosts: ["wsl.ymbihq.local"],
   },
   test: {
