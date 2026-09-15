@@ -60,6 +60,41 @@ Env: `ASSETS_DIR` (default `/opt/stacks/netbootxyz/assets`).
 ssh root@<machine> 'systemctl is-active ssh && sshd -t && echo SSHD_OK'
 ```
 
+## Baking in SSH CA trust — `task-095`
+
+`render-trust.sh` produces a reviewable *additions-only* overlay from the live
+PKI, which `rebuild.sh --sync-from` injects; `--harden` and `--drop-key-fp`
+apply the removals:
+
+```sh
+# 1) render the trust overlay (User CA of every zone, from pki.joor.net):
+scripts/live-image/render-trust.sh -o /tmp/ovl            # or DOMAIN_USER_CA_MAP=…
+
+# 2) apply + stage a boot-testable candidate on y0 (does NOT swap yet):
+ssh root@10.2.0.3 'bash -s' -- \
+  --sync-from /tmp/ovl --harden \
+  --drop-key-fp SHA256:VMJ3HrTXUAmqTcnUPmJS4sTusMTcOLT8t424geeKfwg \
+  --stage  < scripts/live-image/rebuild.sh
+# (copy /tmp/ovl to y0 first, or run render-trust.sh on y0)
+
+# 3) PXE-boot ONE machine from the …-candidate path and confirm:
+#      - a user cert for iotgw-admin is accepted   (AC#2 — sshd "Accepted certificate ID")
+#      - the named break-glass keys still work      (AC#3)
+#      - sshd -T differs from stock only in the intended keys (AC#5)
+# 4) only then: rebuild.sh --swap --yes
+```
+
+The overlay adds `etc/ssh/ssh-user-ca.pub` (0444), `etc/ssh/auth_principals/root`
+(`iotgw-admin`/`iotgw-ops`), an empty `etc/ssh/revoked_keys` (sshd won't start if
+`RevokedKeys` is missing), and the `50-`/`60-` sshd drop-ins (the `50-` restates
+`AuthorizedKeysFile` and sorts first so break-glass wins). `--harden` deletes the
+baked-in `root/.ssh/id_ed25519{,.pub}`; `--drop-key-fp` removes the unattributed
+break-glass key `SHA256:VMJ3Hr…` (`task-107`), leaving the two attributed keys.
+
+Trust scope is **every** zone's User CA (`decision-028` §5) — the overlay
+re-renders on CA rotation (`task-103`), so treat it as generated, not vendored
+(`.trust-overlay/` is git-ignored).
+
 ### Validated (2026-09-15)
 
 `verify` and `--stage` were run against the `…-80072992` tree on `y0`: the

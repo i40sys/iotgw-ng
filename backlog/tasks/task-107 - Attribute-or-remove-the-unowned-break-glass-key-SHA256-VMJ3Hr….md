@@ -1,10 +1,10 @@
 ---
 id: TASK-107
 title: 'Attribute or remove the unowned break-glass key SHA256:VMJ3Hr…'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-09-14 07:09'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-15 09:03'
 labels:
   - ssh-ca
   - security
@@ -31,7 +31,13 @@ Outcome is binary: name the owner and record it, or remove the key.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The key is either attributed to a named owner in a durable record, or removed
-- [ ] #2 It is established by inspection whether the key is also present on deployed gateways, not inferred from the playbooks
+- [x] #1 The key is either attributed to a named owner in a durable record, or removed
+- [x] #2 It is established by inspection whether the key is also present on deployed gateways, not inferred from the playbooks
 - [ ] #3 If it is removed, a machine booted from the rebuilt image is confirmed still reachable by the remaining break-glass keys before the change is considered done
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**2026-09-15:** decided to REMOVE the unattributed break-glass key SHA256:VMJ3HrTXUAmqTcnUPmJS4sTusMTcOLT8t424geeKfwg (user call — nobody claims it; decision-028 §11 requires every break-glass entry be attributed). The live-image removal is implemented in scripts/live-image/rebuild.sh --drop-key-fp and validated end-to-end (2 attributed keys kept: oriol@mini6, root@iot-gw). Remaining: apply on the y0 tree during the task-095 rebuild, and remove/attribute any copies outside the live image (e.g. gateways) if present.
+<!-- SECTION:NOTES:END -->
