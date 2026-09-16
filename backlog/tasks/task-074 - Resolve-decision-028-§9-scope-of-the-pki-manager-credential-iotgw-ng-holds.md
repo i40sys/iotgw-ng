@@ -4,7 +4,7 @@ title: 'Resolve decision-028 §9: scope of the pki-manager credential iotgw-ng h
 status: In Progress
 assignee: []
 created_date: '2026-09-14 05:28'
-updated_date: '2026-09-15 05:06'
+updated_date: '2026-09-16 16:54'
 labels:
   - ssh-ca
   - decision
@@ -36,11 +36,24 @@ Note the asymmetry that already exists and is fine: the `ssh-ca` edge function �
 - [ ] #1 The full set of pki.joor.net tenants is enumerated across both the SSH and X.509 surfaces, so the blast radius is a known quantity
 - [x] #2 decision-028 §9 records the chosen option and its status flips to DECIDED
 - [x] #3 If a shared instance is kept, the backend credential's scope is written down along with what it can reach that it should not
-- [ ] #4 The credential is stored SOPS-encrypted in secrets/ and just secrets-check passes
+- [x] #4 The credential is stored SOPS-encrypted in secrets/ and just secrets-check passes
 <!-- AC:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**Decision 2026-09-15 (decision-028 §9):** accept the backend service accounts GLOBAL admin over pki.joor.net as a documented interim (no per-zone OIDC RBAC upstream yet). Residual written down (admin across all tenants). §9 → DECIDED. Exit path: zone-scoped roles or own pki-manager instance; revisit before onboarding a sensitive tenant. Open: AC#1 enumerate pki.joor.net tenants; AC#4 SOPS-store the credential + just secrets-check.
+**Decision 2026-09-15 (decision-028 §9):** accept the backend service account GLOBAL admin over pki.joor.net as a documented interim (no per-zone OIDC RBAC upstream). §9 → DECIDED. Exit path: zone-scoped roles or own pki-manager instance.
+
+**AC#4 done 2026-09-16 — dedicated service account created + credential SOPS-stored.**
+
+**What (Keycloak, iam.joor.net, realm `pki-manager`, via the Admin REST API with the realm-master `admin`):**
+- Created confidential client **`iotgw-backend`** (`serviceAccountsEnabled=true`, standard/direct/implicit flows OFF) — so the backend uses `client_credentials`, not the human operator login.
+- Assigned the realm role **`admin`** to its service-account user (that is the exact role the working operator token carries: `realm_access.roles=['admin',…]`; pki-manager checks it).
+- Added an **audience protocol-mapper** (`oidc-audience-mapper`, `included.client.audience=pki-web`) to the client.
+
+**Why the audience mapper (the non-obvious part):** pki-manager validates the token's audience against its own client `pki-web` (config.json → `oidc.clientId=pki-web`). The operator token passes because its `azp=pki-web`; a `client_credentials` token has `azp=iotgw-backend`, so pki-manager returned `401 "Token not intended for this audience"` despite the correct `admin` role. The mapper makes the token carry `aud=["pki-web","account"]` → accepted. Verified: `client_credentials` token → **HTTP 200** on `/api/v1/ssh/zones`.
+
+**How stored:** `secrets/iotgw-ui-backend.enc.env` (SOPS+age) gained `PKI_BASE_URL`, `PKI_OIDC_TOKEN_URL`, `PKI_OIDC_CLIENT_ID`, `PKI_OIDC_CLIENT_SECRET`. `just secrets-check` passes (19 encrypted values, no cleartext leak). Bridged to k8s via `gen_pki_oidc_secret` (bootstrap.sh) → `pki-oidc` Secret. Commit c7e0b8e.
+
+**AC#1 still open:** a FULL enumeration of pki.joor.net tenants across BOTH the SSH and X.509 surfaces. SSH side observed today: zones `default` (CAs acme-users/acme-hosts) + `iotgw-lab`; X.509 side + cert-manager issuer not yet enumerated. AC#2/#3/#4 done.
 <!-- SECTION:NOTES:END -->
