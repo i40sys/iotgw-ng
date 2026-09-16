@@ -6,7 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-09-14 05:30'
-updated_date: '2026-09-16 08:00'
+updated_date: '2026-09-16 11:10'
 labels:
   - ssh-ca
   - kestra
@@ -69,4 +69,13 @@ Turn on host verification for flows that talk to **provisioned gateways**, now t
 - When both `cert_fqdn` + `pki_host_ca_id` are set, the runner pod fetches the domain Host CA from the **public, id-addressed** pki route `$PKI_BASE_URL/ssh/cas/<id>/ca.pub` (no auth — same source as `scripts/ssh-ca/trust.sh`) and writes `@cert-authority <cert_fqdn> <hostCa>` → `keys/known_hosts`. The inventory then renders `StrictHostKeyChecking=yes -o UserKnownHostsFile=keys/known_hosts -o GlobalKnownHostsFile=/dev/null -o HostKeyAlias=<cert_fqdn>` — the pattern is the exact certified FQDN (a cert principal), so verification cannot fall back to TOFU. Empty inputs (scheduled cron, no device identity) keep TOFU — backward compatible.
 - Locally verified: both jinja branches render valid inventory YAML with the expected `ansible_ssh_common_args`.
 - **Still pending for AC#1/#2**: a Kestra validation run against the lab canary 10.2.0.210 — enroll (already done) → run connectivity-check with `target_ip=10.2.0.210`, `ssh_key_id=<device key>`, `cert_fqdn=<its ssh_host_fqdn>`, `pki_host_ca_id=<domain host CA>`, and observe host-cert acceptance with no known_hosts write; then flip the wrong-CA negative. Not run yet (guarded: canary access needs sign-off).
+
+**2026-09-16 (i40sys/iotgw-kestra d8959e3) — validation run attempted; TWO real bugs found + fixed; AC#1/#2 still blocked on a cert-presenting target.**
+
+Ran the flow against the lab canary (Kestra now up; the running instance had an un-seeded `iotgw-ng` namespace — a *fresh-cluster/never-seeded* state, NOT data loss — so `connectivity-check` was re-applied via the API). The KMS login step failed (`kms-9e8f7a6b-wh` → `Object_Not_Found`; that `ssh_key_id` is seed data, not a real KMS object), so a login-based proof isn't reachable. Fell back to a throwaway-key probe (scratch in-pod key; host verification runs during the handshake before user auth). That surfaced two genuine defects in the f91169a wiring, now fixed in **d8959e3** (both `connectivity-check-flow.yaml` and `templates/inventory.j2`):
+
+1. **`curl` is absent from `cytopia/ansible:latest-tools`** (only `wget`/python3) — the CA fetch died with exit 127 before any SSH. Fixed: `curl || wget` fallback. (Note: `tasks/ssh_ca.yaml` enroll step also uses `curl`/`openssl` on the controller — fine from the workstation, would break if run in a Kestra pod; separate follow-up.)
+2. **Verify args lacked `HostKeyAlgorithms`** → OpenSSH negotiated a *plain* host key (ssh-ed25519/ecdsa), not the ECDSA host **certificate**. With only an `@cert-authority` line in known_hosts and no plain-key entry, that means `Host key verification failed` against a real enrolled gateway — verification never engaged the cert. Fixed: pin `HostKeyAlgorithms=ecdsa-sha2-nistp256-cert-v01@openssh.com` (enrollment always signs the ecdsa host key); a gateway presenting no cert then fails to negotiate = the correct "cert absent → fail" posture (helps AC#1).
+
+**Blocker for closing AC#1/#2**: the canary at 10.2.0.210 is currently the **live Debian image** (`uname` = debian; `ssh-user-ca.pub` + drop-ins present = User-CA trust installed, but `ssh_host_ecdsa_key-cert.pub` MISSING and `sshd -T` shows no `hostcertificate`). This is the documented pre-enrollment live-boot TOFU posture (decision-028 §5) — the enrolled OpenWrt (with the host cert) is on nvme0n1 but not the currently-booted OS (tonight's power event booted the live image). Confirmed by ground-truth ssh probes from the workstation: default negotiation → `ssh-ed25519` plain key → verification fails; forcing the cert algorithm → `no matching host key type found. Their offer: rsa-sha2-512,rsa-sha2-256,ecdsa-sha2-nistp256,ssh-ed25519` (no `…-cert-v01`). So AC#1/#2 need the enrolled OpenWrt booted (or another cert-presenting target) before they can be proven either way. Client-side mechanism (CA fetch → `@cert-authority` → HostKeyAlias → cert algorithm) is verified correct.
 <!-- SECTION:NOTES:END -->
