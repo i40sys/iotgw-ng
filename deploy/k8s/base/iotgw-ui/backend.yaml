@@ -66,6 +66,25 @@ spec:
                 secretKeyRef:
                   name: kestra-env
                   key: KESTRA_BASIC_AUTH_PASSWORD
+            # pki-manager admin (task-080): the backend creates the per-domain
+            # SSH-CA zone/CAs/principals on domain create. Non-secret config is
+            # inline; the client secret is the `iotgw-backend` Keycloak service
+            # account (client credentials, realm role admin — decision-028 §9),
+            # bridged from SOPS into the `pki-oidc` Secret. optional:true so the
+            # backend still starts if the credential is absent (it then just skips
+            # zone provisioning and enrollment fails closed, task-079).
+            - name: PKI_BASE_URL
+              value: https://pki.joor.net
+            - name: PKI_OIDC_TOKEN_URL
+              value: https://iam.joor.net/realms/pki-manager/protocol/openid-connect/token
+            - name: PKI_OIDC_CLIENT_ID
+              value: iotgw-backend
+            - name: PKI_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: pki-oidc
+                  key: PKI_OIDC_CLIENT_SECRET
+                  optional: true
           readinessProbe:
             tcpSocket:
               port: 4444

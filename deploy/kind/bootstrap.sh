@@ -102,6 +102,7 @@ make_secrets() {
   tools/secrets/secrets.sh k8s kestra "$NS_UI"     kestra-env | kubectl apply -f -
   gen_initdb_secret    # supabase-db-initdb -> supabase-db
   gen_kms_auth_secret  # kms-auth           -> iotgw-ui
+  gen_pki_oidc_secret  # pki-oidc           -> iotgw-ui
   echo "secrets applied"
 }
 
@@ -125,6 +126,25 @@ gen_kms_auth_secret() {
       --from-literal=KMS_AUTH_TOKEN="$tok" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
   done
   echo "  kms-auth Secret applied to $NS_UI (backend) + $NS_KESTRA (task-069 runner pods)"
+}
+
+# Bridge the pki-manager admin credential (task-080) into the `pki-oidc` Secret in
+# the iotgw-ui namespace. Only the CLIENT_SECRET is secret; the base/token URLs
+# and client id are non-secret and live inline in the backend Deployment. The
+# value is the dedicated Keycloak service account `iotgw-backend` (client
+# credentials, realm role `admin`; decision-028 §9 interim global admin), stored
+# in secrets/iotgw-ui-backend.enc.env (SOPS → PKI_OIDC_CLIENT_SECRET).
+gen_pki_oidc_secret() {
+  local secret
+  secret="$(tools/secrets/secrets.sh cat iotgw-ui-backend 2>/dev/null \
+           | grep -E '^PKI_OIDC_CLIENT_SECRET=' | head -1 | cut -d= -f2-)" || true
+  if [ -z "$secret" ]; then
+    echo "  (skip pki-oidc Secret: PKI_OIDC_CLIENT_SECRET not found in SOPS store)"
+    return 0
+  fi
+  kubectl create secret generic pki-oidc -n "$NS_UI" \
+    --from-literal=PKI_OIDC_CLIENT_SECRET="$secret" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+  echo "  pki-oidc Secret applied to $NS_UI (backend zone provisioning, task-080)"
 }
 
 # Provision the Cosmian KMS API-token symmetric key (task-057, AC#1) and persist
