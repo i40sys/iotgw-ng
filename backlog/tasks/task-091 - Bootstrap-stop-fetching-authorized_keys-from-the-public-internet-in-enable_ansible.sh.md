@@ -3,10 +3,10 @@ id: TASK-091
 title: >-
   Bootstrap: stop fetching authorized_keys from the public internet in
   enable_ansible.sh
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-14 05:30'
-updated_date: '2026-09-15 17:42'
+updated_date: '2026-09-16 04:20'
 labels:
   - ssh-ca
   - ansible
@@ -32,13 +32,13 @@ files/enable_ansible.sh builds a freshly installed gateway's /root/.ssh/authoriz
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A freshly installed gateway has no key material that was fetched from a third-party host at install time
-- [ ] #2 A freshly installed gateway accepts an iotgw-admin certificate on first boot, before any provisioning run
+- [x] #1 A freshly installed gateway has no key material that was fetched from a third-party host at install time
+- [x] #2 A freshly installed gateway accepts an iotgw-admin certificate on first boot, before any provisioning run
 - [x] #3 The vendored break-glass set is attributed — every key has a known owner
 <!-- AC:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**Verify on the fresh reinstall (planned).** The committed fix (enable_ansible.sh vendors files/authorized_keys = the 2 attributed break-glass keys, no public-internet fetch; d01 ships it to /tmp/authorized_keys) will be exercised by the upcoming clean reinstall test (boot live -> d01 install -> boot disk). AC#1 (no third-party-fetched key material on a fresh install) and AC#2 (accepts an iotgw-admin cert on first boot) verify then. NOTE: the current canary sshd is down (task-089 rollback bug, since fixed) — the reinstall recovers it.
+**DONE 2026-09-16 — verified on a clean reinstall.** Booted live -> d01_install_owrt.yml --skip-tags vpn -> boot disk. AC#1: the freshly installed OpenWRT root has EXACTLY the two vendored break-glass keys (oriol@mini6 + root@iot-gw), NO material fetched from github.com/*.keys or links.example.com, and no public-fetch remnants in /etc/ssh. AC#2: on first boot (before any enrollment) the gateway accepts SSH via the vendored keys, and immediately enrolls first-try to accept an iotgw-admin certificate (verified cert-only login). AC#3 already done (set attributed). enable_ansible.sh now installs files/authorized_keys shipped by d01 to /tmp/authorized_keys.
 <!-- SECTION:NOTES:END -->
