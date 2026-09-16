@@ -3,10 +3,10 @@ id: TASK-080
 title: >-
   Backend: create and link the pki-manager zone when an iotgw-ng domain is
   created
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-09-14 05:29'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-16 16:31'
 labels:
   - ssh-ca
   - backend
@@ -48,3 +48,19 @@ decision-026 phase 0.2-0.5 in the iotgw-ui backend: when an iotgw-ng domain is c
 - [ ] #4 A pki-manager failure surfaces on the domain record rather than leaving silent partial state
 - [ ] #5 Every call passes the zone explicitly, so fail-closed resolution never picks a zone for us
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**In progress 2026-09-16 — backend client implemented + typechecked; live AC proof pending a credential + external-write sign-off.**
+
+**Implemented (commit 6752611):**
+- `apps/backend/src/services/pki.ts` — pki-manager ADMIN client. OIDC bearer via `client_credentials` (preferred: a dedicated service account) OR `password`/ROPC (interim operator cred, decision-028 §9), token cached. Idempotent + resumable `ensureDomainPkiZone`: `getZone`→`ensureZone` (POST /ssh/zones), `ensureCa` user+host (GET /ssh/cas filtered by zoneId+caType, else POST), `ensurePrincipal` iotgw-admin/iotgw-ops. Every call passes the zone explicitly (AC#5). Reuses a hand-linked zone verbatim when `existingZone` is set (AC#3 warehouse=iotgw-lab). Also `offboardHost` for task-081.
+- `apps/backend/src/routers/domains.ts` — `createDomain` calls it best-effort (a PKI failure leaves the domain UNLINKED so enrollment fails closed, mirroring the KMS-key pattern; partial state persisted → resumable, AC#4) + a new `provisionPkiZone` mutation for backfill/retry that SURFACES errors.
+- API contract pinned from pki.joor.net OpenAPI: POST /ssh/zones {name*,displayName?,description?}; POST /ssh/cas {caType*(user|host),label?,zone?}; POST /ssh/principals {name*,zone?,description?}; bearerAuth. Zone id can be a slug ("default") or uuid; CAs carry {id,zoneId,caType,status}; `domains.pki_*_ca_id` = the CA `id`.
+- Detection logic validated READ-ONLY against iotgw-lab: zone found, user CA 515ce7b1 + host CA f3a2fbda (match the DB), both principals present → a warehouse re-run is a pure no-op (AC#2/#5 exercised without any write).
+
+**Blocked for AC#1/#3/#4 live proof (needs user):**
+1. **Credential (task-074 AC#4):** which OIDC identity the backend uses — a dedicated Keycloak service account (client_credentials) vs the interim operator ROPC (Bitwarden `pki.joor.net`, client `pki-web`, iam.joor.net/realms/pki-manager). Then store PKI_BASE_URL + PKI_OIDC_TOKEN_URL + PKI_OIDC_CLIENT_ID + the grant secret in `secrets/` (SOPS) and inject into the backend Deployment.
+2. **External-write sign-off:** running provisionPkiZone against pki.joor.net CREATES real zones/CAs/principals that CANNOT be deleted (only archived). Backfilling `production`/`office` (AC#3) is a permanent-ish side effect on the shared instance.
+<!-- SECTION:NOTES:END -->

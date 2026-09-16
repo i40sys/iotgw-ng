@@ -4,7 +4,7 @@ title: 'DB: map iotgw-ng domains to pki-manager zones'
 status: Done
 assignee: []
 created_date: '2026-09-14 05:29'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-16 16:31'
 labels:
   - ssh-ca
   - database
@@ -25,7 +25,7 @@ Migration adding domains.pki_zone (unique, nullable), pki_user_ca_id and pki_hos
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 A migration adds the three columns with comments explaining they are references, not key material
-- [ ] #2 The supabase-contract types regenerate and iotgw-ui typechecks
+- [x] #2 The supabase-contract types regenerate and iotgw-ui typechecks
 - [x] #3 Enrolling a device whose domain has no pki_zone fails with a clear error rather than silently picking a zone
 <!-- AC:END -->
 
