@@ -6,7 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-09-14 05:30'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-16 04:43'
 labels:
   - ssh-ca
   - kestra
@@ -44,7 +44,21 @@ Turn on host verification for flows that talk to **provisioned gateways**, now t
 <!-- AC:BEGIN -->
 - [ ] #1 A flow against a provisioned gateway verifies its host certificate, and fails if the certificate is absent, expired or wrong
 - [ ] #2 The connect name matches a certificate principal, verified by observing that no TOFU fallback occurred
-- [ ] #3 The bastion hop's verification posture is an explicit, documented choice
-- [ ] #4 The live-boot phase's TOFU is explicit in the flow, not a side effect of a global flag
-- [ ] #5 All five StrictHostKeyChecking=no sites are accounted for, including the ProxyCommand
+- [x] #3 The bastion hop's verification posture is an explicit, documented choice
+- [x] #4 The live-boot phase's TOFU is explicit in the flow, not a side effect of a global flag
+- [x] #5 All five StrictHostKeyChecking=no sites are accounted for, including the ProxyCommand
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**2026-09-16 (i40sys/iotgw-kestra d7c57cd) — postures made explicit + verify primitive added; verification mechanism proven.**
+
+- AC#5 (all sites accounted): templates/inventory.j2, Flow.yaml gateway hop, Flow.yaml bastion ProxyCommand, install-flow.yaml, connectivity-check-flow.yaml, network_reachability.yml — all 6 StrictHostKeyChecking=no sites now carry an explicit, documented posture.
+- AC#4: install-flow TOFU is documented as intentional (live-boot phase, decision-028 §5).
+- AC#3: bastion ProxyCommand (VPN_JUMP_HOST) TOFU is an accepted, documented choice (not our gateway, no cert from our Host CA); network_reachability VPN-server hop same.
+- templates/inventory.j2 is now VERIFY-CAPABLE: given host_ca_known_hosts + cert_fqdn it emits StrictHostKeyChecking=yes + UserKnownHostsFile + GlobalKnownHostsFile=/dev/null + HostKeyAlias (no TOFU fallback); else documented TOFU. Both branches render-tested.
+- **AC#1/#2 mechanism PROVEN** against the enrolled canary (direct ssh): correct @cert-authority + HostKeyAlias connects with 0 known_hosts pins; a WRONG CA fails ("No matching CA found. Retry with plain key" -> "Host key verification failed"). GlobalKnownHostsFile=/dev/null is required for isolation.
+
+**AC#1/#2 not yet ticked**: no flow yet FETCHES the domain Host CA + certified FQDN to build the known_hosts and pass host_ca_known_hosts/cert_fqdn (connectivity-check + post-enroll provisioning). Deliberately not shipped untested to the real-fleet flows — needs that wiring + a Kestra run against an enrolled gateway (safe target: the lab canary 10.2.0.210, adapting away the bastion). Left as the closing step.
+<!-- SECTION:NOTES:END -->
