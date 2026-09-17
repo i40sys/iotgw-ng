@@ -6,7 +6,7 @@ title: >-
 status: In Progress
 assignee: []
 created_date: '2026-09-14 05:28'
-updated_date: '2026-09-17 09:31'
+updated_date: '2026-09-17 10:38'
 labels:
   - ssh-ca
   - decision
@@ -55,4 +55,12 @@ Two loose ends that have to be resolved together, because the answer to one chan
 **AC#3 done 2026-09-16** — `decision-010` amended: its "3. Deploy to device → authorized_keys" step is superseded (never built; inbound access is now certificate-based per decision-024) and the KMS key is redirected to the OUTBOUND git-deploy-key role per §7-B.
 
 **AC#4 reframed (still open):** the task's "both playbook copies, preserving their intentional divergence" is now STALE — the `owrt_iot_gw` copy no longer exists; the authoritative playbooks are the `github.com/i40sys/iotgw-kestra` repo (the monorepo `kestra/data/main/iotgw-ng/_files/` is a stale write-through mirror). The shared-key DEPLOYMENT in `tasks/system.yaml` is already gated behind `deploy_shared_ssh_key | default(false)`. The remaining SUBSTANTIVE work (real implementation, external deps — not a doc close): (a) register each device's KMS public key as a **deploy key** on the ~13 `example-org/iotgw_*` repos (or one shared iotgw deploy key), and (b) switch the 14 `ansible.builtin.git` tasks off `/root/.ssh/id_rsa` to the per-device KMS key already fetched as `keys/id_rsa` (task-069). This touches real gateway provisioning + example-org GitHub, so it is tracked as the open implementation, not closed here.
+
+**AC#4 2026-09-17 — playbook APPLIED (GitHub App model); App creation + creds are the remaining runtime setup.** The real repo owner is `sabatligats` (14 PRIVATE repos; the public iotgw-kestra sanitizes it to `example-org`). §7-B (per-device KMS key as the git deploy key) is INFEASIBLE — a GitHub deploy key is unique to one repo, so one device key can't clone 14 repos. Per user decision, amended to a **GitHub App** (decision-028 §7 amendment). Applied in `i40sys/iotgw-kestra` 46f4447:
+- 14 `ansible.builtin.git` tasks → `https://x-access-token:{{ github_token }}@github.com/{{ github_org }}/…` (org kept a var so the public repo stays secret-free); `key_file:/root/.ssh/id_rsa` dropped.
+- `Flow.yaml` provisioning runner mints a short-lived App installation token (RS256 JWT via openssl → `/app/installations/<id>/access_tokens`) from an optional `github-app` Secret and passes `github_token`/`github_org` as extra-vars.
+- `system.yaml`: the shared `/root/.ssh/id_rsa` is now break-glass-only (gated off by default) — removes decision-023 R1.
+The "both copies / divergence" is moot (one authoritative copy; the monorepo `_files/` is a stale mirror).
+
+**Remaining to make it FUNCTION + close AC#4:** (1) create the GitHub App (contents:read on the 14 sabatligats repos) — a browser step; (2) store GH_APP_ID / GH_APP_INSTALLATION_ID / GH_APP_PRIVATE_KEY / GITHUB_ORG in SOPS → the `github-app` Secret (I'll add the bootstrap bridge); (3) a provisioning run to confirm the clones work over the token. Until then the shared-key break-glass path still exists.
 <!-- SECTION:NOTES:END -->

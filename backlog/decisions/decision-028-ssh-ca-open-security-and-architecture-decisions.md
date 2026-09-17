@@ -364,6 +364,24 @@ credential to manage per device.
   `/root/.ssh/id_rsa` on a live gateway before cutting over B, so no real
   outbound connection is broken; `decision-010` is superseded for the inbound use.
 
+**Amendment (2026-09-17, task-073 AC#1/#4).** The AC#1 inventory corrected the
+premise: the shared `/root/.ssh/id_rsa` is NOT a `community.docker` connection key
+— all 14 references are **`ansible.builtin.git` clone deploy keys** for 14
+separate **private** stack repos (`sabatligats/iotgw_*`, `alloy`,
+`flows.<host>`). This makes **B (per-device KMS key as the outbound key)
+infeasible for that use**: a GitHub **deploy key is unique to one repo**, so a
+single per-device key cannot authenticate to 14 repos, and per-device × 14 keys
+does not scale. **B is therefore refined to a GitHub App:** gateways clone the
+private stacks over **HTTPS with a short-lived GitHub App installation token**
+minted in the Kestra runner (contents:read on the 14 repos; the App private key
+never leaves the runner; **no persistent credential on the gateway** — strictly
+better than either a per-device or a shared SSH key). Applied in
+`i40sys/iotgw-kestra` (14 git tasks → HTTPS+token, `Flow.yaml` mints the token,
+`system.yaml` gates the shared key to break-glass-only). The KMS per-device key
+retains its `autossh`/backup **outbound** role where a single-endpoint key does
+fit; only the multi-repo git-clone use moved to the App. R1 (fleet-wide shared
+key) is removed either way.
+
 ---
 
 ## §8 — Offline gateways and certificate expiry
