@@ -31,6 +31,21 @@ updated_date: '2026-06-17'
 > for the generation step; the tagging convention and `device_ssh_<id>` id
 > format are retained.
 
+> **Amendment (2026-09-16, decision-028 §7 / task-073).** The **"3. Deploy to
+> device"** step below — install the KMS key's public half into the gateway's
+> `authorized_keys` for INBOUND SSH — is **superseded and was never built**.
+> Inbound gateway access is now **certificate-based** (`decision-024`: host + user
+> certs from pki-manager), not a per-device authorized_keys entry. Instead
+> (`decision-028 §7-B`) the per-device KMS key (`device_ssh_<id>`) is repurposed as
+> the gateway's **OUTBOUND** identity — the SSH deploy key it uses to `git clone`
+> the private `github.com/example-org/iotgw_*` stack repos during provisioning —
+> **replacing the shared `/root/.ssh/id_rsa`** (all 14 `ansible.builtin.git`
+> `key_file:` uses across the provisioning tasks; task-073 AC#1). That closes
+> `decision-023 R1` (shared load-bearing key). The retrieval-into-`keys/id_rsa`
+> path (task-069) is retained and feeds this outbound use; what remains is
+> registering each device key's public half as a deploy key on those repos and
+> switching the git tasks off the shared key (task-073 AC#4).
+
 ## Context
 
 When deploying IoT Gateway devices, we need to provision SSH keys for secure remote management. Currently, the system generates WireGuard keys that are stored directly in Supabase. However, SSH keys require different security considerations:
