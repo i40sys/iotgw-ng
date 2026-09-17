@@ -290,10 +290,31 @@ export async function ensureDomainPkiZone(params: {
   return { pki_zone: zone.name, pki_user_ca_id: userCaId, pki_host_ca_id: hostCaId };
 }
 
-/** Offboard a pki-manager host (terminal; task-081). */
+/** Offboard a pki-manager host (terminal; task-081/102). */
 export async function offboardHost(hostId: string): Promise<void> {
   assertConfigured();
   await pkiFetch(`/ssh/hosts/${encodeURIComponent(hostId)}/offboard`, {
     method: "POST",
   });
+}
+
+export interface PkiHost {
+  id: string;
+  fqdn: string;
+  zoneId: string;
+  status?: string;
+}
+
+/**
+ * List the pki-manager SSH hosts that are still ACTIVE (not offboarded). Used by
+ * the orphan check (task-102 §2): a host that is active but has no `devices` row
+ * pointing at it is a device that was deleted WITHOUT being offboarded — the
+ * exact gap the mandatory offboard-on-delete must not leave, given Netmaker
+ * recycles a deleted device's IP (which is a host-cert principal).
+ */
+export async function listActiveHosts(): Promise<PkiHost[]> {
+  assertConfigured();
+  const { data } = await pkiFetch<PkiHost[] | { items?: PkiHost[] }>("/ssh/hosts");
+  const list = Array.isArray(data) ? data : (data?.items ?? []);
+  return list.filter((h) => h.status !== "offboarded" && h.status !== "retired");
 }

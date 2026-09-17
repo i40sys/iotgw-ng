@@ -8,6 +8,11 @@ import {
   getDeviceSshPublicKey,
   destroyDeviceSshKey,
 } from "../services/kms";
+import {
+  offboardHost,
+  listActiveHosts,
+  isPkiConfigured,
+} from "../services/pki";
 
 // Debug logging for connectivity checks - enabled via LOG_LEVEL=debug environment variable
 const isDebugEnabled = process.env.LOG_LEVEL === "debug";
@@ -615,8 +620,79 @@ export const devicesRouter = {
         }
       }
 
+      // MANDATORY offboard-on-delete (decision-028 §2/§10, task-102): Netmaker
+      // recycles a deleted device's WireGuard IP immediately (observed), and that
+      // IP is a host-certificate principal — so the old host cert would validate
+      // for whoever next gets the IP unless it is revoked. Offboarding retires the
+      // host's certs/KRL lineage. It is TERMINAL and cannot be undone. Logged as
+      // an error on failure so the orphan check (checkSshHostOrphans) catches a
+      // device deleted without a successful offboard; the delete itself is not
+      // reverted (the row is already gone).
+      if (data?.ssh_host_id && isPkiConfigured()) {
+        try {
+          await offboardHost(data.ssh_host_id);
+          logger.info(
+            { sshHostId: data.ssh_host_id, deviceId: input.id },
+            "Offboarded device's pki-manager host (certs revoked, terminal)",
+          );
+        } catch (err) {
+          logger.error(
+            { error: err, sshHostId: data.ssh_host_id, deviceId: input.id },
+            "ORPHANED SSH HOST: device deleted but pki-manager offboard FAILED — " +
+              "its host cert may still validate for a recycled IP; run checkSshHostOrphans",
+          );
+        }
+      }
+
       logger.info(`Successfully deleted device with ID ${input.id}`);
       return data;
+    },
+  ),
+
+  // Orphan check (decision-028 §2, task-102): a pki-manager host that is still
+  // active but has NO devices row pointing at it means a device was deleted
+  // without a successful offboard — its host cert can still validate for a
+  // recycled Netmaker IP. Returns those hosts so an operator (or a scheduled
+  // job) can offboard them. Empty list = clean.
+  checkSshHostOrphans: createQueryProcedure(
+    "check_ssh_host_orphans",
+    z.object({}).optional(),
+    async ({ ctx }) => {
+      const { supabase } = ctx;
+      if (!isPkiConfigured()) {
+        return { configured: false, orphans: [] as { id: string; fqdn: string }[] };
+      }
+
+      const [{ data: devices, error }, hosts] = await Promise.all([
+        supabase.from("devices").select("ssh_host_id").not("ssh_host_id", "is", null),
+        listActiveHosts(),
+      ]);
+      if (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to read devices for the orphan check: ${error.message}`,
+          cause: error,
+        });
+      }
+
+      const known = new Set(
+        (devices ?? [])
+          .map((d) => (d as { ssh_host_id: string | null }).ssh_host_id)
+          .filter((v): v is string => Boolean(v)),
+      );
+      // Scope to iotgw-ng's own hosts by the `.iotgw` FQDN suffix (the edge
+      // function's FQDN namespace) so other tenants of the shared pki-manager
+      // (e.g. *.ymbihq.local, *.acme.example) are never flagged. An active
+      // `.iotgw` host that no device references = deleted without offboard.
+      const orphans = hosts
+        .filter((h) => h.fqdn.endsWith(".iotgw") && !known.has(h.id))
+        .map((h) => ({ id: h.id, fqdn: h.fqdn }));
+
+      logger.info(
+        { orphanCount: orphans.length },
+        "checkSshHostOrphans: pki hosts with no device row (deleted-without-offboard)",
+      );
+      return { configured: true, orphans };
     },
   ),
 
