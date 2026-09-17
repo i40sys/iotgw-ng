@@ -382,6 +382,24 @@ retains its `autossh`/backup **outbound** role where a single-endpoint key does
 fit; only the multi-repo git-clone use moved to the App. R1 (fleet-wide shared
 key) is removed either way.
 
+**Final resolution (2026-09-17) — VENDOR the stacks; no runtime git clone at all.**
+The GitHub App was dropped in favour of a simpler, credential-free design (chosen
+after finding that installing an App / adding deploy keys still needs `sabatligats`
+repo-admin, which the available session — `oriolrius` — does not have; and an audit
+of the stack repos found they carry **committed secrets and runtime state**, not
+just compose files). The **stack DEFINITIONS** (compose + `env.j2` + README +
+configs) are now **vendored into the playbook repo** under `files/stacks/<name>/`
+and deployed with `ansible.builtin.copy`; the 13 static stacks require **no git
+credential on the gateway of any kind** (no shared key, no App, no token). Applied
+in `i40sys/iotgw-kestra` (git-clone tasks → copy tasks; the App token-mint reverted).
+Because `iotgw-kestra` is PUBLIC, only secret-free definitions are vendored
+(gitleaks-verified); all runtime state and the audited secrets are excluded. The
+per-host `flows.<hostname>` clone is left as-is (shared-key SSH residual). **Audit
+finding:** the source stack repos contain committed secrets (2 SSH private keys,
+Node-RED credentialSecret, code-server password, telegraf `.env`, an alloy OIDC
+`client_secret`, an uptime-kuma API key) that predate this work and must be
+**rotated + purged from history** (follow-up task-123).
+
 ---
 
 ## §8 — Offline gateways and certificate expiry

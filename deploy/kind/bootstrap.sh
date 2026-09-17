@@ -103,7 +103,6 @@ make_secrets() {
   gen_initdb_secret     # supabase-db-initdb -> supabase-db
   gen_kms_auth_secret   # kms-auth           -> iotgw-ui
   gen_pki_oidc_secret   # pki-oidc           -> iotgw-ui
-  gen_github_app_secret # github-app         -> kestra (provisioning runner)
   echo "secrets applied"
 }
 
@@ -148,33 +147,6 @@ gen_pki_oidc_secret() {
   echo "  pki-oidc Secret applied to $NS_UI (backend zone provisioning, task-080)"
 }
 
-# Bridge the GitHub App creds (task-073 §7) into the `github-app` Secret in the
-# `kestra` namespace, where the provisioning runner pod mints a short-lived
-# installation token to clone the private stack repos over HTTPS (no SSH key on
-# the gateway). Values live in secrets/kestra.enc.env (SOPS): GH_APP_ID,
-# GH_APP_INSTALLATION_ID, GITHUB_ORG, and GH_APP_PRIVATE_KEY_B64 (the .pem
-# base64-encoded to a single dotenv-friendly line; decoded to the raw PEM here).
-# All-or-nothing: skip until the App is provisioned.
-gen_github_app_secret() {
-  local id inst keyb64 key org
-  local kenv; kenv="$(tools/secrets/secrets.sh cat kestra 2>/dev/null)" || true
-  id="$(printf '%s\n' "$kenv" | grep -E '^GH_APP_ID=' | head -1 | cut -d= -f2-)"
-  inst="$(printf '%s\n' "$kenv" | grep -E '^GH_APP_INSTALLATION_ID=' | head -1 | cut -d= -f2-)"
-  org="$(printf '%s\n' "$kenv" | grep -E '^GITHUB_ORG=' | head -1 | cut -d= -f2-)"
-  keyb64="$(printf '%s\n' "$kenv" | grep -E '^GH_APP_PRIVATE_KEY_B64=' | head -1 | cut -d= -f2-)"
-  key="$(printf '%s' "$keyb64" | base64 -d 2>/dev/null)" || true
-  if [ -z "$id" ] || [ -z "$inst" ] || [ -z "$key" ]; then
-    echo "  (skip github-app Secret: GH_APP_* not found in SOPS store — task-073 App not provisioned yet)"
-    return 0
-  fi
-  kubectl create secret generic github-app -n "$NS_KESTRA" \
-    --from-literal=GH_APP_ID="$id" \
-    --from-literal=GH_APP_INSTALLATION_ID="$inst" \
-    --from-literal=GITHUB_ORG="${org:-sabatligats}" \
-    --from-literal=GH_APP_PRIVATE_KEY="$key" \
-    --dry-run=client -o yaml | kubectl apply -f - >/dev/null
-  echo "  github-app Secret applied to $NS_KESTRA (provisioning stack clones, task-073)"
-}
 
 # Provision the Cosmian KMS API-token symmetric key (task-057, AC#1) and persist
 # the derived bearer token into the SOPS store. CHICKEN-AND-EGG: this must run

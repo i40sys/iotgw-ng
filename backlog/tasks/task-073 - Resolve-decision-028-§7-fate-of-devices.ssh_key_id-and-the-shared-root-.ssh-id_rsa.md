@@ -3,10 +3,10 @@ id: TASK-073
 title: >-
   Resolve decision-028 §7: fate of devices.ssh_key_id and the shared
   /root/.ssh/id_rsa
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-09-14 05:28'
-updated_date: '2026-09-17 10:38'
+updated_date: '2026-09-17 16:01'
 labels:
   - ssh-ca
   - decision
@@ -42,7 +42,7 @@ Two loose ends that have to be resolved together, because the answer to one chan
 - [x] #1 Each of the twelve key_file references is classified as a live remote docker connection or inert config, by inspection on a real gateway
 - [x] #2 decision-028 §7 records the chosen option for the KMS key and its status flips to DECIDED
 - [x] #3 decision-010 is amended or explicitly superseded for the parts the choice invalidates
-- [ ] #4 The decision is applied to both playbook copies, preserving their intentional divergence
+- [x] #4 The decision is applied to both playbook copies, preserving their intentional divergence
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -63,4 +63,16 @@ Two loose ends that have to be resolved together, because the answer to one chan
 The "both copies / divergence" is moot (one authoritative copy; the monorepo `_files/` is a stale mirror).
 
 **Remaining to make it FUNCTION + close AC#4:** (1) create the GitHub App (contents:read on the 14 sabatligats repos) — a browser step; (2) store GH_APP_ID / GH_APP_INSTALLATION_ID / GH_APP_PRIVATE_KEY / GITHUB_ORG in SOPS → the `github-app` Secret (I'll add the bootstrap bridge); (3) a provisioning run to confirm the clones work over the token. Until then the shared-key break-glass path still exists.
+
+**AC#4 DONE 2026-09-17 — approach pivoted to VENDORING; gateways need no git credential.** After finding that the GitHub App still required `sabatligats` repo-admin (the available session is `oriolrius`, write-only) AND that an audit of the stack repos surfaced committed secrets + runtime state, the design was changed (user decision): **vendor the stack DEFINITIONS into the playbook repo** and deploy by copy — no shared key, no App, no token on the gateway.
+
+Applied in `i40sys/iotgw-kestra` **e4b3ad4**:
+- `files/stacks/<name>/` — the 13 static stacks' definitions (compose + env.j2 + README + configs), **gitleaks-clean** (secrets + runtime state excluded; iotgw-kestra is PUBLIC so only secret-free definitions are vendored; 376K vs 33M of source).
+- 13 `ansible.builtin.git` clone tasks → `ansible.builtin.copy` from `files/stacks/`; the dead pre-push-hook tasks removed; the GitHub-App token-mint in `Flow.yaml` reverted.
+- `flows.<hostname>` (per-host node-red flows) left as-is = a shared-key SSH clone (the one residual, `deploy_shared_ssh_key`).
+- Monorepo: `deploy/kind/bootstrap.sh` github-app bridge removed; `decision-028 §7` final-resolution recorded.
+
+**AC#4 "both copies / divergence" is moot** (one authoritative copy; the monorepo `_files/` is a stale mirror). decision-023 R1 (fleet-wide shared key) removed for the 13 stacks.
+
+**Security follow-up filed: task-123** — the source repos carry 7 committed secrets (2 SSH keys, node-red credentialSecret, code-server pw, telegraf .env, alloy OIDC client_secret, uptime-kuma API key) that must be rotated + purged from history. Not vendored here, but live in the private repos.
 <!-- SECTION:NOTES:END -->
