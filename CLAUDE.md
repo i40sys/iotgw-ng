@@ -61,6 +61,45 @@ migrations 20260610000000/01):
 - **TLS certs**: `kms/pki-test/` mints certs, consumed by the k8s Ingress
   (the former `traefik-poc/` PoC has been removed — see `deploy/`).
 
+## The SSH-CA Access Path (gateway SSH is certificate-based)
+
+Gateway SSH access is moving from hardcoded `authorized_keys` to **SSH
+certificates** issued by **pki-manager** (`pki.joor.net`), **one zone per iotgw-ng
+domain** (`decision-024`). A gateway presents a **host certificate**; operators and
+the automation present **user certificates**. During the migration the break-glass
+`authorized_keys` path is kept **alongside** the certificate path, never as the
+primary mechanism (`decision-027`). iotgw-ng implements **no PKI of its own** — it
+only calls pki-manager.
+
+```
+Domain created (UI → backend)
+   → backend services/pki.ts creates the domain's pki-manager ZONE + user CA +
+     host CA + principals (iotgw-admin, iotgw-ops), persists the ids on the
+     `domains` row (pki_zone/pki_user_ca_id/pki_host_ca_id). task-080.
+
+Gateway enrollment (Ansible tasks/ssh_ca.yaml — Kestra install flow or standalone)
+   1. gateway generates its own ecdsa-P256 HOST key (private half never leaves)
+   2. POST the host pubkey to the `ssh-ca` EDGE FUNCTION, authenticated with the
+      device TOTP (same envelope as `vpn`, decision-009) — the ONLY bridge between
+      a device and pki-manager; the gateway never sees the fleet token
+   3. ssh-ca signs it with the domain's Host CA and returns the host cert + the
+      User CA anchor + principals; the task installs them + two sshd drop-ins
+      (50- break-glass authorized_keys, 60- HostCertificate/TrustedUserCAKeys),
+      validates `sshd -t`, reloads (never restart), fail-safe rollback.
+
+Operator / automation access
+   • trust a domain's Host CA:  scripts/ssh-ca/trust.sh  (writes an @cert-authority
+     known_hosts line, so any gateway in the zone verifies with no per-host pins)
+   • get a user certificate:    scripts/ssh-ca/user-cert.sh
+   • Kestra connectivity-check VERIFIES the gateway host cert (StrictHostKeyChecking
+     + @cert-authority + HostKeyAlias + HostKeyAlgorithms=…-cert-v01), task-093.
+```
+
+The `ssh-ca` edge function reads its zone-scoped **fleet token** from `PKI_FLEET_TOKENS`
+(sign-host only); the **backend** holds a broader OIDC admin credential
+(`PKI_OIDC_*`, a Keycloak service account) to create zones (`decision-028 §9`). See
+the operator runbook: [`scripts/ssh-ca/README.md`](scripts/ssh-ca/README.md).
+
 ## Critical Validated Docs (in `backlog/`)
 
 Source of truth for cross-project behavior — read before modifying an
@@ -76,6 +115,7 @@ integration point:
 | **doc-016** | [Database-change provisioning automation pattern](backlog/docs/doc-016-database-change-provisioning-automation-pattern.md) (current: DB trigger → `netmaker-call` → Netmaker REST) |
 | **decision-010** | [SSH key management via Cosmian KMS](backlog/decisions/decision-010-ssh-key-management-with-cosmian-kms.md) |
 | **decision-009** | [TOTP authentication for device VPN access](backlog/decisions/decision-009-totp-authentication-for-device-vpn-access.md) |
+| **decision-024** | [SSH-CA target architecture — iotgw-ng consumes pki-manager, one zone per domain](backlog/decisions/decision-024-ssh-ca-target-architecture-iotgw-ng-consumes-pki-manager-one-zone-per-domain.md) (+ current-state `decision-023`, change map `decision-025`, provisioning sequence `decision-026`, migration plan `decision-027`, open decisions `decision-028`) |
 | **doc-008** | [Domains → Networks → Devices hierarchy](backlog/docs/doc-008-domains-networks-and-devices-architecture.md) |
 | **doc-010** | [DB migration + webhook management](backlog/docs/doc-010-database-migration-and-webhook-management-guide.md) |
 | **doc-013** | [Deployments page behavior spec](backlog/docs/doc-013-deployments-page-behavior-specification.md) |

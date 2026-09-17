@@ -22,6 +22,24 @@ Kestra runs as a Deployment in the **`kestra` k8s namespace** on the kind cluste
 | `connectivity-check` | scheduled / on-demand | `connectivity_check.yml` |
 | `sync-namespace-files` | daily 6 AM + GitHub webhook | syncs this dir from `github.com/i40sys/iotgw-kestra` |
 
+### SSH-CA on the OpenWRT side (`decision-024`/`decision-026`)
+
+Gateway SSH is moving to **certificates** (see the root `CLAUDE.md` → "The SSH-CA
+Access Path"). The Kestra-relevant pieces:
+
+- **`tasks/ssh_ca.yaml`** — idempotent gateway enrollment: generate an ecdsa-P256
+  host key, POST it (device-TOTP envelope) to the `ssh-ca` edge function, install
+  the returned host cert + User CA anchor + two sshd drop-ins, gate on `sshd -t`,
+  reload (never restart), fail-safe rollback. Break-glass `authorized_keys` is
+  kept alongside. `openssl`/`curl` run on the CONTROLLER (the runner pod), not the
+  gateway. Run by the `install` flow or standalone (`task-089`).
+- **`connectivity-check`** now VERIFIES the gateway host certificate when given a
+  domain Host CA + certified FQDN (`StrictHostKeyChecking=yes` + `@cert-authority`
+  known_hosts + `HostKeyAlias` + `HostKeyAlgorithms=…-cert-v01`); it stays TOFU for
+  the scheduled cron run that has no device identity (`task-093`).
+- **Runner-pod image caveat:** `cytopia/ansible:latest-tools` ships `wget`/`python3`
+  but **not** `curl` — CA fetches use a `curl || wget` fallback.
+
 ## Critical: Kestra 1.2 namespace files behavior
 
 Filesystem changes under `data/main/iotgw-ng/_files/` are **NOT** auto-reflected in the Kestra runtime. After editing:
