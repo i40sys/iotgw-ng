@@ -1,10 +1,10 @@
 ---
 id: TASK-074
 title: 'Resolve decision-028 §9: scope of the pki-manager credential iotgw-ng holds'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-09-14 05:28'
-updated_date: '2026-09-16 16:54'
+updated_date: '2026-09-17 09:27'
 labels:
   - ssh-ca
   - decision
@@ -33,7 +33,7 @@ Note the asymmetry that already exists and is fine: the `ssh-ca` edge function �
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The full set of pki.joor.net tenants is enumerated across both the SSH and X.509 surfaces, so the blast radius is a known quantity
+- [x] #1 The full set of pki.joor.net tenants is enumerated across both the SSH and X.509 surfaces, so the blast radius is a known quantity
 - [x] #2 decision-028 §9 records the chosen option and its status flips to DECIDED
 - [x] #3 If a shared instance is kept, the backend credential's scope is written down along with what it can reach that it should not
 - [x] #4 The credential is stored SOPS-encrypted in secrets/ and just secrets-check passes
@@ -56,4 +56,15 @@ Note the asymmetry that already exists and is fine: the `ssh-ca` edge function �
 **How stored:** `secrets/iotgw-ui-backend.enc.env` (SOPS+age) gained `PKI_BASE_URL`, `PKI_OIDC_TOKEN_URL`, `PKI_OIDC_CLIENT_ID`, `PKI_OIDC_CLIENT_SECRET`. `just secrets-check` passes (19 encrypted values, no cleartext leak). Bridged to k8s via `gen_pki_oidc_secret` (bootstrap.sh) → `pki-oidc` Secret. Commit c7e0b8e.
 
 **AC#1 still open:** a FULL enumeration of pki.joor.net tenants across BOTH the SSH and X.509 surfaces. SSH side observed today: zones `default` (CAs acme-users/acme-hosts) + `iotgw-lab`; X.509 side + cert-manager issuer not yet enumerated. AC#2/#3/#4 done.
+
+**AC#1 done 2026-09-16 — pki.joor.net tenants enumerated (blast radius of the backend admin credential).**
+
+**SSH surface (`/api/v1/ssh/*`):**
+- Zones (active): `default`, `iotgw-lab` (=iotgw-ng warehouse), `iotgw-production`, `iotgw-office`. The last three are iotgw-ng's own (created/backfilled in task-080). The archived throwaway test zones no longer appear.
+- Hosts in `default` (NOT iotgw-ng): `ovh-ymbihq-node.ymbihq.local`, `c1h1.dev.ymbihq.local`, `web1.acme.example`, `web2.acme.example`.
+- Identities in `default` (NOT iotgw-ng): `Oriol`, `jane@acme.example`, `alice@acme.example`. (iotgw-ng: `oriol@iotgw-lab`.)
+
+**X.509 surface:** `/api/v1/cas` = 1 CA `CN=pki.ymbihq.local, O=YMBIHQ` (active); `/certificates` = 0; `/clusters` = no endpoint.
+
+**Blast radius (the §9 residual, now quantified):** the iotgw-ng backend's global-admin credential can also create/modify/offboard/revoke everything in the shared `default` SSH zone (the `ymbihq.local` infra hosts + the `acme.example` demo hosts/users) AND the `pki.ymbihq.local` X.509 CA and any certs it issues. That is strictly more than iotgw-ng needs — exactly the over-broad authority §9 accepted as an interim. Exit path unchanged (zone-scoped OIDC roles upstream, or a dedicated iotgw-ng pki-manager instance); revisit before onboarding a sensitive tenant. All 4 ACs now met — task Done.
 <!-- SECTION:NOTES:END -->
