@@ -6,7 +6,7 @@ title: >-
 status: In Progress
 assignee: []
 created_date: '2026-09-14 07:08'
-updated_date: '2026-09-15 05:06'
+updated_date: '2026-09-17 09:32'
 labels:
   - ssh-ca
   - decision
@@ -35,11 +35,17 @@ decision-028 §2 leaves this UNRESOLVED and no task covered it. The `ssh-ca` edg
 - [ ] #1 Netmaker's IP reuse behaviour for deleted extclients is established by observation, not assumption
 - [x] #2 decision-028 §2 records whether the IP stays a principal and its status flips to DECIDED
 - [ ] #3 If the IP stays, offboard-on-delete is mandatory and there is a check that catches a device deleted without one
-- [ ] #4 The ssh-ca edge function matches the decision
+- [x] #4 The ssh-ca edge function matches the decision
 <!-- AC:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
 **Decision 2026-09-15 (decision-028 §2):** the WireGuard IP STAYS a host-cert principal; mitigated by mandatory, monitored offboard-on-delete (§10). §2 sub-point → DECIDED. Open: AC#1 observe Netmaker IP-reuse for deleted extclients; AC#3 a check that catches a device deleted without offboard; AC#4 ssh-ca edge fn matches.
+
+**AC#4 done 2026-09-16** — the `ssh-ca` edge function already matches the decision (IP STAYS a principal): `supabase/volumes/functions/ssh-ca/index.ts` builds `addresses` from the label-based FQDNs and appends `device.ip_address` (lines 313-314), passes them to `signHost` and exposes them as `host_principals` (l.318/327). No code change needed to ratify §2.
+
+**Remaining (both gated on external/other work):**
+- **AC#1** — observe Netmaker's actual IP-reuse for DELETED extclients (does it recycle, how fast) against `api.netmaker.i40sys.com`. External Netmaker interaction; not yet done.
+- **AC#3** — the mitigation (mandatory, monitored offboard-on-delete + a check that catches a device deleted without one) is exactly **task-081's delete-side** (`offboardHost` is already stubbed in `services/pki.ts`). So AC#3 lands with task-081, i.e. 102 and 081 close together.
 <!-- SECTION:NOTES:END -->
