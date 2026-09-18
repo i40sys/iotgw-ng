@@ -4,7 +4,7 @@ title: 'Resolve decision-028 §4: CA rotation cadence, trigger and overlap windo
 status: In Progress
 assignee: []
 created_date: '2026-09-14 07:08'
-updated_date: '2026-09-18 04:18'
+updated_date: '2026-09-18 04:25'
 labels:
   - ssh-ca
   - decision
@@ -33,7 +33,7 @@ decision-028 §4 leaves this UNRESOLVED and no task covered it. The mechanism is
 <!-- AC:BEGIN -->
 - [x] #1 decision-028 §4 records a rotation trigger and an overlap window, and its status flips to DECIDED
 - [x] #2 The overlap window is shown to exceed the host-certificate TTL with margin
-- [ ] #3 The trust-distribution path can deliver BOTH the active and rotating anchors to a gateway and to an operator, and this is demonstrated rather than assumed
+- [x] #3 The trust-distribution path can deliver BOTH the active and rotating anchors to a gateway and to an operator, and this is demonstrated rather than assumed
 - [ ] #4 There is a way to prove every device has re-issued before an old CA is retired
 <!-- AC:END -->
 
@@ -47,4 +47,14 @@ decision-028 §4 leaves this UNRESOLVED and no task covered it. The mechanism is
 **Remaining for AC#3 (demonstrate, not assume):** rotate a CA in a test zone (SGCli `rotate`, ssh-ca.service.ts:228 — default overlap 371 d, > 120 d §4) and show the route returns TWO anchors; confirm the operator path (`scripts/ssh-ca/trust.sh`, which should be repointed to the scoped route) and the gateway path (ssh-ca edge fn) both receive the union.
 
 **AC#4 still open:** fleet re-issue report proving every device re-issued under the successor before the predecessor (status 'rotating') is retired — needs a per-zone query of issued host certs vs. active CA.
+
+**2026-09-18 — AC#3 DEMONSTRATED live on pki.joor.net (zone iotgw-ssh-ca-test).** Rotated the zone User CA and proved the scoped route serves the PAIR:
+- Before: `/ssh/zones/iotgw-ssh-ca-test/trusted-user-ca-keys` → 1 key (SHA256:ES7b3t… 'iotgw-ssh-ca-test-users', active).
+- Rotated CA d9aec77e via `POST /api/v1/ssh/cas/<id>/rotate` (admin OIDC via the iotgw-backend Keycloak service account). Predecessor → status 'rotating' (retireAfter ~371 d, > 120 d §4); successor → new 'active' CA 81be17dd.
+- After: the SINGLE scoped route returns BOTH keys (ES7b3t… rotating + WFbXW… active), text/plain, HTTP 200. This is the exact file a gateway's TrustedUserCAKeys / an operator's trust.sh consumes — one route, the active+rotating union, no per-CA ca.pub juggling.
+- State restored: zone re-archived to its original status; archived zones still serve existing trust material (confirmed still 2 keys after archive).
+
+**Remaining integration (tracked under task-076 AC#5):** repoint the two CONSUMERS off the one-CA `/ssh/cas/:id/ca.pub` onto the scoped `trusted-user-ca-keys` route so they actually receive the pair — the ssh-ca edge fn (`_shared/pki-manager.ts`) and operator `scripts/ssh-ca/trust.sh`. The distribution PATH is proven; the clients still fetch a single anchor.
+
+**pki-manager bug found (not iotgw-ng):** `SshCaService.rotate()` demotes the predecessor to 'rotating' BEFORE creating the successor, with no archived-zone guard and no transaction. On an ARCHIVED zone the create is rejected ("zone archived") but the demote already committed → the zone is left with a rotating-only CA and NO active one. Recovered by unarchive → create successor → re-archive. rotate() should gate on zone.status!='archived' (and/or create-then-demote atomically). Worth a task in oriolrius/pki-manager-web.
 <!-- SECTION:NOTES:END -->
