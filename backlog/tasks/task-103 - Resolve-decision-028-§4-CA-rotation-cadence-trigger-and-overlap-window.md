@@ -4,7 +4,7 @@ title: 'Resolve decision-028 §4: CA rotation cadence, trigger and overlap windo
 status: In Progress
 assignee: []
 created_date: '2026-09-14 07:08'
-updated_date: '2026-09-15 05:06'
+updated_date: '2026-09-18 04:18'
 labels:
   - ssh-ca
   - decision
@@ -41,4 +41,10 @@ decision-028 §4 leaves this UNRESOLVED and no task covered it. The mechanism is
 
 <!-- SECTION:NOTES:BEGIN -->
 **Decision 2026-09-15 (decision-028 §4):** event-driven rotation only (compromise/policy), overlap ≥120 d (> 90 d host TTL, AC#2 shown), retirement gated on a fleet re-issue report. §4 → DECIDED. Open: AC#3 demonstrate both active+rotating anchors reach a gateway and an operator; AC#4 the mechanism that proves every device re-issued before retiring an old CA.
+
+**2026-09-18 — blocker task-076 cleared, AC#3 transport now live.** The zone-scoped trust routes are reachable on pki.joor.net (pki-manager-web 6c25085 / v3.12.1, deployed on y0). `/ssh/zones/<zone>/trusted-user-ca-keys` now returns the zone User CA(s) as text/plain, and getTrustAnchors() emits both active+rotating CAs during overlap — so the single route delivers the CA PAIR (no more one-CA `ca.pub` limitation).
+
+**Remaining for AC#3 (demonstrate, not assume):** rotate a CA in a test zone (SGCli `rotate`, ssh-ca.service.ts:228 — default overlap 371 d, > 120 d §4) and show the route returns TWO anchors; confirm the operator path (`scripts/ssh-ca/trust.sh`, which should be repointed to the scoped route) and the gateway path (ssh-ca edge fn) both receive the union.
+
+**AC#4 still open:** fleet re-issue report proving every device re-issued under the successor before the predecessor (status 'rotating') is retired — needs a per-zone query of issued host certs vs. active CA.
 <!-- SECTION:NOTES:END -->

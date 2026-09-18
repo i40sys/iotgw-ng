@@ -1,10 +1,10 @@
 ---
 id: TASK-076
 title: 'pki-manager: un-shadow the zone-scoped public SSH trust routes'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-09-14 05:29'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-18 04:18'
 labels:
   - ssh-ca
   - pki-manager
@@ -32,9 +32,25 @@ Also verified: a **fleet token cannot** read `/api/v1/ssh/trust-anchors` (401) �
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 GET /ssh/zones/<zone>/host-ca-keys returns an OpenSSH public key, not HTML
-- [ ] #2 GET /ssh/zones/<zone>/cert-authority?pattern=... returns an @cert-authority line
-- [ ] #3 GET /ssh/zones/<zone>/trusted-user-ca-keys returns the zone's user CA keys, including a rotating CA when one exists
-- [ ] #4 The unscoped legacy routes still serve the default zone unchanged, so already-enrolled hosts do not break
+- [x] #1 GET /ssh/zones/<zone>/host-ca-keys returns an OpenSSH public key, not HTML
+- [x] #2 GET /ssh/zones/<zone>/cert-authority?pattern=... returns an @cert-authority line
+- [x] #3 GET /ssh/zones/<zone>/trusted-user-ca-keys returns the zone's user CA keys, including a rotating CA when one exists
+- [x] #4 The unscoped legacy routes still serve the default zone unchanged, so already-enrolled hosts do not break
 - [ ] #5 iotgw-ng's ca.pub workaround is either retired or documented as a deliberate choice now that the scoped routes work
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Root cause (pki-manager-web repo, docker/nginx.conf):** the single-origin edge proxy only allowlisted the UNSCOPED trust paths to backend:3000; `/ssh/zones/<zone>/...` fell through to the SPA `location /` and returned index.html. Backend routes already existed (ssh-public.routes.ts:211-238) but were unreachable.
+
+**Fix:** added `location ~ ^/ssh/zones/[^/]+/(host-ca-keys|trusted-user-ca-keys|cert-authority)$` → backend, before the SPA fallback. Commit oriolrius/pki-manager-web 6c25085; released v3.12.1; deployed on y0 `/opt/stacks/pki` (frontend+backend → 3.12.1).
+
+**Live proof (pki.joor.net, zone iotgw-ssh-ca-test):**
+- AC#1 `/ssh/zones/<z>/host-ca-keys` → 200 text/plain OpenSSH key (was text/html)
+- AC#2 `/ssh/zones/<z>/cert-authority?pattern=*.warehouse.iotgw` → `@cert-authority *.warehouse.iotgw ecdsa-...`
+- AC#3 `/ssh/zones/<z>/trusted-user-ca-keys` → 200 user CA key. Rotating inclusion is code-guaranteed: getTrustAnchors() (ssh-ca.service.ts:215) emits every CA with status active|rotating. Live active+rotating pair demo tracked under task-103 AC#3.
+- AC#4 legacy unscoped `/ssh/host-ca-keys` still 200 (default zone); `/ssh/cas` UI still SPA.
+
+**AC#5 (open):** iotgw-ng's `ca.pub` workaround (`_shared/pki-manager.ts`, `scripts/ssh-ca/trust.sh`) — decide retire vs document as deliberate now that scoped routes work.
+<!-- SECTION:NOTES:END -->
