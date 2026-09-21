@@ -4,7 +4,7 @@ title: 'Resolve decision-028 §4: CA rotation cadence, trigger and overlap windo
 status: In Progress
 assignee: []
 created_date: '2026-09-14 07:08'
-updated_date: '2026-09-18 04:25'
+updated_date: '2026-09-21 04:38'
 labels:
   - ssh-ca
   - decision
@@ -57,4 +57,8 @@ decision-028 §4 leaves this UNRESOLVED and no task covered it. The mechanism is
 **Remaining integration (tracked under task-076 AC#5):** repoint the two CONSUMERS off the one-CA `/ssh/cas/:id/ca.pub` onto the scoped `trusted-user-ca-keys` route so they actually receive the pair — the ssh-ca edge fn (`_shared/pki-manager.ts`) and operator `scripts/ssh-ca/trust.sh`. The distribution PATH is proven; the clients still fetch a single anchor.
 
 **pki-manager bug found (not iotgw-ng):** `SshCaService.rotate()` demotes the predecessor to 'rotating' BEFORE creating the successor, with no archived-zone guard and no transaction. On an ARCHIVED zone the create is rejected ("zone archived") but the demote already committed → the zone is left with a rotating-only CA and NO active one. Recovered by unarchive → create successor → re-archive. rotate() should gate on zone.status!='archived' (and/or create-then-demote atomically). Worth a task in oriolrius/pki-manager-web.
+
+**2026-09-21 — AC#3 consumer repoint DONE (was the remaining integration).** Both consumers now receive the active+rotating PAIR over the zone-scoped routes (see task-076 AC#5): the ssh-ca edge function (`_shared/pki-manager.ts` `zoneTrustAnchors` + `ssh-ca/index.ts`) and operator `scripts/ssh-ca/trust.sh`. trust.sh live-tested against pki.joor.net. AC#3 fully met end-to-end (route delivers the pair + both clients consume it).
+
+Remaining on task-103: AC#4 (fleet re-issue report). Also the pki-manager rotate() atomicity bug found during the AC#3 demo is fixed (pki-manager-web TASK-235, released v3.12.2).
 <!-- SECTION:NOTES:END -->

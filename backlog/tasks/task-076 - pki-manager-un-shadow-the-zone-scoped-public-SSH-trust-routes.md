@@ -1,10 +1,10 @@
 ---
 id: TASK-076
 title: 'pki-manager: un-shadow the zone-scoped public SSH trust routes'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-09-14 05:29'
-updated_date: '2026-09-18 04:18'
+updated_date: '2026-09-21 04:38'
 labels:
   - ssh-ca
   - pki-manager
@@ -36,7 +36,7 @@ Also verified: a **fleet token cannot** read `/api/v1/ssh/trust-anchors` (401) �
 - [x] #2 GET /ssh/zones/<zone>/cert-authority?pattern=... returns an @cert-authority line
 - [x] #3 GET /ssh/zones/<zone>/trusted-user-ca-keys returns the zone's user CA keys, including a rotating CA when one exists
 - [x] #4 The unscoped legacy routes still serve the default zone unchanged, so already-enrolled hosts do not break
-- [ ] #5 iotgw-ng's ca.pub workaround is either retired or documented as a deliberate choice now that the scoped routes work
+- [x] #5 iotgw-ng's ca.pub workaround is either retired or documented as a deliberate choice now that the scoped routes work
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -53,4 +53,11 @@ Also verified: a **fleet token cannot** read `/api/v1/ssh/trust-anchors` (401) �
 - AC#4 legacy unscoped `/ssh/host-ca-keys` still 200 (default zone); `/ssh/cas` UI still SPA.
 
 **AC#5 (open):** iotgw-ng's `ca.pub` workaround (`_shared/pki-manager.ts`, `scripts/ssh-ca/trust.sh`) — decide retire vs document as deliberate now that scoped routes work.
+
+**AC#5 DONE 2026-09-21 — consumers repointed off the one-CA ca.pub route onto the zone-scoped routes (task-103 AC#3 last mile):**
+- `supabase/volumes/functions/_shared/pki-manager.ts`: added `zoneTrustAnchors(cfg, zone)` → GETs `/ssh/zones/<zone>/{trusted-user-ca-keys,host-ca-keys}`, returns the ACTIVE+ROTATING set of each type (arrays). `caPublicKey` kept for genuine single-CA-by-id callers.
+- `supabase/volumes/functions/ssh-ca/index.ts` (the enrolment/trust bridge): now calls `zoneTrustAnchors(pki, domain.pki_zone)` instead of two `caPublicKey(id)` calls; `payload.user_ca`/`host_ca` carry the full pair; `cert_authority` emits one @cert-authority line per Host CA. deno check clean (the 2 remaining errors are pre-existing latest-Deno lib-strictness issues in _shared/device-auth.ts, untouched).
+- `scripts/ssh-ca/trust.sh`: fetches `/ssh/zones/<zone>/cert-authority?pattern=*.<domain>.iotgw` (multi-line, one per Host CA); domain→zone map from `domains.pki_zone`; env renamed `DOMAIN_CA_MAP`→`DOMAIN_ZONE_MAP`. Live-tested against pki.joor.net. README updated.
+
+The single-anchor `ca.pub` limitation is retired for trust material; a gateway/operator now receives the whole CA pair over a rotation overlap.
 <!-- SECTION:NOTES:END -->

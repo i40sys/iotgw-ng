@@ -16,8 +16,8 @@
 #   scripts/ssh-ca/trust.sh warehouse       # one domain
 #   PKI_BASE_URL=https://pki.joor.net scripts/ssh-ca/trust.sh
 #
-# Requires: the SOPS age key (to read the domain→CA mapping from the cluster) or
-# DOMAIN_CA_MAP="<domain>=<hostCaId>[,<domain>=<hostCaId>...]" to skip the lookup.
+# Requires: the SOPS age key (to read the domain→zone mapping from the cluster) or
+# DOMAIN_ZONE_MAP="<domain>=<zone>[,<domain>=<zone>...]" to skip the lookup.
 
 set -euo pipefail
 
@@ -30,19 +30,19 @@ WANT_DOMAIN="${1:-}"
 
 die() { echo "ssh-ca/trust: $*" >&2; exit 1; }
 
-# --- resolve <domain> -> <host CA id> --------------------------------------
-# Preferred source is the cluster, because `domains.pki_host_ca_id` is where the
-# backend recorded the zone it created (decision-026 phase 0.5). DOMAIN_CA_MAP
+# --- resolve <domain> -> <pki zone> ----------------------------------------
+# Preferred source is the cluster, because `domains.pki_zone` is where the
+# backend recorded the zone it created (decision-026 phase 0.5). DOMAIN_ZONE_MAP
 # is the escape hatch for a workstation with no cluster access.
 resolve_map() {
-  if [ -n "${DOMAIN_CA_MAP:-}" ]; then
-    echo "$DOMAIN_CA_MAP" | tr ',' '\n'
+  if [ -n "${DOMAIN_ZONE_MAP:-}" ]; then
+    echo "$DOMAIN_ZONE_MAP" | tr ',' '\n'
     return
   fi
-  command -v kubectl >/dev/null || die "kubectl not found and DOMAIN_CA_MAP is unset"
+  command -v kubectl >/dev/null || die "kubectl not found and DOMAIN_ZONE_MAP is unset"
   kubectl -n supabase-db exec supabase-db-0 -c patroni -- \
     psql -U postgres -d postgres -At -F= -c \
-    "SELECT name, pki_host_ca_id FROM domains WHERE pki_zone IS NOT NULL AND pki_host_ca_id IS NOT NULL ORDER BY name;" \
+    "SELECT name, pki_zone FROM domains WHERE pki_zone IS NOT NULL ORDER BY name;" \
     2>/dev/null | grep -E '^[a-z0-9-]+=' || die "no domain is linked to a pki-manager zone yet"
 }
 
@@ -50,23 +50,24 @@ mkdir -p "$KH_DIR" "$CONF_DIR"
 chmod 700 "$SSH_DIR" "$KH_DIR" "$CONF_DIR" 2>/dev/null || true
 
 installed=0
-while IFS='=' read -r domain ca_id; do
-  [ -n "$domain" ] && [ -n "$ca_id" ] || continue
+while IFS='=' read -r domain zone; do
+  [ -n "$domain" ] && [ -n "$zone" ] || continue
   if [ -n "$WANT_DOMAIN" ] && [ "$domain" != "$WANT_DOMAIN" ]; then continue; fi
 
-  # /ssh/cas/:id/ca.pub is public and id-addressed, so it is zone-correct even
-  # though the zone-scoped trust routes are SPA-shadowed on this deployment.
-  ca_pub="$(curl -fsS "$PKI_BASE_URL/ssh/cas/$ca_id/ca.pub" || true)"
-  case "$ca_pub" in
-    ssh-*|ecdsa-*) : ;;
-    *) echo "  SKIP $domain — $PKI_BASE_URL returned no usable CA key for $ca_id" >&2; continue ;;
+  # Zone-scoped, public, no credential. Returns one `@cert-authority` line PER
+  # Host CA (active + any rotating), so a Host CA rotation is trusted end-to-end
+  # for the whole overlap window (decision-028 §4) — the id-addressed ca.pub
+  # route returned a single CA. Un-shadowed in pki-manager (TASK-076).
+  ca_lines="$(curl -fsS "$PKI_BASE_URL/ssh/zones/$zone/cert-authority?pattern=*.$domain.iotgw" || true)"
+  case "$ca_lines" in
+    @cert-authority*) : ;;
+    *) echo "  SKIP $domain — $PKI_BASE_URL returned no usable trust line for zone $zone" >&2; continue ;;
   esac
 
   target="$KH_DIR/iotgw-$domain"
-  line="@cert-authority *.$domain.iotgw $ca_pub"
-  # Rewrite our own file wholesale — it holds exactly one line and nothing else,
-  # so a CA rotation is picked up without any merge logic.
-  printf '%s\n' "$line" > "$target"
+  # Rewrite our own file wholesale — it holds only these @cert-authority lines,
+  # so a CA rotation (active + rotating) is picked up without any merge logic.
+  printf '%s\n' "$ca_lines" > "$target"
   chmod 600 "$target"
   echo "  ok   $domain -> $target"
   installed=$((installed + 1))

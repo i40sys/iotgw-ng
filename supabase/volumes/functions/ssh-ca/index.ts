@@ -34,11 +34,11 @@ import {
   type SupabaseRestConfig,
 } from "../_shared/device-auth.ts";
 import {
-  caPublicKey,
   hostSshdConfig,
   PkiError,
   pkiConfigFromEnv,
   signHost,
+  zoneTrustAnchors,
 } from "../_shared/pki-manager.ts";
 
 type DenoEnv = { env: { get(key: string): string | undefined } };
@@ -282,14 +282,21 @@ serve(async (req: Request) => {
   };
 
   try {
-    const [userCa, hostCa] = await Promise.all([
-      caPublicKey(pki, domain.pki_user_ca_id),
-      caPublicKey(pki, domain.pki_host_ca_id),
-    ]);
-    payload.user_ca = `${userCa}\n`;
-    payload.host_ca = `${hostCa}\n`;
-    // The operator-side trust line, so the same bundle can seed a known_hosts.
-    payload.cert_authority = `@cert-authority *.${label(domain.name)}.${FQDN_SUFFIX} ${hostCa}\n`;
+    // Zone-scoped anchors return the ACTIVE + any ROTATING CA of each type, so a
+    // gateway seeded here keeps trusting either half of a rotating CA pair for
+    // the whole overlap window (decision-028 §4) — the id-addressed ca.pub route
+    // returned only one CA and would have stranded a late-renewing gateway.
+    const { userCaKeys, hostCaKeys } = await zoneTrustAnchors(
+      pki,
+      domain.pki_zone,
+    );
+    payload.user_ca = userCaKeys.join("\n") + "\n";
+    payload.host_ca = hostCaKeys.join("\n") + "\n";
+    // The operator-side trust lines — one @cert-authority per Host CA, so the
+    // same bundle can seed a known_hosts across a Host CA rotation too.
+    payload.cert_authority = hostCaKeys
+      .map((k) => `@cert-authority *.${label(domain.name)}.${FQDN_SUFFIX} ${k}`)
+      .join("\n") + "\n";
 
     if (action === "enroll") {
       const { key: hostPubkey, ecies } = normalizeHostPubkey(request.host_pubkey);

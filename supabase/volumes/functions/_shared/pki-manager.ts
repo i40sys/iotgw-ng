@@ -111,21 +111,19 @@ export async function signHost(
   return JSON.parse(text) as SignHostResult;
 }
 
+const CA_KEY_RE = /^(ssh|ecdsa)-[a-z0-9@.-]+ [A-Za-z0-9+/=]+/;
+
 /**
- * Fetch one CA's OpenSSH public key.
+ * Fetch one CA's OpenSSH public key (single, id-addressed).
  *
- * Why *this* route and not the zone-scoped trust endpoints: on the pki.joor.net
- * deployment `/ssh/zones/:zone/{trusted-user-ca-keys,host-ca-keys}` are
- * SPA-shadowed and return the frontend's index.html, while the unscoped
- * `/ssh/trusted-user-ca-keys` serves the **default** zone only — neither is
- * usable for a per-domain zone (verified 2026-09-14; decision-025 §E, and the
- * "un-shadow the zone-scoped public SSH trust routes" task). `/ssh/cas/:id/ca.pub`
- * is public, id-addressed and therefore inherently zone-correct: the ids come
- * from `domains.pki_user_ca_id` / `pki_host_ca_id`, which the backend persisted
- * when it created the zone.
+ * Kept for callers that genuinely want ONE CA by id. For gateway/operator TRUST
+ * material prefer `zoneTrustAnchors()` — a CA that is mid-rotation publishes an
+ * `active` + a `rotating` key, and this route returns only the one you name, so
+ * a gateway seeded from it would trust just half the pair during an overlap
+ * (decision-028 §4).
  *
- * It is also read with **no credential**, which is right — a CA public key is
- * public by design, and it keeps the fleet token confined to signing.
+ * Read with **no credential**, which is right — a CA public key is public by
+ * design, and it keeps the fleet token confined to signing.
  */
 export async function caPublicKey(cfg: PkiConfig, caId: string): Promise<string> {
   const response = await fetch(
@@ -141,12 +139,71 @@ export async function caPublicKey(cfg: PkiConfig, caId: string): Promise<string>
   }
   // A SPA fallback serving index.html is the expected shape of a routing
   // regression here; say so rather than shipping HTML to a gateway.
-  if (!/^(ssh|ecdsa)-[a-z0-9@.-]+ [A-Za-z0-9+/=]+/.test(text)) {
+  if (!CA_KEY_RE.test(text)) {
     throw new PkiError(
       `pki-manager returned a non-key body for CA ${caId} (is the route SPA-shadowed?)`,
     );
   }
   return text;
+}
+
+/** A zone's published trust anchors: the ACTIVE + any ROTATING CA per type. */
+export interface ZoneTrustAnchors {
+  userCaKeys: string[];
+  hostCaKeys: string[];
+}
+
+/**
+ * Fetch a zone's full trust anchors from the **zone-scoped** public routes
+ * `/ssh/zones/:zone/{trusted-user-ca-keys,host-ca-keys}`. Unlike `caPublicKey`
+ * these return EVERY usable CA of each type (active + rotating), so a gateway
+ * seeded from them keeps trusting certs signed by either half of a rotating CA
+ * pair during the overlap window (decision-028 §4). The scoped routes were
+ * un-shadowed in pki-manager (TASK-076); before that they returned the SPA's
+ * index.html, which is why the enrolment path used the id-addressed `ca.pub`.
+ *
+ * Public, no credential — CA public keys are public by design.
+ */
+export async function zoneTrustAnchors(
+  cfg: PkiConfig,
+  zone: string,
+): Promise<ZoneTrustAnchors> {
+  const fetchKeys = async (
+    kind: "trusted-user-ca-keys" | "host-ca-keys",
+  ): Promise<string[]> => {
+    const response = await fetch(
+      `${cfg.baseUrl}/ssh/zones/${encodeURIComponent(zone)}/${kind}`,
+      { headers: { Accept: "text/plain" } },
+    );
+    const text = (await response.text()).trim();
+    if (!response.ok) {
+      throw new PkiError(
+        `pki-manager ${kind} failed for zone ${zone} (HTTP ${response.status})`,
+        response.status,
+      );
+    }
+    const keys = text.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (keys.length === 0) {
+      throw new PkiError(
+        `pki-manager returned no ${kind} for zone ${zone}`,
+      );
+    }
+    for (const k of keys) {
+      // A SPA fallback serving index.html is the expected shape of a routing
+      // regression here; refuse rather than ship HTML to a gateway.
+      if (!CA_KEY_RE.test(k)) {
+        throw new PkiError(
+          `pki-manager returned a non-key ${kind} body for zone ${zone} (is the route SPA-shadowed?)`,
+        );
+      }
+    }
+    return keys;
+  };
+  const [userCaKeys, hostCaKeys] = await Promise.all([
+    fetchKeys("trusted-user-ca-keys"),
+    fetchKeys("host-ca-keys"),
+  ]);
+  return { userCaKeys, hostCaKeys };
 }
 
 /** The authoritative sshd drop-in for a host, rendered by pki-manager. */

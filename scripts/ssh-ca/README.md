@@ -27,10 +27,13 @@ ssh -o HostKeyAlias=<device>.<domain>.iotgw root@<gateway-ip>
 ssh -G <device>.<domain>.iotgw | grep -E 'stricthostkeychecking|userknownhostsfile'
 ```
 
-Source of the Host CA is the **public, id-addressed** pki route
-`/ssh/cas/<id>/ca.pub` (no credential — a CA public key is public). The
-`<domain> → host-CA-id` map comes from `domains.pki_host_ca_id` in the cluster DB,
-or pass `DOMAIN_CA_MAP="<domain>=<hostCaId>,…"` on a workstation with no cluster
+Source of the trust lines is the **public, zone-scoped** pki route
+`/ssh/zones/<zone>/cert-authority?pattern=*.<domain>.iotgw` (no credential — a CA
+public key is public). It returns one `@cert-authority` line **per Host CA**, so a
+Host CA mid-rotation (active + rotating) is trusted for the whole overlap window
+(decision-028 §4) — the older id-addressed `/ssh/cas/<id>/ca.pub` route returned a
+single CA. The `<domain> → zone` map comes from `domains.pki_zone` in the cluster
+DB, or pass `DOMAIN_ZONE_MAP="<domain>=<zone>,…"` on a workstation with no cluster
 access.
 
 ## 2. Get a user certificate (log in as `iotgw-admin`)
