@@ -6,7 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-09-14 05:30'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-21 14:49'
 labels:
   - ssh-ca
   - kestra
@@ -42,4 +42,5 @@ Affects all three flows — `install`, `provisioning`, `connectivity-check`.
 - [ ] #2 The certificate is short-lived and obtained per flow run rather than stored in the namespace files
 - [ ] #3 No sign-user credential is present in a runner pod unless decision-028 §1 recorded that as the choice
 - [ ] #4 keys/id_rsa is no longer required for any of the three flows to run
+- [ ] #5 The backend mints the runner's iotgw-ops user cert with a 2 h TTL (IOTGW_USER_CERT_TTL_SECONDS['iotgw-ops'], decision-028 §1 / task-070), never in the runner pod
 <!-- AC:END -->

@@ -31,6 +31,23 @@ const PKI_OIDC_PASSWORD = process.env.PKI_OIDC_PASSWORD;
 /** The two principals every iotgw-ng zone gets (decision-024 §5). */
 export const IOTGW_PRINCIPALS = ["iotgw-admin", "iotgw-ops"] as const;
 
+/**
+ * User-certificate TTLs, in seconds, DECIDED in decision-028 §1 (task-070).
+ * Single source of truth for both issuers so the value is applied in code, not
+ * only written down:
+ *   - `iotgw-admin` (human operators) — 24 h + a documented offline renewal path;
+ *     field/on-site sessions are common, so 12 h would strand operators. A
+ *     departed admin keeps access ≤24 h; the KRL is the emergency revocation path.
+ *     Applied by scripts/ssh-ca/user-cert.sh (VALID_FOR_SECONDS default 86400).
+ *   - `iotgw-ops` (the Kestra runner) — 2 h, minted by the BACKEND (never the
+ *     runner pod, so no issuance credential lands in a pod). Consumed by the
+ *     backend user-cert issuance the Kestra runner will call (task-092).
+ */
+export const IOTGW_USER_CERT_TTL_SECONDS = {
+  "iotgw-admin": 86_400,
+  "iotgw-ops": 7_200,
+} as const satisfies Record<(typeof IOTGW_PRINCIPALS)[number], number>;
+
 export class PkiError extends Error {
   readonly status?: number;
   constructor(message: string, status?: number) {

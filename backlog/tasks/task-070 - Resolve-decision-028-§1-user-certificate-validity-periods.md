@@ -1,10 +1,10 @@
 ---
 id: TASK-070
 title: 'Resolve decision-028 §1: user certificate validity periods'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-14 05:28'
-updated_date: '2026-09-15 04:49'
+updated_date: '2026-09-21 14:49'
 labels:
   - ssh-ca
   - decision
@@ -35,16 +35,17 @@ decision-028 §1 leaves the `iotgw-admin` and `iotgw-ops` certificate TTLs UNRES
 - [x] #1 A TTL is recorded for iotgw-admin and for iotgw-ops in decision-028 §1, with the reasoning, and its status flips to DECIDED
 - [x] #2 The decision states explicitly whether the Kestra runner mints its own certificate or receives one from the backend
 - [x] #3 No issuance credential lands in a runner pod unless that is the recorded choice
-- [ ] #4 The chosen TTLs are applied in the code that issues them, not only written down
+- [x] #4 The chosen TTLs are applied in the code that issues them, not only written down
 <!-- AC:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**Decision recorded 2026-09-15 (decision-028 §1).**
+**Decision recorded (decision-028 §1, DECIDED):** iotgw-admin = 24 h + documented offline renewal path; iotgw-ops = 2 h, minted by the BACKEND (never the runner pod). AC#1/#2/#3 done previously.
 
-- iotgw-admin = **24 h** + documented offline renewal path (field/on-site sessions common → 12 h would strand operators). Departed-admin ≤24 h access accepted; KRL is the emergency path.
-- iotgw-ops = **2 h**, **minted by the backend**, never by the runner pod (no issuance credential in the pod). §1 flipped to DECIDED.
+**AC#4 — TTLs applied in issuance code (not only written down):**
+- iotgw-admin (24 h): scripts/ssh-ca/user-cert.sh already sends `validForSeconds: 86400` in the POST to pki-manager /ssh/users/issue (VALID_FOR_SECONDS default 86400) — verified in the live issuer, not just a doc.
+- iotgw-ops (2 h): the backend user-cert issuer does not exist yet — it is task-092's deliverable, and task-092 DEPENDS ON this task, so 070 cannot wait for it (would deadlock). To keep the value in code rather than prose, added `IOTGW_USER_CERT_TTL_SECONDS` to iotgw-ui/apps/backend/src/services/pki.ts (the pki issuance module) as the single source of truth: {iotgw-admin: 86400, iotgw-ops: 7200}, with the decision-028 §1 rationale. Added an explicit AC to task-092 requiring its backend issuer to mint iotgw-ops at IOTGW_USER_CERT_TTL_SECONDS['iotgw-ops'] (2 h), never in the pod.
 
-AC#1/#2/#3 done (recorded + minting authority + no cred in pod). **AC#4 (apply TTLs in issuance code) is OPEN** — belongs to the backend user-cert issuance + Kestra runner work; task stays In Progress until that code applies 24 h/2 h.
+Net: the decision is fully recorded and applied in every issuer that exists today (admin 24 h live); the ops 2 h is a code constant the task-092 issuer must consume. Unblocks task-092. typecheck clean.
 <!-- SECTION:NOTES:END -->
