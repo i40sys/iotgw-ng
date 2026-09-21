@@ -64,6 +64,30 @@ and no per-host `authorized_keys` entry is created.
   missing/mismatched or within its renewal margin, ~30 d). Automatic gateway-side
   renewal-before-expiry is `task-104`.
 
+## 3b. Rotate a CA and prove the fleet re-issued before retiring the old one
+
+CA rotation is **event-driven** (compromise / policy), never scheduled, with a
+**≥120-day overlap** (> the 90-day host-cert TTL) and retirement **gated** on a
+fleet re-issue report (`decision-028 §4`). During the overlap pki-manager
+publishes both the `active` successor and the `rotating` predecessor, so
+gateways and operators keep trusting either (the zone-scoped routes deliver the
+pair — see step 1).
+
+Before you **retire** the old (rotating) CA, prove nothing live still depends on
+it — retiring a CA invalidates everything it signed:
+
+```bash
+PKI_TOKEN=<your-oidc-jwt> scripts/ssh-ca/fleet-report.sh                 # every rotating CA
+PKI_TOKEN=<your-oidc-jwt> scripts/ssh-ca/fleet-report.sh warehouse       # one domain's zone
+```
+
+It calls pki-manager's `GET /api/v1/ssh/cas/:caId/reissue-report` for each
+rotating CA and prints, per CA, how many live certs are **still under it** (the
+devices that have **not** re-issued) and a **SAFE TO RETIRE: YES/NO** verdict.
+It exits non-zero (2) while any device is still on an old CA, so it doubles as a
+gate in automation. Only once it reports safe do you retire the predecessor
+(`POST /api/v1/ssh/cas/:caId/retire`).
+
 ## 4. Break-glass (raw key still works)
 
 Enrollment installs two sshd drop-ins on the gateway: `50-iotgw-authorized-keys.conf`
@@ -79,6 +103,7 @@ is that certificates, not raw keys, are how you get in.
 |---|---|---|
 | `trust.sh` (Host CA → known_hosts) | operator workstation | none (public CA route) |
 | `user-cert.sh` (issue user cert) | operator workstation | operator's OIDC JWT |
+| `fleet-report.sh` (CA retirement gate) | operator workstation | operator's OIDC JWT |
 | `tasks/ssh_ca.yaml` (gateway enroll) | Ansible via Kestra `install` / standalone | device TOTP → `ssh-ca` edge fn |
 | domain zone + CAs + principals | iotgw-ui backend `services/pki.ts` | Keycloak service account (`PKI_OIDC_*`) |
 | host-cert signing | `ssh-ca` edge function | zone-scoped fleet token (`PKI_FLEET_TOKENS`) |
