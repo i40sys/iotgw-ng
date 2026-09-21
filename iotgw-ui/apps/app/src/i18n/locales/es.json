@@ -107,6 +107,25 @@
       "generateSuccess": "Se inició la generación de la clave SSH",
       "generateError": "No se pudo generar la clave SSH",
       "alreadyConfigured": "La clave SSH ya está configurada"
+    },
+    "sshCert": {
+      "sectionTitle": "Certificado de host SSH",
+      "description": "Estado de inscripción en la CA SSH para la verificación del host de la pasarela",
+      "enrolled": "Certificado de host inscrito",
+      "expired": "Certificado de host caducado",
+      "notEnrolled": "Aún no inscrito en la CA SSH",
+      "expiresInDays": "caduca en {{days}} d",
+      "expiredDaysAgo": "caducó hace {{days}} d",
+      "fqdn": "FQDN",
+      "fingerprint": "Huella de la clave",
+      "serial": "Serie del certificado",
+      "validBefore": "Válido hasta",
+      "enroll": "Inscribir ahora",
+      "reenroll": "Forzar reinscripción",
+      "reenrolling": "Encolando...",
+      "reenrollQueued": "Reinscripción en la CA SSH encolada mediante el flujo de aprovisionamiento",
+      "reenrollError": "No se pudo encolar la reinscripción en la CA SSH",
+      "deleteWarning": "Si este dispositivo está inscrito en la CA SSH, eliminarlo revoca permanentemente su certificado de host (offboard en pki-manager). Es irreversible: el certificado queda muerto, no inactivo, y su par (zona, FQDN) no puede volver a registrarse nunca."
     }
   },
   "domains": {

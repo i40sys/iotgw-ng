@@ -14,6 +14,16 @@ import {
   isPkiConfigured,
 } from "../services/pki";
 
+// Kestra + edge-function endpoints for the force-re-enroll path (mirrors the
+// deployments router; kept in sync deliberately — decision-020 FQDNs).
+const KESTRA_API_URL = (
+  process.env.KESTRA_API_URL ?? "http://kestra.kestra.svc.cluster.local:8080"
+).replace(/\/+$/, "");
+const SUPABASE_GATEWAY_URL = (
+  process.env.SUPABASE_GATEWAY_URL ??
+  "http://kong.supabase-app.svc.cluster.local:8000"
+).replace(/\/+$/, "");
+
 // Debug logging for connectivity checks - enabled via LOG_LEVEL=debug environment variable
 const isDebugEnabled = process.env.LOG_LEVEL === "debug";
 
@@ -288,6 +298,166 @@ export const devicesRouter = {
       return {
         status: "generated",
         sshKeyId,
+      };
+    },
+  ),
+
+  // SSH-CA host-certificate enrollment status (task-081). Reads only the
+  // enrollment metadata the `ssh-ca` edge function writes back on a successful
+  // enroll — NEVER any private key material (AC#5; the host private key never
+  // leaves the gateway and is not stored here at all).
+  getSshCertStatus: createQueryProcedure(
+    "get_ssh_cert_status",
+    z.object({ id: z.string() }),
+    async ({ ctx, input }) => {
+      const { data, error } = await ctx.supabase
+        .from("devices")
+        .select(
+          "ssh_host_id, ssh_host_fqdn, ssh_host_key_fingerprint, ssh_host_cert_serial, ssh_host_cert_valid_before, ssh_ca_enrolled_at",
+        )
+        .eq("id", input.id)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Device with ID ${input.id} not found`,
+            cause: error,
+          });
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to read SSH certificate status: ${error.message}`,
+          cause: error,
+        });
+      }
+
+      const validBefore = data?.ssh_host_cert_valid_before ?? null;
+      const expiresInDays =
+        validBefore !== null
+          ? Math.floor(
+              (new Date(validBefore).getTime() - Date.now()) / 86_400_000,
+            )
+          : null;
+
+      return {
+        enrolled: Boolean(data?.ssh_host_id),
+        hostId: data?.ssh_host_id ?? null,
+        fqdn: data?.ssh_host_fqdn ?? null,
+        keyFingerprint: data?.ssh_host_key_fingerprint ?? null,
+        certSerial: data?.ssh_host_cert_serial ?? null,
+        certValidBefore: validBefore,
+        enrolledAt: data?.ssh_ca_enrolled_at ?? null,
+        expiresInDays,
+        isExpired: expiresInDays !== null && expiresInDays < 0,
+      };
+    },
+  ),
+
+  // Force a re-enrollment of a device's SSH host certificate (task-081, AC#2).
+  //
+  // UNAMBIGUOUS MEANING: this QUEUES a re-enroll by triggering the Kestra
+  // `provisioning` flow with `__tags__: ["ssh_ca"]` and `ssh_ca_force: true` for
+  // this one device. It deliberately does NOT call the `ssh-ca` edge function:
+  // that path is TOTP-authenticated *as the device* and the backend is not the
+  // device; nor can the backend re-sign directly (it does not hold the gateway's
+  // host public key — that lives on the gateway). The gateway generates/holds the
+  // host key and the ssh_ca task drives the signing. Result: an execution id the
+  // caller can watch; the edge function writes ssh_host_* back on success.
+  enrollSshCa: createMutationProcedure(
+    "enroll_ssh_ca",
+    z.object({ id: z.string() }),
+    async ({ ctx, input }) => {
+      const { supabase } = ctx;
+
+      const { data: device, error: deviceError } = await supabase
+        .from("devices")
+        .select("id, name, network_id, ip_address, ssh_key_id")
+        .eq("id", input.id)
+        .single();
+
+      if (deviceError || !device) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Device with ID ${input.id} not found`,
+          cause: deviceError,
+        });
+      }
+
+      const { data: network, error: networkError } = await supabase
+        .from("networks")
+        .select("id, domain_id")
+        .eq("id", device.network_id)
+        .single();
+
+      if (networkError || !network) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Network for device ${input.id} not found`,
+          cause: networkError,
+        });
+      }
+
+      if (!device.ip_address) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message:
+            "Device has no IP address yet — it must be provisioned into its network before SSH-CA enrollment can reach it.",
+        });
+      }
+
+      // Same ssh_ca vars the deployments router packs; the ssh_ca task derives
+      // the device TOTP from these identifiers (never a secret here). ssh_ca_force
+      // makes it a re-sign even if the current cert is still fresh.
+      const jsonData = {
+        target_ip: device.ip_address,
+        ssh_key_id: device.ssh_key_id ?? "",
+        iotgw_ssh_ca_base_url: SUPABASE_GATEWAY_URL,
+        device_id: `${device.name}@${network.id.slice(0, 8)}`,
+        device_uuid: device.id,
+        network_id: network.id,
+        domain_id: network.domain_id,
+        ssh_ca_force: true,
+        __tags__: ["ssh_ca"],
+      };
+
+      const FormData = (await import("formdata-node")).FormData;
+      const formData = new FormData();
+      formData.append("json_data", JSON.stringify(jsonData));
+
+      const response = await fetch(
+        `${KESTRA_API_URL}/api/v1/main/executions/iotgw-ng/provisioning`,
+        {
+          method: "POST",
+          headers: {
+            Authorization:
+              "Basic " +
+              Buffer.from(
+                `${process.env.KESTRA_USER}:${process.env.KESTRA_PASSWORD}`,
+              ).toString("base64"),
+          },
+          body: formData as unknown as BodyInit,
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to queue SSH-CA re-enrollment (Kestra ${response.status} ${response.statusText}): ${errorText}`,
+        });
+      }
+
+      const execution = (await response.json()) as { id?: string };
+      logger.info(
+        { deviceId: input.id, executionId: execution.id },
+        "Queued forced SSH-CA re-enrollment via provisioning flow",
+      );
+
+      return {
+        status: "queued" as const,
+        executionId: execution.id ?? "unknown",
       };
     },
   ),

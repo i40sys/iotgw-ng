@@ -107,6 +107,25 @@
       "generateSuccess": "SSH key generation started",
       "generateError": "Failed to generate SSH key",
       "alreadyConfigured": "SSH key already configured"
+    },
+    "sshCert": {
+      "sectionTitle": "SSH Host Certificate",
+      "description": "SSH-CA enrollment status for gateway host verification",
+      "enrolled": "Host certificate enrolled",
+      "expired": "Host certificate expired",
+      "notEnrolled": "Not yet enrolled with the SSH CA",
+      "expiresInDays": "expires in {{days}} d",
+      "expiredDaysAgo": "expired {{days}} d ago",
+      "fqdn": "FQDN",
+      "fingerprint": "Key fingerprint",
+      "serial": "Cert serial",
+      "validBefore": "Valid until",
+      "enroll": "Enroll now",
+      "reenroll": "Force re-enroll",
+      "reenrolling": "Queuing...",
+      "reenrollQueued": "SSH-CA re-enrollment queued via the provisioning flow",
+      "reenrollError": "Failed to queue SSH-CA re-enrollment",
+      "deleteWarning": "If this device is SSH-CA enrolled, deleting it permanently revokes its host certificate (pki-manager offboard). This is irreversible: the certificate is dead, not dormant, and its (zone, FQDN) can never be re-registered."
     }
   },
   "domains": {

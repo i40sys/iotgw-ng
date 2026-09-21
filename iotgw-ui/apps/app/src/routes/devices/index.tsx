@@ -54,6 +54,7 @@ import {
   faRocket,
   faX,
   faKey,
+  faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -1179,6 +1180,13 @@ function DevicesPage() {
               Are you sure you want to delete "{selectedDevice?.name}"? This
               action cannot be undone.
             </AlertDialogDescription>
+            <div className="mt-2 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+              <FontAwesomeIcon
+                icon={faTriangleExclamation}
+                className="mt-0.5 h-4 w-4 shrink-0"
+              />
+              <span>{t("devices.sshCert.deleteWarning")}</span>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

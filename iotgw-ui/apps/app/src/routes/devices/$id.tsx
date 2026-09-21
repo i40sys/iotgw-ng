@@ -12,7 +12,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Wifi, Network, Key, KeyRound, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  Wifi,
+  Network,
+  Key,
+  KeyRound,
+  CheckCircle,
+  AlertCircle,
+  ShieldCheck,
+  ShieldAlert,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/devices/$id")({
@@ -58,6 +68,22 @@ function DeviceDetailsPage() {
         error instanceof Error
           ? error.message
           : t("devices.sshKey.generateError"),
+      );
+    },
+  });
+
+  const sshCertQuery = useQuery(trpc.getSshCertStatus.queryOptions({ id }));
+  const enrollSshCaMutation = useMutation({
+    ...trpc.enrollSshCa.mutationOptions(),
+    onSuccess: () => {
+      toast.success(t("devices.sshCert.reenrollQueued"));
+      void queryClient.invalidateQueries({
+        queryKey: trpc.getSshCertStatus.queryKey({ id }),
+      });
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : t("devices.sshCert.reenrollError"),
       );
     },
   });
@@ -229,6 +255,111 @@ function DeviceDetailsPage() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5" />
+              {t("devices.sshCert.sectionTitle")}
+            </CardTitle>
+            <CardDescription>{t("devices.sshCert.description")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {sshCertQuery.data?.enrolled ? (
+              <div className="space-y-2">
+                <div
+                  className={
+                    sshCertQuery.data.isExpired
+                      ? "flex items-center gap-2 text-red-600 dark:text-red-400"
+                      : "flex items-center gap-2 text-green-600 dark:text-green-400"
+                  }
+                >
+                  {sshCertQuery.data.isExpired ? (
+                    <ShieldAlert className="h-4 w-4" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4" />
+                  )}
+                  <span>
+                    {sshCertQuery.data.isExpired
+                      ? t("devices.sshCert.expired")
+                      : t("devices.sshCert.enrolled")}
+                  </span>
+                  {sshCertQuery.data.expiresInDays !== null && (
+                    <Badge
+                      variant={
+                        sshCertQuery.data.isExpired ? "destructive" : "secondary"
+                      }
+                    >
+                      {sshCertQuery.data.isExpired
+                        ? t("devices.sshCert.expiredDaysAgo", {
+                            days: Math.abs(sshCertQuery.data.expiresInDays),
+                          })
+                        : t("devices.sshCert.expiresInDays", {
+                            days: sshCertQuery.data.expiresInDays,
+                          })}
+                    </Badge>
+                  )}
+                </div>
+                <dl className="grid grid-cols-1 gap-1 text-sm text-muted-foreground sm:grid-cols-2">
+                  <div>
+                    <span className="font-medium">
+                      {t("devices.sshCert.fqdn")}:
+                    </span>{" "}
+                    <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">
+                      {sshCertQuery.data.fqdn}
+                    </code>
+                  </div>
+                  <div>
+                    <span className="font-medium">
+                      {t("devices.sshCert.fingerprint")}:
+                    </span>{" "}
+                    <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">
+                      {sshCertQuery.data.keyFingerprint}
+                    </code>
+                  </div>
+                  <div>
+                    <span className="font-medium">
+                      {t("devices.sshCert.serial")}:
+                    </span>{" "}
+                    <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">
+                      {sshCertQuery.data.certSerial}
+                    </code>
+                  </div>
+                  {sshCertQuery.data.certValidBefore && (
+                    <div>
+                      <span className="font-medium">
+                        {t("devices.sshCert.validBefore")}:
+                      </span>{" "}
+                      {new Date(
+                        sshCertQuery.data.certValidBefore,
+                      ).toLocaleString()}
+                    </div>
+                  )}
+                </dl>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                <AlertCircle className="h-4 w-4" />
+                <span>{t("devices.sshCert.notEnrolled")}</span>
+              </div>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              disabled={enrollSshCaMutation.isPending}
+              onClick={() => enrollSshCaMutation.mutate({ id: device.id })}
+            >
+              <RefreshCw className="h-4 w-4" />
+              {enrollSshCaMutation.isPending
+                ? t("devices.sshCert.reenrolling")
+                : sshCertQuery.data?.enrolled
+                  ? t("devices.sshCert.reenroll")
+                  : t("devices.sshCert.enroll")}
+            </Button>
           </CardContent>
         </Card>
       </div>
