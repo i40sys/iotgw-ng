@@ -178,6 +178,15 @@ interface Principal {
   name: string;
   zoneId?: string;
 }
+interface Identity {
+  id: string;
+  subject: string;
+  zoneId?: string;
+  status?: string;
+}
+
+/** Subject of the machine identity the runner's iotgw-ops cert is issued against. */
+const OPS_IDENTITY_SUBJECT = "iotgw-ops";
 
 // ── idempotent building blocks ─────────────────────────────────────────────
 
@@ -300,11 +309,79 @@ export async function ensureDomainPkiZone(params: {
     await ensurePrincipal(zone.name, zone.id, principal);
   }
 
+  // The machine identity the Kestra runner's iotgw-ops user cert is issued
+  // against (task-092). Created here so every zone can mint a runner cert.
+  await ensureOpsIdentity(zone.name);
+
   logger.info(
     { zone: zone.name, userCaId, hostCaId },
     `pki-manager zone provisioned for domain '${params.domainSlug}'`,
   );
   return { pki_zone: zone.name, pki_user_ca_id: userCaId, pki_host_ca_id: hostCaId };
+}
+
+/**
+ * Ensure the `iotgw-ops` machine identity exists in a zone (task-092). Idempotent:
+ * looks it up by subject first, creates it only if missing. Returns its id — the
+ * `identityId` that `issueOpsUserCert` issues against.
+ */
+export async function ensureOpsIdentity(zoneName: string): Promise<string> {
+  assertConfigured();
+  const zone = await getZone(zoneName);
+  if (!zone) throw new PkiError(`pki-manager zone '${zoneName}' not found`, 404);
+
+  const { data } = await pkiFetch<Identity[] | { items?: Identity[] }>(
+    `/ssh/identities?zoneId=${encodeURIComponent(zone.id)}`,
+  );
+  const list = Array.isArray(data) ? data : (data?.items ?? []);
+  const existing = list.find((i) => i.subject === OPS_IDENTITY_SUBJECT);
+  if (existing) return existing.id;
+
+  const { data: created } = await pkiFetch<Identity>("/ssh/identities", {
+    method: "POST",
+    body: { subject: OPS_IDENTITY_SUBJECT, zone: zone.name },
+  });
+  if (!created?.id) {
+    throw new PkiError(`failed to create iotgw-ops identity in zone '${zoneName}'`);
+  }
+  return created.id;
+}
+
+/**
+ * Mint a short-lived `iotgw-ops` user certificate for the Kestra runner
+ * (task-092, decision-028 §1 — 2 h, minted by the BACKEND, never the pod). The
+ * caller supplies its own ephemeral public key, so NO private key ever crosses
+ * this boundary. Returns the OpenSSH certificate string, signed by the zone's
+ * User CA (so the target gateway in that zone trusts it).
+ */
+export async function issueOpsUserCert(
+  zoneName: string,
+  sshPublicKey: string,
+): Promise<string> {
+  assertConfigured();
+  const identityId = await ensureOpsIdentity(zoneName);
+  const { data } = await pkiFetch<{
+    cert?: { certOpenssh?: string; certificate?: string };
+    certOpenssh?: string;
+    certificate?: string;
+  }>("/ssh/users/issue", {
+    method: "POST",
+    body: {
+      identityId,
+      sshPublicKey,
+      principals: ["iotgw-ops"],
+      validForSeconds: IOTGW_USER_CERT_TTL_SECONDS["iotgw-ops"],
+    },
+  });
+  const scope =
+    data && typeof data.cert === "object" && data.cert ? data.cert : data;
+  const cert = scope?.certOpenssh ?? scope?.certificate;
+  if (!cert || !cert.trim()) {
+    throw new PkiError(
+      `pki-manager /ssh/users/issue returned no certificate for zone '${zoneName}'`,
+    );
+  }
+  return cert.trim();
 }
 
 /** Offboard a pki-manager host (terminal; task-081/102). */

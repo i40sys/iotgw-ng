@@ -8,6 +8,7 @@ import { appRouter, type AppRouter } from "./routers/router";
 import ws from "@fastify/websocket";
 import cors from "@fastify/cors";
 import envToLogger from "./logger";
+import { issueOpsUserCert, isPkiConfigured } from "./services/pki";
 
 const environment = (process.env.NODE_ENV ?? "development") as
   | "development"
@@ -42,6 +43,44 @@ server.register(fastifyTRPCPlugin, {
 });
 
 server.register(ws);
+
+// Internal mint endpoint for the Kestra runner's short-lived iotgw-ops user
+// certificate (task-092, decision-028 §1). The pod generates an EPHEMERAL keypair
+// and sends only its public key; the backend signs it via pki-manager with its
+// OIDC credential, so no sign-user credential ever lands in the pod. Guarded by a
+// shared bearer (OPS_CERT_MINT_TOKEN) and reachable only from the kestra namespace
+// (NetworkPolicy). NOT a tRPC procedure on purpose — the runner pod calls it with
+// plain curl/wget from bash.
+server.post<{
+  Body: { zone?: string; sshPublicKey?: string };
+}>("/internal/ssh/ops-cert", async (request, reply) => {
+  const expected = process.env.OPS_CERT_MINT_TOKEN;
+  if (!expected) {
+    return reply.code(503).send({ error: "ops-cert minting is not configured" });
+  }
+  const auth = request.headers.authorization ?? "";
+  const presented = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (presented !== expected) {
+    return reply.code(401).send({ error: "unauthorized" });
+  }
+  if (!isPkiConfigured()) {
+    return reply.code(503).send({ error: "pki-manager is not configured" });
+  }
+  const { zone, sshPublicKey } = request.body ?? {};
+  if (!zone || !sshPublicKey) {
+    return reply
+      .code(400)
+      .send({ error: "zone and sshPublicKey are required" });
+  }
+  try {
+    const certificate = await issueOpsUserCert(zone, sshPublicKey);
+    return reply.send({ certificate });
+  } catch (err) {
+    request.log.error({ err, zone }, "ops-cert minting failed");
+    const message = err instanceof Error ? err.message : "minting failed";
+    return reply.code(502).send({ error: message });
+  }
+});
 
 void (async () => {
   try {
