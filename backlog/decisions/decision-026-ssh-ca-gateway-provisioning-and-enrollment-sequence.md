@@ -171,12 +171,28 @@ truth; `iotgw-ng` stores references only.
 
 | What | Trigger | Mechanism |
 |---|---|---|
-| **Host certificate renewal** | remaining life < ⅓ of the window | a cron/`procd` timer on the gateway re-runs the enrollment call (steps 3.2-3.14) with the **same** host key. Idempotent on `Idempotency-Key`; a new serial is issued. `sshd -t` + `reload` again. |
+| **Host certificate renewal** | remaining life < ⅓ of the window | **controller-driven** (task-104, amends the original on-gateway cron): a scheduled Kestra flow (`ssh-ca-renewal`) walks the `devices` with a linked `pki_zone` and re-runs `tasks/ssh_ca.yaml --tags ssh_ca` per gateway; that task's on-gateway idempotence check re-signs only when remaining life < `ssh_ca_renew_margin_seconds` (30 d), with the **same** host key (re-sign, not re-key). `sshd -t` + `reload` again. See the identifier/credential note below. |
 | **Host key rotation** | on demand / compromise | delete `ssh_host_ecdsa_key*`, re-enroll — a new key, a new cert, the old cert's serial goes into the KRL. |
 | **User certificate renewal** | expiry (short TTL) | operator re-runs `scripts/ssh-ca/user-cert.sh`; the runner re-mints its `iotgw-ops` cert at the start of every flow. No new key needed. |
 | **CA rotation** | `pki-manager` operation | the new CA becomes `rotating` alongside `active`; both anchors are published; gateways pick up the union at their next enrollment/renewal; after every host has re-issued, the old CA is retired. Overlap must exceed the host-cert TTL. |
 | **KRL refresh** | every ~15 min | `krl-client` pulls the ECIES-encrypted composed per-host KRL, verifies the Host-CA signature, installs `/etc/ssh/revoked_keys` atomically. `sshd` re-reads it on every publickey auth — **no reload needed**. |
 | **Decommission** | device delete in `iotgw-ng` | backend calls `offboard-host`; certs revoked, KRL lineage retired, `/krl` 404s (`krl-client` exit 9, keeps last-good). Terminal — see `decision-028` §10. |
+
+> **Renewal identifier/credential model (task-104, reconciled with `decision-028`
+> §12).** Renewal was originally specified as an on-gateway `cron`/`procd` timer.
+> That is **not** how it is implemented: renewal is **controller-driven** because
+> the on-gateway path would need `openssl`+`curl` (absent on OpenWRT), direct
+> gateway→Kong reachability, and the device's TOTP secret **stored on the device**
+> — the last being exactly the weak-binding problem §12/task-075 is still open on.
+> The controller path avoids all three: the scheduled Kestra flow reaches each
+> gateway over the runner's existing access, and the enrollment call derives the
+> device TOTP **on the controller** from the identifiers the backend already holds
+> (`<domain_id>-<network_id>-<device_uuid>-<totp_counter>`; `decision-009`,
+> `_shared/device-auth.ts`). So renewal introduces **no new on-device authenticator
+> and no new credential** — it reuses the same TOTP-from-identifiers channel as
+> enrollment and therefore *inherits* §12's identifier-strength caveat without
+> widening it. An expired host cert (offline gateway) degrades host verification
+> only, never login (`decision-028` §8); the next daily run re-signs on contact.
 
 ---
 
