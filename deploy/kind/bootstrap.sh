@@ -100,9 +100,10 @@ make_secrets() {
   # kestra-env: consumed by Kestra (kestra) AND the iotgw-ui backend.
   tools/secrets/secrets.sh k8s kestra "$NS_KESTRA" kestra-env | kubectl apply -f -
   tools/secrets/secrets.sh k8s kestra "$NS_UI"     kestra-env | kubectl apply -f -
-  gen_initdb_secret     # supabase-db-initdb -> supabase-db
-  gen_kms_auth_secret   # kms-auth           -> iotgw-ui
-  gen_pki_oidc_secret   # pki-oidc           -> iotgw-ui
+  gen_initdb_secret         # supabase-db-initdb -> supabase-db
+  gen_kms_auth_secret       # kms-auth           -> iotgw-ui + kestra
+  gen_pki_oidc_secret       # pki-oidc           -> iotgw-ui
+  gen_supabase_anon_secret  # supabase-anon      -> kestra (ssh_ca runner, task-105)
   echo "secrets applied"
 }
 
@@ -145,6 +146,26 @@ gen_pki_oidc_secret() {
   kubectl create secret generic pki-oidc -n "$NS_UI" \
     --from-literal=PKI_OIDC_CLIENT_SECRET="$secret" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
   echo "  pki-oidc Secret applied to $NS_UI (backend zone provisioning, task-080)"
+}
+
+# Bridge the Supabase anon JWT into the `supabase-anon` Secret in the `kestra`
+# namespace (task-105). The Kestra SSH-CA runner pod (Flow.yaml) references it via
+# an optional secretKeyRef and passes it to tasks/ssh_ca.yaml as `supabase_anon_key`
+# — the Kong gateway credential for the `ssh-ca` edge function route. It is NOT the
+# PKI fleet token (that stays inside the edge function). Only the anon key is needed
+# here, so this is a narrow single-key Secret rather than the full supabase-env. The
+# value lives in secrets/supabase.enc.env (SOPS → ANON_KEY).
+gen_supabase_anon_secret() {
+  local anon
+  anon="$(tools/secrets/secrets.sh cat supabase 2>/dev/null \
+         | grep -E '^ANON_KEY=' | head -1 | cut -d= -f2-)" || true
+  if [ -z "$anon" ]; then
+    echo "  (skip supabase-anon Secret: ANON_KEY not found in SOPS store)"
+    return 0
+  fi
+  kubectl create secret generic supabase-anon -n "$NS_KESTRA" \
+    --from-literal=ANON_KEY="$anon" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+  echo "  supabase-anon Secret applied to $NS_KESTRA (ssh_ca runner pods, task-105)"
 }
 
 
