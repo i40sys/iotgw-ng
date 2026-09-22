@@ -140,6 +140,21 @@ PubkeyAuthentication yes
 AuthorizedKeysFile .ssh/authorized_keys
 ```
 
+> **Re-enrollment proof-of-continuity (task-075, decision-028 §12).** Step 3.3's
+> TOTP is derived from **non-secret** identifiers, so it authenticates a *first*
+> enrollment only weakly — accepted because that happens on the isolated
+> provisioning bench (§5). But once a device has an enrolled host key (the
+> `ssh-ca` function records its full public key in `devices.ssh_host_pubkey`), a
+> **re-enroll** (renewal or key rotation) MUST additionally prove possession of
+> the existing host private key, or anyone who can read the identifiers could
+> rotate a gateway's host key to one they control. The gateway signs
+> `<device_id>\n<new host_pubkey>\n<current TOTP>` with its **existing** host key
+> (`ssh-keygen -Y sign -n iotgw-reenroll`) and sends the armored SSHSIG as
+> `continuity_sig`; the edge function verifies it against the stored
+> `ssh_host_pubkey` and **fails closed** (HTTP 401) if it is missing or invalid.
+> Source-address binding — the other §12 candidate — was dropped: NAT on the
+> provisioning path means an address attests a segment, not a device.
+
 ### What crosses which boundary
 
 | Boundary | Direction | Payload | Sensitive? |

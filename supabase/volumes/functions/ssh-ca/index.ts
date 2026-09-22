@@ -40,6 +40,7 @@ import {
   signHost,
   zoneTrustAnchors,
 } from "../_shared/pki-manager.ts";
+import { verifySshSig } from "../_shared/sshsig.ts";
 
 type DenoEnv = { env: { get(key: string): string | undefined } };
 const denoEnv = (globalThis as { Deno?: DenoEnv }).Deno?.env;
@@ -74,6 +75,11 @@ interface DeviceRow {
   name: string;
   ip_address: string | null;
   totp_counter: number;
+  // Enrollment continuity (task-075): the currently-enrolled host key. Empty on a
+  // never-enrolled device (first enroll is one-shot); set means a re-enroll must
+  // prove possession of this key.
+  ssh_host_key_fingerprint: string | null;
+  ssh_host_pubkey: string | null;
   network: {
     id: string;
     name: string;
@@ -89,7 +95,7 @@ interface DeviceRow {
 }
 
 const DEVICE_SELECT =
-  "id,network_id,name,ip_address,totp_counter," +
+  "id,network_id,name,ip_address,totp_counter,ssh_host_key_fingerprint,ssh_host_pubkey," +
   "network:networks(id,name,domain_id,domain:domains(id,name,pki_zone,pki_user_ca_id,pki_host_ca_id))";
 
 const json = (body: unknown, status: number) =>
@@ -226,7 +232,12 @@ serve(async (req: Request) => {
   }
   const totp = authenticated.code;
 
-  let request: { device_id?: string; action?: string; host_pubkey?: string };
+  let request: {
+    device_id?: string;
+    action?: string;
+    host_pubkey?: string;
+    continuity_sig?: string;
+  };
   try {
     request = JSON.parse(authenticated.plaintext);
   } catch (error) {
@@ -301,6 +312,43 @@ serve(async (req: Request) => {
     if (action === "enroll") {
       const { key: hostPubkey, ecies } = normalizeHostPubkey(request.host_pubkey);
 
+      // PROOF-OF-CONTINUITY (task-075 / decision-028 §12). Enrollment is
+      // authenticated only by the device TOTP, which is derived from non-secret
+      // identifiers — so a first enroll is one-shot (accepted on the isolated
+      // provisioning bench, §5). But once a device HAS an enrolled host key, a
+      // re-enroll (renewal or key rotation) MUST prove possession of that key,
+      // otherwise anyone who can read the identifiers could rotate the gateway's
+      // host key to one they control. The gateway signs `<device_id>\n<new
+      // host_pubkey>\n<current TOTP>` with its EXISTING host private key
+      // (ssh-keygen -Y sign -n iotgw-reenroll); we verify that SSHSIG against
+      // the previously-recorded host public key. Fails closed.
+      if (device.ssh_host_pubkey && device.ssh_host_pubkey.trim()) {
+        const challenge = new TextEncoder().encode(
+          `${deviceId}\n${hostPubkey}\n${totp}`,
+        );
+        const proven = typeof request.continuity_sig === "string" &&
+          request.continuity_sig.length > 0 &&
+          await verifySshSig({
+            armored: request.continuity_sig,
+            expectedPubkeyLine: device.ssh_host_pubkey,
+            namespace: "iotgw-reenroll",
+            message: challenge,
+          });
+        if (!proven) {
+          return json(
+            {
+              error: "re-enrollment requires proof of the existing host key",
+              details:
+                "This device is already enrolled; a re-enroll must include a " +
+                "continuity_sig — an SSHSIG (namespace iotgw-reenroll) over " +
+                "'<device_id>\\n<new host_pubkey>\\n<TOTP>' signed by the current " +
+                "host private key (decision-028 §12).",
+            },
+            401,
+          );
+        }
+      }
+
       const deviceLabel = label(device.name);
       const networkLabel = label(device.network.name);
       const domainLabel = label(domain.name);
@@ -352,6 +400,10 @@ serve(async (req: Request) => {
         ssh_host_id: signed.hostId,
         ssh_host_fqdn: fqdn,
         ssh_host_key_fingerprint: await opensshFingerprint(hostPubkey),
+        // Retain the full pubkey so the NEXT enroll can be proven a continuation
+        // of this key (task-075). On a re-enroll this rolls forward to the new
+        // key, which the proof we just verified authorised.
+        ssh_host_pubkey: hostPubkey,
         ssh_host_cert_serial: String(signed.serial),
         ssh_host_cert_valid_before: signed.validBefore,
         ssh_ca_enrolled_at: new Date().toISOString(),
