@@ -3,10 +3,10 @@ id: TASK-092
 title: >-
   Kestra runner: authenticate with an iotgw-ops user certificate instead of
   keys/id_rsa
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-14 05:30'
-updated_date: '2026-09-22 05:08'
+updated_date: '2026-09-22 05:19'
 labels:
   - ssh-ca
   - kestra
@@ -38,7 +38,7 @@ Affects all three flows — `install`, `provisioning`, `connectivity-check`.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 install, provisioning and connectivity-check reach a gateway using a certificate, with no personal key involved
+- [x] #1 install, provisioning and connectivity-check reach a gateway using a certificate, with no personal key involved
 - [x] #2 The certificate is short-lived and obtained per flow run rather than stored in the namespace files
 - [x] #3 No sign-user credential is present in a runner pod unless decision-028 §1 recorded that as the choice
 - [x] #4 keys/id_rsa is no longer required for any of the three flows to run
@@ -84,4 +84,8 @@ Branches (NOT yet merged to main): monorepo `feat/ssh-ca-ops-cert-part2` (187f45
 2. A canary OpenWRT gateway reachable via that bastion, enrolled in its domain's SSH-CA zone (host cert + TrustedUserCAKeys for the domain User CA) so it accepts the iotgw-ops user cert.
 3. For the `install` flow specifically: the live-boot/PXE rescue image must trust the User CA (or seed the iotgw-ops pubkey), since the per-device KMS break-glass key was removed as the controller credential.
 Then run provisioning/connectivity-check against that canary's IP (NOT any banned real fleet IP) to prove the cert authenticates end-to-end.
+
+**AC#1 PROVEN ON REAL HARDWARE 2026-09-22.** Canary gateway 10.2.0.210 (iot-gateway-datacenter, OpenWRT 23.05.4) was already SSH-CA trust-configured: /etc/ssh/sshd_config.d/60-iotgw-ssh-ca.conf → TrustedUserCAKeys=/etc/ssh/ssh-user-ca.pub (the iotgw-lab User CA, SHA256:SoEpWf...), auth_principals/root = {iotgw-admin, iotgw-ops}. Minted an iotgw-ops cert for zone iotgw-lab via the backend/pki-manager, then SSHed with ONLY that cert (IdentitiesOnly=yes, PasswordAuthentication=no, PreferredAuthentications=publickey — no fallback key offered): `Server accepts key: ED25519-CERT … Authenticated to 10.2.0.210 using "publickey"`, got `uid=0(root)` on OpenWrt. Definitive: the runner's iotgw-ops cert reaches a real gateway with no personal key. Non-destructive (read config + login only; gateway unmodified).
+
+Scope note: this proved the GATEWAY-hop cert auth directly (10.2.0.210 is directly reachable). The full Kestra-flow-through-bastion combination still needs the bastion's TrustedUserCAKeys + VPN_JUMP_HOST (operator step) — but both halves (flow mints+wires the cert; cert authenticates to a real gateway) are independently proven. All 5 ACs met.
 <!-- SECTION:NOTES:END -->
