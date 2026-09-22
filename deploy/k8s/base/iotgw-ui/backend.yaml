@@ -85,6 +85,18 @@ spec:
                   name: pki-oidc
                   key: PKI_OIDC_CLIENT_SECRET
                   optional: true
+            # Shared bearer for the internal ops-cert mint endpoint (task-092):
+            # the Kestra runner presents this to POST /internal/ssh/ops-cert and
+            # the backend validates it. Bridged from SOPS
+            # (secrets/iotgw-ui-backend.enc.env → OPS_CERT_MINT_TOKEN) into the
+            # `ops-cert-mint` Secret by bootstrap.sh. optional:true → the endpoint
+            # returns 503 (disabled) when unset rather than blocking backend start.
+            - name: OPS_CERT_MINT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ops-cert-mint
+                  key: OPS_CERT_MINT_TOKEN
+                  optional: true
           readinessProbe:
             tcpSocket:
               port: 4444
