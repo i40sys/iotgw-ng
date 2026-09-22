@@ -73,6 +73,11 @@ db-sync-roles:
 k8s-smoke:
     deploy/kind/bootstrap.sh smoke
 
+# SSH-CA fleet gate report (decision-027 phase 4, task-098): per-gateway
+# enrollment state + cert expiry + the work/renewal queues + the phase-4 checklist
+ssh-ca-report:
+    tools/ssh-ca-fleet-report.sh
+
 # Cross-stack status — platform workloads across all per-subproject namespaces
 # (decision-020: kms/kestra/supabase-db/supabase-app/iotgw-ui), rolled up by the
 # shared part-of label.
