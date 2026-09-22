@@ -1056,6 +1056,24 @@ export const devicesRouter = {
       const ipAddress = deviceData.ip_address;
       writeDebugLog(`IP Address: ${ipAddress}`);
 
+      // Resolve the device's pki-manager zone (task-092) so the runner can mint
+      // an iotgw-ops user cert the target gateway's User CA trusts. Best-effort:
+      // an empty zone just means the runner falls back / the mint is skipped.
+      let pkiZone = "";
+      const { data: netRow } = await supabase
+        .from("networks")
+        .select("domain_id")
+        .eq("id", deviceData.network_id)
+        .single();
+      if (netRow?.domain_id) {
+        const { data: domRow } = await supabase
+          .from("domains")
+          .select("pki_zone")
+          .eq("id", netRow.domain_id)
+          .single();
+        pkiZone = domRow?.pki_zone ?? "";
+      }
+
       // Step 2: Execute Kestra workflow for connectivity check
       try {
         // Kestra is in its own namespace (decision-020); default to the
@@ -1069,6 +1087,7 @@ export const devicesRouter = {
           target_ip: ipAddress,
           device_id: deviceData.id,
           device_name: deviceData.name,
+          pki_zone: pkiZone,
         };
 
         writeDebugLog("Step 2: Calling Kestra workflow...");

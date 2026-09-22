@@ -104,6 +104,7 @@ make_secrets() {
   gen_kms_auth_secret       # kms-auth           -> iotgw-ui + kestra
   gen_pki_oidc_secret       # pki-oidc           -> iotgw-ui
   gen_supabase_anon_secret  # supabase-anon      -> kestra (ssh_ca runner, task-105)
+  gen_ops_cert_mint_secret  # ops-cert-mint      -> iotgw-ui (backend) + kestra (runner, task-092)
   echo "secrets applied"
 }
 
@@ -166,6 +167,27 @@ gen_supabase_anon_secret() {
   kubectl create secret generic supabase-anon -n "$NS_KESTRA" \
     --from-literal=ANON_KEY="$anon" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
   echo "  supabase-anon Secret applied to $NS_KESTRA (ssh_ca runner pods, task-105)"
+}
+
+# Bridge the ops-cert mint bearer (task-092) into the `ops-cert-mint` Secret. Two
+# consumers: the iotgw-ui backend (validates the bearer on POST /internal/ssh/
+# ops-cert) and the Kestra runner pods (present it to mint a short-lived iotgw-ops
+# user cert per flow run). Same token on both ends. Value lives in
+# secrets/iotgw-ui-backend.enc.env (SOPS → OPS_CERT_MINT_TOKEN).
+gen_ops_cert_mint_secret() {
+  local tok
+  tok="$(tools/secrets/secrets.sh cat iotgw-ui-backend 2>/dev/null \
+        | grep -E '^OPS_CERT_MINT_TOKEN=' | head -1 | cut -d= -f2-)" || true
+  if [ -z "$tok" ]; then
+    echo "  (skip ops-cert-mint Secret: OPS_CERT_MINT_TOKEN not found in SOPS store)"
+    return 0
+  fi
+  local ns
+  for ns in "$NS_UI" "$NS_KESTRA"; do
+    kubectl create secret generic ops-cert-mint -n "$ns" \
+      --from-literal=OPS_CERT_MINT_TOKEN="$tok" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+  done
+  echo "  ops-cert-mint Secret applied to $NS_UI (backend) + $NS_KESTRA (runner, task-092)"
 }
 
 

@@ -78,14 +78,18 @@ kq -X PUT "$KBASE/flows/iotgw-ng/connectivity-check" -H 'Content-Type: applicati
 
 Purpose: start an execution; inputs are multipart form fields keyed by input id. ALWAYS dummy target unless validating a real, non-banned device.
 
+# All three flows now take a single `json_data` JSON input. SSH auth is the
+# short-lived iotgw-ops USER CERTIFICATE minted in-pod (task-092), so `pki_zone`
+# (the target domain's pki-manager zone) is what matters — NOT `ssh_key_id`, which
+# is no longer the SSH credential (keys/id_rsa was removed from all three flows).
 ```bash
-# connectivity-check: separate inputs target_ip + ssh_key_id
+# connectivity-check: json_data with target_ip + pki_zone (dummy zone is fine)
 EXID=$(kq -X POST "$KBASE/executions/iotgw-ng/connectivity-check" \
-  -F target_ip=0.0.0.0 -F ssh_key_id=device_ssh_<deviceId> | jq -r '.id'); echo "$EXID"
+  -F 'json_data={"target_ip":"0.0.0.0","device_id":"<uuid>","device_name":"dummy","pki_zone":"iotgw-lab"}' | jq -r '.id'); echo "$EXID"
 
-# install / provisioning: a single json_data JSON input (target_ip + ssh_key_id inside it)
+# install / provisioning: json_data (pki_zone drives the ops-cert mint)
 kq -X POST "$KBASE/executions/iotgw-ng/provisioning" \
-  -F 'json_data={"target_ip":"0.0.0.0","ssh_key_id":"device_ssh_<deviceId>","target_disk":"/dev/sda","openwrt_version":"23.05.4","__tags__":[]}' | jq -r '.id'
+  -F 'json_data={"target_ip":"0.0.0.0","pki_zone":"iotgw-lab","target_disk":"/dev/sda","openwrt_version":"23.05.4","__tags__":[]}' | jq -r '.id'
 ```
 
 Get a real `ssh_key_id` from the device row (KMIP id = `device_ssh_<deviceId>`):
@@ -119,7 +123,7 @@ kubectl logs -n kestra "$POD" -c ansible                                        
 
 ## 8. Expected good outcomes
 
-- **connectivity-check, dummy target:** pod log shows `materialized keys/id_rsa from KMS key …`, then ansible `PLAY` → `UNREACHABLE! … 0.0.0.0 port 22` (correct with no real target). Execution ends FAILED (ansible non-zero) — that is the expected "ready" signal.
+- **connectivity-check, dummy target:** pod log shows `iotgw-ops certificate minted: … user certificate` (the in-pod mint of the short-lived cert, task-092), then ansible `PLAY` → `UNREACHABLE! … 0.0.0.0 port 22` (correct with no real target). Execution ends FAILED (ansible non-zero) — that is the expected "ready" signal. (An empty `pki_zone` skips the mint gracefully; SSH then fails on the uncertified ephemeral key — same FAILED signal.)
 - **Real reachable device (SSH open, see §10):** ansible reports `ping: "pong"`, `changed: false`.
 - **`validFilename` / leading-slash error or instant ~0.13s fail** = the task-065 fix regressed.
 

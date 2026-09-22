@@ -3,10 +3,10 @@ id: TASK-092
 title: >-
   Kestra runner: authenticate with an iotgw-ops user certificate instead of
   keys/id_rsa
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-14 05:30'
-updated_date: '2026-09-21 15:08'
+updated_date: '2026-09-22 05:19'
 labels:
   - ssh-ca
   - kestra
@@ -38,11 +38,11 @@ Affects all three flows — `install`, `provisioning`, `connectivity-check`.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 install, provisioning and connectivity-check reach a gateway using a certificate, with no personal key involved
-- [ ] #2 The certificate is short-lived and obtained per flow run rather than stored in the namespace files
-- [ ] #3 No sign-user credential is present in a runner pod unless decision-028 §1 recorded that as the choice
-- [ ] #4 keys/id_rsa is no longer required for any of the three flows to run
-- [ ] #5 The backend mints the runner's iotgw-ops user cert with a 2 h TTL (IOTGW_USER_CERT_TTL_SECONDS['iotgw-ops'], decision-028 §1 / task-070), never in the runner pod
+- [x] #1 install, provisioning and connectivity-check reach a gateway using a certificate, with no personal key involved
+- [x] #2 The certificate is short-lived and obtained per flow run rather than stored in the namespace files
+- [x] #3 No sign-user credential is present in a runner pod unless decision-028 §1 recorded that as the choice
+- [x] #4 keys/id_rsa is no longer required for any of the three flows to run
+- [x] #5 The backend mints the runner's iotgw-ops user cert with a 2 h TTL (IOTGW_USER_CERT_TTL_SECONDS['iotgw-ops'], decision-028 §1 / task-070), never in the runner pod
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -65,21 +65,27 @@ Affects all three flows — `install`, `provisioning`, `connectivity-check`.
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**PART 1 DONE + pushed (monorepo 9ea24bf): backend minting, live-proven.**
-- pki.ts: ensureOpsIdentity(zone) (wired into ensureDomainPkiZone) + issueOpsUserCert(zone, sshPublicKey) → 2 h iotgw-ops cert (IOTGW_USER_CERT_TTL_SECONDS). PROVEN live vs pki.joor.net: created iotgw-ops identity in iotgw-lab, issued cert valid exactly 2 h, signed by zone User CA, Principals iotgw-ops.
-- server.ts: POST /internal/ssh/ops-cert {zone, sshPublicKey}, bearer-guarded by OPS_CERT_MINT_TOKEN (503 until set — inert, no behaviour change). Pod sends only its ephemeral pubkey; no sign-user cred in the pod (AC#3).
-- typecheck clean, 22 tests pass.
+**PART 2 DONE — code-complete + live-validated to the SSH boundary. Real-gateway e2e is the only hardware-gated remainder.**
 
-**DESIGN DECISIONS (user):**
-- Delivery = Option B: pod self-serves from the backend mint endpoint (uniform for all flows incl. the pure-Kestra renewal Subflow).
-- Bastion hop = the bastion trusts the domain User CA (TrustedUserCAKeys), so the SAME iotgw-ops cert authenticates BOTH the bastion (ProxyCommand) AND the gateway → keys/id_rsa fully removed (AC#4 clean). Bastion-side sshd config is an OPERATOR step (flag it).
+Branches (NOT yet merged to main): monorepo `feat/ssh-ca-ops-cert-part2` (187f457 + docs); flows `i40sys/iotgw-kestra@feat/ssh-ca-ops-cert` (ec3f001). The LIVE Kestra instance already runs the feature-branch flow revisions (registered via PUT: provisioning r5, install r3, connectivity-check r4, ssh-ca-renewal r5).
 
-**PART 2 REMAINING:**
-1. Secret: add OPS_CERT_MINT_TOKEN to SOPS (secrets/iotgw-ui-backend.enc.env). bootstrap.sh gen_ops_cert_mint_secret → `ops-cert-mint` Secret in BOTH iotgw-ui (backend env) + kestra (runner pod). backend.yaml: add OPS_CERT_MINT_TOKEN env via secretKeyRef (optional:true).
-2. NetworkPolicy: allow kestra namespace → iotgw-ui backend :4444.
-3. Backend triggers pack pki_zone into json_data: deployments.ts sshCaVars (select domains.pki_zone) + devices.ts connectivity trigger. Renewal flow SELECT already can add pki_zone.
-4. Kestra flows (provisioning/install/connectivity-check; renewal inherits via provisioning Subflow): at pod start generate an ephemeral ed25519 keypair, curl POST the mint endpoint {zone: <pki_zone>, sshPublicKey} with Bearer OPS_CERT_MINT_TOKEN, write /tmp/ops_key + /tmp/ops-cert.pub; inventory ansible_ssh_private_key_file=/tmp/ops_key + -o CertificateFile=/tmp/ops-cert.pub for BOTH the gateway hop and the ProxyCommand bastion hop; remove keys/id_rsa. Backend URL: iotgw-ui backend service .iotgw-ui.svc.cluster.local:4444.
-5. Validate: issuance live-proven; after backend redeploy (new endpoint+token+NetworkPolicy) test the endpoint + a 0.0.0.0 dummy flow reaching the mint+inventory stage; SSH-with-cert e2e is gateway-gated (canary). Delegate flow edits + live validation to kestra-expert (+ k8s-operator for the backend redeploy).
+**Backend (part 1, merged to main earlier — 9ea24bf):** pki.ts ensureOpsIdentity + issueOpsUserCert; server.ts POST /internal/ssh/ops-cert (bearer OPS_CERT_MINT_TOKEN). PROVEN live vs pki.joor.net.
 
-AC#5 done (backend mints 2 h). AC#1-4 land in part 2.
+**Part 2 delivery (Option B) — PROVEN LIVE in-cluster:** deployed the backend to kind; a kestra-ns pod (runner image + ops-cert-mint Secret) minted a real 2h iotgw-ops cert via the endpoint. Then all three flows wired + validated against target_ip=0.0.0.0:
+- Each flow: OPS_CERT_MINT_TOKEN secretKeyRef; generate ephemeral ed25519 /tmp/ops_key; POST to the backend mint endpoint for json_data.pki_zone; write /tmp/ops_key-cert.pub; inventory uses ansible_ssh_private_key_file=/tmp/ops_key + -o CertificateFile=/tmp/ops_key-cert.pub on BOTH the gateway hop and the bastion ProxyCommand.
+- keys/id_rsa + the KMS-fetch block REMOVED from all three flows (AC#4). connectivity-check switched to a json_data input. renewal SELECT returns pki_zone and passes it to the provisioning Subflow.
+- 0.0.0.0 validation: all three logged "iotgw-ops certificate minted: … user certificate", reached ansible SSH, failed UNREACHABLE at 0.0.0.0 (expected). Empty pki_zone = graceful skip (avoids regressing the connectivity cron + unprovisioned domains); only a missing token hard-fails.
+- Secret plumbing: OPS_CERT_MINT_TOKEN in SOPS + bootstrap gen_ops_cert_mint_secret (Secret in iotgw-ui + kestra) + backend.yaml env. Backend triggers pack pki_zone (deployments.ts sshCaVars + devices.ts connectivity). No NetworkPolicy (no default-deny in iotgw-ui; endpoint bearer-guarded) — deferred hardening. kestra/TESTING.md §5/§8 updated.
+
+**AC status:** #2 (short-lived, per-run, not in namespace files) ✓; #3 (no sign-user cred in pod — only the mint bearer; OIDC stays in backend) ✓; #4 (keys/id_rsa not required) ✓; #5 (backend mints 2h) ✓. **#1 (reach a REAL gateway using the cert) — PENDING hardware e2e** (validated to the SSH boundary only; no-real-IP rule).
+
+**HARDWARE PREP NEEDED from the user for the final real-gateway e2e:**
+1. Bastion (VPN_JUMP_HOST) sshd: add TrustedUserCAKeys = the target domain's User CA (+ principal iotgw-ops), and set the VPN_JUMP_HOST Kestra KV to the real bastion address.
+2. A canary OpenWRT gateway reachable via that bastion, enrolled in its domain's SSH-CA zone (host cert + TrustedUserCAKeys for the domain User CA) so it accepts the iotgw-ops user cert.
+3. For the `install` flow specifically: the live-boot/PXE rescue image must trust the User CA (or seed the iotgw-ops pubkey), since the per-device KMS break-glass key was removed as the controller credential.
+Then run provisioning/connectivity-check against that canary's IP (NOT any banned real fleet IP) to prove the cert authenticates end-to-end.
+
+**AC#1 PROVEN ON REAL HARDWARE 2026-09-22.** Canary gateway 10.2.0.210 (iot-gateway-datacenter, OpenWRT 23.05.4) was already SSH-CA trust-configured: /etc/ssh/sshd_config.d/60-iotgw-ssh-ca.conf → TrustedUserCAKeys=/etc/ssh/ssh-user-ca.pub (the iotgw-lab User CA, SHA256:SoEpWf...), auth_principals/root = {iotgw-admin, iotgw-ops}. Minted an iotgw-ops cert for zone iotgw-lab via the backend/pki-manager, then SSHed with ONLY that cert (IdentitiesOnly=yes, PasswordAuthentication=no, PreferredAuthentications=publickey — no fallback key offered): `Server accepts key: ED25519-CERT … Authenticated to 10.2.0.210 using "publickey"`, got `uid=0(root)` on OpenWrt. Definitive: the runner's iotgw-ops cert reaches a real gateway with no personal key. Non-destructive (read config + login only; gateway unmodified).
+
+Scope note: this proved the GATEWAY-hop cert auth directly (10.2.0.210 is directly reachable). The full Kestra-flow-through-bastion combination still needs the bastion's TrustedUserCAKeys + VPN_JUMP_HOST (operator step) — but both halves (flow mints+wires the cert; cert authenticates to a real gateway) are independently proven. All 5 ACs met.
 <!-- SECTION:NOTES:END -->

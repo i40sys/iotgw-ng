@@ -701,7 +701,7 @@ export const deploymentsRouter = {
         // Step 3: Fetch domain record via network.domain_id
         const { data: domainData, error: domainError } = await supabase
           .from("domains")
-          .select("id, name, display_name")
+          .select("id, name, display_name, pki_zone")
           .eq("id", networkData.domain_id)
           .single();
 
@@ -752,6 +752,10 @@ export const deploymentsRouter = {
           network_id: networkData.id,
           domain_id: domainData.id,
           totp_counter: deviceData.totp_counter ?? 0,
+          // The domain's pki-manager zone (task-092): the runner mints its
+          // iotgw-ops user cert for THIS zone so the target gateway's User CA
+          // trusts it. Null until the domain's zone is provisioned (task-080).
+          pki_zone: domainData.pki_zone ?? "",
         };
 
         const configWithTargetIp =
