@@ -118,6 +118,11 @@ docker cp "$CACHE/host_ecdsa_key.pub" "$CTR":/etc/ssh/ssh_host_ecdsa_key.pub
 docker exec "$CTR" chmod 600 /etc/ssh/ssh_host_ecdsa_key
 HOST_PUB="$(docker exec "$CTR" cat /etc/ssh/ssh_host_ecdsa_key.pub)"
 
+# Reset the recorded host pubkey so [1/4] is deterministically a FIRST enroll
+# (the cached host key would otherwise make a re-run a re-enroll). task-075.
+kubectl -n supabase-db exec supabase-db-0 -c patroni -- psql -U postgres -d postgres -q -P pager=off -c \
+  "update devices set ssh_host_pubkey=null where id='$DEV_UUID';" >/dev/null 2>&1 || true
+
 # ── [1/4] enroll via the ssh-ca EDGE FUNCTION (AC#1) ────────────────────────
 REQ="$(python3 -c 'import json,sys;print(json.dumps({"device_id":sys.argv[1],"action":"enroll","host_pubkey":sys.argv[2]}))' "$DEVICE_ID" "$HOST_PUB")"
 ENC_URL="$KONG/functions/v1/ssh-ca?device_id=$(python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))' "$DEVICE_ID")"
@@ -146,6 +151,35 @@ print("FQDN=" + shlex.quote(d.get("fqdn", "")))
 print("HOST_ID=" + shlex.quote(str(d.get("host_id", ""))))
 PY
 )"
+
+# ── [1b/4] re-enroll requires proof-of-continuity (AC#4, task-075) ───────────
+# The enroll above recorded ssh_host_pubkey, so a re-enroll must now prove
+# possession of the existing host key: without a continuity_sig → 401; with a
+# valid SSHSIG (namespace iotgw-reenroll) signed by that key → accepted.
+NORM_PUB="$(printf '%s' "$HOST_PUB" | awk '{print $1" "$2}')"
+REQ_RE="$(python3 -c 'import json,sys;print(json.dumps({"device_id":sys.argv[1],"action":"enroll","host_pubkey":sys.argv[2]}))' "$DEVICE_ID" "$HOST_PUB")"
+CODE_NP="$(printf '%s' "$REQ_RE" \
+  | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass "pass:$TOTP" \
+  | curl -s -o /dev/null -w '%{http_code}' -m 30 -X POST "$ENC_URL" -H "Authorization: Bearer $ANON" \
+      -H 'Content-Type: application/octet-stream' --data-binary @- 2>/dev/null)"
+if [ "$CODE_NP" = "401" ]; then
+  pass "re-enroll WITHOUT proof-of-continuity is rejected (HTTP 401)"
+else
+  fail "re-enroll without proof was NOT rejected (HTTP $CODE_NP; expected 401)"
+fi
+docker exec "$CTR" sh -c "printf '%s\n%s\n%s' '$DEVICE_ID' '$NORM_PUB' '$TOTP' > /tmp/reench && ssh-keygen -Y sign -f /etc/ssh/ssh_host_ecdsa_key -n iotgw-reenroll /tmp/reench >/dev/null 2>&1"
+CONT_SIG="$(docker exec "$CTR" cat /tmp/reench.sig)"
+REQ_RP="$(python3 -c 'import json,sys;print(json.dumps({"device_id":sys.argv[1],"action":"enroll","host_pubkey":sys.argv[2],"continuity_sig":sys.argv[3]}))' "$DEVICE_ID" "$HOST_PUB" "$CONT_SIG")"
+if REENR="$(printf '%s' "$REQ_RP" \
+  | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass "pass:$TOTP" \
+  | curl -fsS -m 30 -X POST "$ENC_URL" -H "Authorization: Bearer $ANON" \
+      -H 'Content-Type: application/octet-stream' --data-binary @- \
+  | openssl enc -d -aes-256-cbc -pbkdf2 -iter 300000 -pass "pass:$TOTP" 2>/dev/null)" \
+  && printf '%s' "$REENR" | python3 -c 'import sys,json;assert json.load(sys.stdin).get("host_cert")' 2>/dev/null; then
+  pass "re-enroll WITH valid proof-of-continuity is accepted (fresh host cert)"
+else
+  fail "re-enroll with valid proof was NOT accepted"
+fi
 
 # ── install trust material + sshd drop-in, then start sshd with a file log ───
 docker cp "$WORK/host_cert" "$CTR":/etc/ssh/ssh_host_ecdsa_key-cert.pub
