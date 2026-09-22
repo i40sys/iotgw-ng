@@ -3,10 +3,10 @@ id: TASK-077
 title: >-
   Decide whether iotgw-ng uses the oriolrius.pki_manager collection at all, and
   act on it
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-14 05:29'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-22 09:04'
 labels:
   - ssh-ca
   - pki-manager
@@ -37,7 +37,19 @@ This was written as an "either/or" and is really an unresolved decision, so stat
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 decision-025 §E records the decision and, if the collection is not used, the token-placement reasoning that rules it out
-- [ ] #2 If the collection is adopted, the fleet token's placement in a runner pod is explicitly reconciled with decision-024 §3
-- [ ] #3 The pki-manager repo's ansible/README no longer implies a path iotgw-ng does not take, or iotgw-ng's docs say why it diverges
+- [x] #1 decision-025 §E records the decision and, if the collection is not used, the token-placement reasoning that rules it out
+- [x] #2 If the collection is adopted, the fleet token's placement in a runner pod is explicitly reconciled with decision-024 §3
+- [x] #3 The pki-manager repo's ansible/README no longer implies a path iotgw-ng does not take, or iotgw-ng's docs say why it diverges
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Decided (b): iotgw-ng does NOT use the oriolrius.pki_manager collection — deliberately.** Recorded in decision-025 §E (2026-09-22).
+
+Two independent reasons: (1) the collection drives UNSCOPED pki-manager endpoints = default zone only, but iotgw-ng is one-zone-per-domain (decision-024); (2 — decisive) adopting it would call pki-manager directly from the Kestra runner pod → a fleet token in the pod, which decision-024 §3 forbids. tasks/ssh_ca.yaml goes through the ssh-ca edge function (device-TOTP auth; fleet token stays in the edge fn). Even a zone-aware collection (option (a)) would not be adopted — it doesn't resolve token placement; adoption would require reversing decision-024 §3 (not taken).
+
+AC#1 decision + token reasoning in decision-025 §E. AC#2 reconciled with decision-024 §3 (not adopted). AC#3 iotgw-ng docs record the divergence (decision-025 §E); no pki-manager-repo change needed for iotgw-ng's sake — the collection stays valid for single/default-zone consumers.
+
+Grep-confirmed 2026-09-22: zero `oriolrius.pki_manager` references in the monorepo or the iotgw-kestra flows — genuinely unused. Doc-only change; no code touched.
+<!-- SECTION:NOTES:END -->

@@ -96,6 +96,34 @@ These are changes **in the PKI repo**, not in `iotgw-ng`.
 | Fleet token scoping | per CA-pair + op-set | unchanged; we need `sign-host`, `register-host-pubkey`, `get-principals` | none | — |
 | `krl-client` | Go static binary, x86-64 available | runs on OpenWRT x86-64 gateways | Verify musl/static compatibility on OpenWRT; package or vendor the binary | PKI / ANS |
 
+> **DECISION (task-077, 2026-09-22): `iotgw-ng` does NOT use the
+> `oriolrius.pki_manager` Ansible collection — deliberately, not pending a fix.**
+> Two independent reasons, either sufficient:
+> 1. **Wrong trust scope.** The collection drives the **unscoped** pki-manager
+>    endpoints, which serve the **`default`** zone only. `iotgw-ng` is
+>    one-zone-per-domain (`decision-024`), so the collection as published cannot
+>    enroll a gateway into the correct trust domain.
+> 2. **Token placement (the decisive one).** The collection would call
+>    pki-manager **directly from the Ansible controller (the Kestra runner pod)**,
+>    which means a zone-scoped **fleet token in the runner pod** — exactly what
+>    `decision-024 §3` forbids. `tasks/ssh_ca.yaml` instead goes through the
+>    **`ssh-ca` edge function**, authenticated by the **device TOTP**, so the
+>    fleet token never leaves the edge function and enrollment reuses the device's
+>    own credential.
+>
+> Therefore even a **zone-aware** version of the collection (option (a)) would not
+> be adopted: it does not resolve the token-placement objection. Adoption would
+> require an explicit reversal of `decision-024 §3` (fleet token in the pod) —
+> **not** taken. This closes the "either/or" as **(b)**; do not "fix" this later
+> by adopting the collection. (AC#1/#2.)
+>
+> **AC#3 — divergence recorded here** so `iotgw-ng`'s own docs explain why it does
+> not take the path the collection's README implies; no change is required in the
+> pki-manager repo for `iotgw-ng`'s sake (the collection remains valid for
+> single-/default-zone consumers). Grep-confirmed 2026-09-22: no
+> `oriolrius.pki_manager` reference exists anywhere in this workspace or the
+> `iotgw-kestra` flows — the collection is genuinely unused.
+
 ---
 
 ## F. Operator / client trust distribution (OPS)
