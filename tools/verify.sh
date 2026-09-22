@@ -108,6 +108,12 @@ else
   echo "  SKIP  kind cluster not running (just kind-up && just k8s-deploy)"
 fi
 
+echo "== 7. SSH-CA smoke (edge-fn enroll + user-cert accept + block/unblock) =="
+# Self-gating: SKIPs cleanly (exit 0) unless cluster + Kong/edge-fn + pki-manager
+# + docker + an sshd image are all reachable. A real failure (edge fn broken or a
+# device cannot enroll) exits nonzero and fails verify (task-099).
+if bash tools/ssh-ca-smoke.sh; then :; else rc=1; fi
+
 echo ""
 [ "$rc" = 0 ] && echo "ALL VERIFICATIONS PASSED" || echo "SOME VERIFICATIONS FAILED"
 exit $rc
