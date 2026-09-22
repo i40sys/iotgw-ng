@@ -3,10 +3,10 @@ id: TASK-100
 title: >-
   Cleanup: retire the shared fleet private key and the legacy authorized_keys
   plumbing
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-14 05:31'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-22 12:02'
 labels:
   - ssh-ca
   - cleanup
@@ -40,7 +40,7 @@ decision-027 phase 5, strictly ordered and only after the phase-4 gate passes. R
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**Divergence to respect when doing the removal (found 2026-09-14):** the Kestra copy of `tasks/system.yaml` already gates the shared-key deployment behind `deploy_shared_ssh_key | default(false) | bool`; the `owrt_iot_gw` copy does not. Do not force-sync one over the other — remove from both deliberately.
+**CLOSED-NOT-IMPLEMENTED (2026-09-22): parked — there is no fleet at current scale.** Marked Done to stop tracking; the legacy shared key / authorized_keys plumbing was deliberately NOT retired.
 
-**Also:** the unattributed break-glass key `SHA256:VMJ3Hr…` must be resolved before the "narrow authorized_keys to the named break-glass set" step can mean anything; it has its own task.
+WHY: retiring break-glass is only safe AFTER a whole fleet is cert-enrolled and the phase-4 gate (task-098) passes — which is parked (no fleet). With a single canary, keeping the break-glass authorized_keys path is correct (decision-027 keeps it alongside during migration). The cert path is proven; removing the fallback now would add risk for no benefit. Revisit only if a real fleet is enrolled.
 <!-- SECTION:NOTES:END -->

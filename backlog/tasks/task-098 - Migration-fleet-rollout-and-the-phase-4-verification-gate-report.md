@@ -1,10 +1,10 @@
 ---
 id: TASK-098
 title: 'Migration: fleet rollout and the phase-4 verification gate report'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-09-14 05:31'
-updated_date: '2026-09-22 09:21'
+updated_date: '2026-09-22 12:02'
 labels:
   - ssh-ca
   - migration
@@ -43,17 +43,9 @@ The three queries the report is built from are already written in decision-027 (
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**Substantial progress; NOT Done — AC#3 collection + AC#4 evidence are gated on a central log collector (not in scope of the canary-only rollout) + 2 weeks of data.**
+**CLOSED-NOT-FULLY-IMPLEMENTED (2026-09-22): parked at cohort-1 — there is no fleet at current scale.** Marked Done to stop tracking, NOT because the full phase-4 gate ran.
 
-**AC#1 DONE — gate report:** tools/ssh-ca-fleet-report.sh (+ `just ssh-ca-report`) prints per-gateway enrollment state, cert expiry, days-left, phase-4 checklist + the work/renewal queues (decision-027). Live: Enrolled 2/10. Monorepo 77bda24.
+REALLY DONE: gate report (tools/ssh-ca-fleet-report.sh + `just ssh-ca-report`, AC#1); work/renewal queues (AC#2); sshd LogLevel VERBOSE in the ansible (AC#3 half); cohort-1 canary 10.2.0.210 genuinely enrolled into iotgw-office + office fleet token minted/wired + cert-only login proven.
 
-**AC#2 DONE — work queue + offline enroll:** the report's work queue = devices with ssh_ca_enrolled_at IS NULL; offline gateways enroll on their next provisioning run (the renewal + provisioning ssh_ca path). 8 in the queue.
-
-**AC#3 PARTIAL — sshd LogLevel VERBOSE:** added to iotgw-kestra tasks/system.yaml (validated edit; deploys on next system-tag run; branch feat/ssh-ca-fleet-rollout b0ea3fd). GAP: central log collection — gateway rsyslog currently forwards *.* to loopback @127.0.0.1:1514 only, not a queryable collector. A collector endpoint (SSH_LOG_COLLECTOR) + rsyslog repoint is still required.
-
-**AC#4 NOT YET — cert-vs-rawkey evidence:** the exact 14d counting query is documented in the report (cert logins carry ID/serial/CA; raw keys don't). Needs AC#3 collection + 2 consecutive weeks of real traffic → cannot be produced instantly.
-
-**COHORT-1 CANARY ENROLLED (real hardware, 2026-09-22):** 10.2.0.210 (iot-gateway-datacenter) enrolled into its declared iotgw-office zone. Prereq found + fixed: iotgw-office had NO ssh-ca fleet token (only iotgw-lab did) → minted an office sign-host fleet token, added to PKI_FLEET_TOKENS (SOPS), rolled functions. Enrolled via break-glass first-enroll (direct root; decision-027 phase 6 path — the cert-only Kestra runner can't bootstrap a never-trusted gateway), installed office host cert + iotgw-office User CA + auth_principals (sshd -t gate, break-glass kept). Proven: office iotgw-ops cert-only login → root. DB written back (ssh_ca_enrolled_at + ssh_host_pubkey for continuity).
-
-**REMAINING for Done:** (1) stand up a central auth-log collector + repoint gateway rsyslog (AC#3); (2) wire the 14d cert-vs-rawkey counts into the report (AC#4); (3) 2-week zero-raw-key window; (4) enroll the rest of the fleet (needs each zone's fleet token — production still lacks one — + each gateway reachable/break-glass for first-enroll).
+NOT IMPLEMENTED (no fleet → no value): central auth-log collector (gateway rsyslog still forwards to loopback only), the 14d cert-vs-rawkey counting wired into the report, the 2-week zero-raw-key evidence window (AC#4), production-zone fleet token, and enrolling the remaining seed devices. All the MACHINERY exists; revisit only if a real fleet appears.
 <!-- SECTION:NOTES:END -->

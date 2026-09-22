@@ -3,10 +3,10 @@ id: TASK-109
 title: >-
   Decide and implement how a gateway consumes the vpn function's SSH trust
   bundle
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-14 07:09'
-updated_date: '2026-09-14 07:35'
+updated_date: '2026-09-22 12:02'
 labels:
   - ssh-ca
   - bootstrap
@@ -40,3 +40,11 @@ The `vpn` edge function now supports `?with_ssh_ca=true`, returning the domain's
 - [ ] #3 A gateway that went through the install phase has the User CA anchor and auth_principals in place before its first boot
 - [ ] #4 A caller that does not opt in still receives the legacy wg0.conf response unchanged
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**CLOSED-NOT-IMPLEMENTED (2026-09-22): parked — no fleet / no current need.** Marked Done to stop tracking; nothing was built for it.
+
+WHY: how a gateway consumes the vpn function's SSH trust bundle is a fleet-distribution design question with no value at single-gateway scale — enrollment already delivers the User/Host CA anchors directly via the ssh-ca edge function (proven on 10.2.0.210). Revisit only if a real fleet + the vpn-bundle distribution path becomes needed.
+<!-- SECTION:NOTES:END -->
