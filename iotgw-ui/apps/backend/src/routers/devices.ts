@@ -33,6 +33,55 @@ function writeDebugLog(message: string) {
   }
 }
 
+/**
+ * The ICMP result of a connectivity-check execution. The ping runs ON the
+ * Netmaker host (decision-030) inside the runner pod, which logs the ping
+ * output followed by an `ICMP_RESULT rc=<n>` marker; parse both from the
+ * execution logs.
+ */
+async function fetchBastionIcmpResult(
+  kestraApiUrl: string,
+  executionId: string,
+): Promise<{ success: boolean; error: string; rawOutput: string; latency: number | undefined }> {
+  const response = await fetch(`${kestraApiUrl}/api/v1/main/logs/${executionId}`, {
+    headers: {
+      Authorization:
+        "Basic " +
+        Buffer.from(`${process.env.KESTRA_USER}:${process.env.KESTRA_PASSWORD}`).toString("base64"),
+    },
+  });
+  if (!response.ok) {
+    return {
+      success: false,
+      error: `Could not read execution logs (${response.status})`,
+      rawOutput: "",
+      latency: undefined,
+    };
+  }
+  const logs = (await response.json()) as Array<{ message?: string }>;
+  const lines = logs.flatMap((entry) => (entry.message ?? "").split("\n"));
+  const marker = lines.find((line) => line.includes("ICMP_RESULT rc="));
+  if (!marker) {
+    return {
+      success: false,
+      error: "The ICMP check did not run (no ICMP_RESULT in the execution logs)",
+      rawOutput: "",
+      latency: undefined,
+    };
+  }
+  const rawOutput = lines
+    .filter((line) => /PING |bytes from|packet loss|rtt |iotgw-jump/.test(line))
+    .join("\n");
+  const rttMatch = rawOutput.match(/rtt [^=]+= [\d.]+\/([\d.]+)\//);
+  const isSuccess = /ICMP_RESULT rc=0\b/.test(marker);
+  return {
+    success: isSuccess,
+    error: isSuccess ? "" : `ICMP from the Netmaker host failed (${marker.trim()})`,
+    rawOutput,
+    latency: rttMatch ? parseFloat(rttMatch[1]) : undefined,
+  };
+}
+
 export const devicesRouter = {
   getDevices: createQueryProcedure(
     "get_devices",
@@ -1137,22 +1186,27 @@ export const devicesRouter = {
         );
         writeDebugLog(`Execution ID: ${executionId}`);
 
-        // Step 3: Poll for execution completion (with timeout)
+        // Step 3: Poll for execution completion (with timeout).
+        // Both checks run through the Netmaker host (decision-030): ICMP is
+        // pinged FROM the Netmaker host (the controller has no L3 route into
+        // the gateway networks) and SSH/Ansible hops through it as a bastion.
+        // The runner pod clones the flow repo, installs tools and mints an ops
+        // cert before it even connects, so allow well over the old 30 s.
         writeDebugLog("Step 3: Polling for execution completion...");
-        const maxWaitTime = 30000; // 30 seconds
-        const pollInterval = 1000; // 1 second
+        const maxWaitTime = 180000; // 3 minutes
+        const pollInterval = 2000; // 2 seconds
         const startTime = Date.now();
         let pollCount = 0;
 
         let pingResult = {
           success: false,
-          error: "Timeout waiting for ping result",
+          error: "Timeout waiting for the connectivity-check execution",
           rawOutput: "",
           latency: undefined as number | undefined,
         };
         let ansibleResult = {
           success: false,
-          error: "Timeout waiting for ansible result",
+          error: "Timeout waiting for the connectivity-check execution",
           rawOutput: "",
         };
 
@@ -1176,100 +1230,33 @@ export const devicesRouter = {
             const statusData = await statusResponse.json();
             const state = statusData.state?.current?.toLowerCase() || statusData.state?.toLowerCase();
             writeDebugLog(`Poll #${pollCount} state: ${state}`);
-            writeDebugLog(`Poll #${pollCount} full response: ${JSON.stringify(statusData)}`);
 
-            if (state === "success" || state === "failed" || state === "warning") {
-              // Extract results from task outputs (Kestra stores outputs per-task, not at execution level)
+            if (state === "success" || state === "failed" || state === "warning" || state === "killed") {
+              // Kestra stores outputs per task run, not at execution level.
               const taskRunList = statusData.taskRunList || [];
-              writeDebugLog(`Task run list count: ${taskRunList.length}`);
-
-              // Find the icmp_ping task (SSH ping command)
-              const icmpPingTask = taskRunList.find(
-                (task: { taskId: string }) => task.taskId === "icmp_ping"
+              const checkTask = taskRunList.find(
+                (task: { taskId: string }) => task.taskId === "run_connectivity_check",
               );
+              writeDebugLog(`run_connectivity_check task found: ${checkTask ? "yes" : "no"}`);
 
-              // Find the check_ansible_access task (Ansible ping module)
-              const ansibleTask = taskRunList.find(
-                (task: { taskId: string }) => task.taskId === "check_ansible_access"
+              const isSuccess =
+                state === "success" && checkTask?.state?.current === "SUCCESS";
+
+              ansibleResult = {
+                success: isSuccess,
+                error: isSuccess
+                  ? ""
+                  : `SSH/Ansible check failed (execution ${state}, task ${checkTask?.state?.current ?? "not run"}) — see the execution logs`,
+                rawOutput: JSON.stringify(checkTask?.outputs || {}, null, 2),
+              };
+
+              pingResult = await fetchBastionIcmpResult(
+                KESTRA_API_URL,
+                executionId,
               );
-
-              writeDebugLog(`ICMP Ping task found: ${icmpPingTask ? "yes" : "no"}`);
-              writeDebugLog(`Ansible task found: ${ansibleTask ? "yes" : "no"}`);
-
-              // Parse ICMP ping result from icmp_ping task
-              if (icmpPingTask) {
-                writeDebugLog(`ICMP Ping task outputs: ${JSON.stringify(icmpPingTask.outputs)}`);
-                writeDebugLog(`ICMP Ping task state: ${icmpPingTask.state?.current}`);
-                writeDebugLog(`ICMP Ping task exitCode: ${icmpPingTask.outputs?.exitCode}`);
-
-                // Check outputs.vars.outputs for the SSH ping command result
-                if (icmpPingTask.outputs?.vars?.outputs && Array.isArray(icmpPingTask.outputs.vars.outputs)) {
-                  const pingOutputs = icmpPingTask.outputs.vars.outputs;
-
-                  // Find the SSH ping command result (has rc field and cmd containing "ping")
-                  const sshPingResult = pingOutputs.find(
-                    (out: { rc?: number; cmd?: string }) =>
-                      out.rc !== undefined && out.cmd && out.cmd.includes("ping")
-                  );
-
-                  if (sshPingResult) {
-                    const isSuccess = sshPingResult.rc === 0;
-                    // Extract latency from stdout if available (e.g., "time=95.6 ms")
-                    let latency: number | undefined;
-                    if (sshPingResult.stdout) {
-                      const latencyMatch = sshPingResult.stdout.match(/time[=<](\d+(?:\.\d+)?)\s*ms/);
-                      if (latencyMatch) {
-                        latency = parseFloat(latencyMatch[1]);
-                      }
-                    }
-
-                    pingResult = {
-                      success: isSuccess,
-                      error: isSuccess ? "" : `Ping failed with rc=${sshPingResult.rc}`,
-                      rawOutput: sshPingResult.stdout || sshPingResult.stderr || "",
-                      latency,
-                    };
-                    writeDebugLog(`Parsed ping result: success=${isSuccess}, latency=${latency}`);
-                  }
-                }
-
-                // Fallback: check exitCode at task level
-                if (!pingResult.success && pingResult.error?.includes("Timeout")) {
-                  if (icmpPingTask.outputs?.exitCode === 0 && icmpPingTask.state?.current === "SUCCESS") {
-                    pingResult = {
-                      success: true,
-                      error: "",
-                      rawOutput: JSON.stringify(icmpPingTask.outputs, null, 2),
-                      latency: undefined,
-                    };
-                  }
-                }
-              }
-
-              // Parse Ansible result from install_openwrt task
-              if (ansibleTask) {
-                writeDebugLog(`Ansible task outputs: ${JSON.stringify(ansibleTask.outputs)}`);
-                writeDebugLog(`Ansible task state: ${ansibleTask.state?.current}`);
-                writeDebugLog(`Ansible task exitCode: ${ansibleTask.outputs?.exitCode}`);
-
-                // Check for exitCode: 0 AND state.current: "SUCCESS"
-                const isSuccess =
-                  ansibleTask.outputs?.exitCode === 0 &&
-                  ansibleTask.state?.current === "SUCCESS";
-
-                ansibleResult = {
-                  success: isSuccess,
-                  error: isSuccess ? "" : `Ansible failed: exitCode=${ansibleTask.outputs?.exitCode}, state=${ansibleTask.state?.current}`,
-                  rawOutput: JSON.stringify(ansibleTask.outputs || {}, null, 2),
-                };
-                writeDebugLog(`Parsed ansible result: success=${isSuccess}`);
-              }
-
-              writeDebugLog(`Ping result: ${JSON.stringify(pingResult)}`);
-              writeDebugLog(`Ansible result: ${JSON.stringify(ansibleResult)}`);
 
               logger.info(
-                `Connectivity check completed for device ${deviceData.name}: ping=${pingResult.success}, ansible=${ansibleResult.success}`,
+                `Connectivity check completed for device ${deviceData.name}: icmp=${pingResult.success}, ssh/ansible=${ansibleResult.success}`,
               );
 
               const finalResult = {
