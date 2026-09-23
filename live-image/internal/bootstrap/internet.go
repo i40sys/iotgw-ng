@@ -20,10 +20,10 @@ import (
 //
 //   - lan (default): split tunnel. Only the device's Netmaker network goes
 //     through wg0; Internet and DNS use the local LAN gateway and the
-//     DHCP-provided resolvers. The Netmaker hub is not an Internet gateway for
-//     the iotgw networks, so this is the mode in which the Internet works.
+//     DHCP-provided resolvers.
 //   - vpn: full tunnel, exactly as the server delivered it (all traffic and
-//     DNS through wg0). Only useful once the hub egresses the network.
+//     DNS through wg0), egressing from the Netmaker hub — netmaker-call makes
+//     the hub each network's Internet Gateway.
 type InternetVia string
 
 const (

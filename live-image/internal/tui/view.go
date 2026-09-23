@@ -77,10 +77,10 @@ func (m Model) switchPanel() string {
 	w := m.width
 	switch {
 	case m.confirmVia == "vpn":
-		return panel("Switch Internet to VPN (full tunnel)?", state.Warning, w,
-			"All traffic and DNS would go through wg0 to the Netmaker hub.",
-			"WARNING: the hub is not an Internet gateway for the iotgw networks,",
-			"so Internet access will most likely FAIL in this mode.",
+		return panel("Switch Internet to VPN (full tunnel)?", state.Pending, w,
+			"All traffic and DNS go through wg0; the Internet egresses from the",
+			"Netmaker hub, which is this network's Internet Gateway (NAT). Local",
+			"LAN resolvers are not used. Watch the Internet panel after switching.",
 			"wg0 restarts (a few seconds without VPN; SSH over the VPN drops).",
 			"", keyStyle.Render("[y]")+" switch   "+keyStyle.Render("[n]")+" cancel")
 	case m.confirmVia == "lan":

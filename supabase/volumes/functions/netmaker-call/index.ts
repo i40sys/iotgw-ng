@@ -192,6 +192,48 @@ interface ExtClient {
 //   4. Read back authoritative object (the POST response is unreliable).
 //   5. Extract privatekey, publickey, address.
 // -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
+// ensureInternetGateway — make the network's ingress gateway (the Netmaker
+// hub) its Internet Gateway, so a device using the full-tunnel config (the
+// live image's "Internet via VPN" mode, decision-031) egresses through the hub
+// (Netmaker adds the MASQUERADE rule for the network range). Idempotent:
+// POST /nodes/{net}/{node}/inet_gw only when the node is not one yet.
+//   waitMs: how long to wait for the hub node to appear in a brand-new network.
+// -----------------------------------------------------------------------
+async function ensureInternetGateway(
+  network: string,
+  txId: string,
+  waitMs = 0,
+): Promise<void> {
+  const deadline = Date.now() + waitMs
+  for (;;) {
+    const nodes = await netmakerRequest('GET', `/nodes/${network}`, undefined, txId)
+    const gateway = Array.isArray(nodes)
+      ? (nodes as Array<Record<string, unknown>>).find(
+          n => n.isingressgateway === true || n.is_gw === true
+        )
+      : undefined
+    if (gateway) {
+      if (gateway.isinternetgateway === true) {
+        console.log(`[${txId}][ensureInternetGateway] ${gateway.id} is already the Internet Gateway of ${network}`)
+        return
+      }
+      console.log(`[${txId}][ensureInternetGateway] making ${gateway.id} the Internet Gateway of ${network}`)
+      await netmakerRequest(
+        'POST',
+        `/nodes/${network}/${gateway.id}/inet_gw`,
+        { inet_node_client_ids: [] },
+        txId
+      )
+      return
+    }
+    if (Date.now() >= deadline) {
+      throw new Error(`No ingress gateway in network ${network} — cannot make it an Internet Gateway`)
+    }
+    await new Promise(r => setTimeout(r, 3000))
+  }
+}
+
 async function provisionDevice(
   rec: DeviceRecord,
   txId: string
@@ -238,6 +280,11 @@ async function provisionDevice(
     )
     console.log(`[${txId}][provisionDevice] extclient created`)
   }
+
+  // Step 3b — the hub must be the network's Internet Gateway (idempotent).
+  // Also done at network creation; repeated here so networks created before
+  // this existed are fixed the next time one of their devices is provisioned.
+  await ensureInternetGateway(network, txId)
 
   // Step 4 — read back authoritative object
   console.log(`[${txId}][provisionDevice] Step 4: reading back extclient list to get authoritative object`)
@@ -346,6 +393,9 @@ async function provisionNetwork(
       console.log(`[${txId}][provisionNetwork] network updated`)
     }
   }
+
+  // Step 4 — the hub joins a new network a few seconds after creation.
+  await ensureInternetGateway(netid, txId, 45_000)
 }
 
 // -----------------------------------------------------------------------

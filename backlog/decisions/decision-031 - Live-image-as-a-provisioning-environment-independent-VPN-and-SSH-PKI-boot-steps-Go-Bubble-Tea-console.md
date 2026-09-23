@@ -225,8 +225,15 @@ Linux boot → network → identity (device_id + otp from the iPXE prompt)
     with `iotgw-bootstrap internet-via lan|vpn`, which the dashboard's `[i]`
     calls after a y/n prompt warning that `vpn` has no egress today.
   - Installed OpenWRT gateways are unaffected.
-  - Making the hub an Internet Gateway per network remains an option if a full
-    tunnel is ever required.
+  - **`vpn` mode works too** (2026-09-23): `netmaker-call` now makes the
+    Netmaker hub each network's **Internet Gateway** (Netmaker v1.0 native
+    `POST /nodes/{net}/{node}/inet_gw`, which adds the hub's MASQUERADE for the
+    range). This happens at network provisioning, and idempotently on every
+    device provisioning, so older networks self-heal. `c3` was enabled by hand
+    and verified on the live gateway: HTTPS egress IP = 216.45.62.117 (the hub).
+  - Pre-existing networks (office `10.2.0.0/24`, `10.122.0.0/24`, `m1`) are
+    **not** retrofitted; they get it the next time a device is provisioned in
+    them.
 - **`live-enroll` ↔ bootstrap contract.** The `live-enroll` response shape
   is a contract with `internal/bootstrap` (`pkiBundle`). Change them together.
 - **Boot verification is manual**, as for every image change (task-094): stage,
