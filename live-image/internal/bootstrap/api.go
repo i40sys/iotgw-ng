@@ -18,7 +18,7 @@ import (
 // through Kong. Both use the same envelope: the request body is sealed with the
 // device code and so is a successful reply; errors come back as plain JSON.
 type apiClient struct {
-	base     string // e.g. http://10.2.0.47:8000
+	base     string // the API gateway base URL, e.g. https://api.example
 	deviceID string
 	code     string
 	http     *http.Client

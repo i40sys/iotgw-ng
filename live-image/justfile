@@ -1,0 +1,111 @@
+# iotgw live image — build, test and deploy the live provisioning tooling.
+# Run `just --list` (or, from the repo root, `just live-image::`) for recipes.
+# Architecture: README.md, decision-031.
+
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+# ── build metadata (overridable: `just VERSION=1.2.3 dist`) ────────────────────
+VERSION := env_var_or_default("VERSION", `git describe --tags --always 2>/dev/null || echo dev`) + `git diff --quiet HEAD -- . 2>/dev/null || echo -dirty`
+COMMIT := env_var_or_default("COMMIT", `git rev-parse --short HEAD 2>/dev/null || echo unknown`)
+DATE := `date -u +%Y-%m-%dT%H:%M:%SZ`
+# Optional default API base URL baked into iotgw-bootstrap (the kernel argument
+# iotgw_api=<url> always wins). Leave empty to require the kernel argument.
+API_BASE := env_var_or_default("API_BASE", "")
+
+# Architectures published as release artifacts.
+ARCHES := "amd64 arm64"
+DIST := "dist"
+PKG := "github.com/i40sys/iotgw-ng/live-image/internal"
+LDFLAGS := "-s -w -X " + PKG + "/version.Version=" + VERSION + " -X " + PKG + "/version.Commit=" + COMMIT + " -X " + PKG + "/version.BuildDate=" + DATE + " -X " + PKG + "/bootstrap.DefaultAPIBase=" + API_BASE
+
+# ── deployment (netboot host) — no defaults on purpose: pass them per site ─────
+# NETBOOT_HOST  ssh destination of the netboot server, e.g. root@netboot.example
+# LIVE_TREE     directory under ASSETS_DIR that serves this live image
+# ASSETS_DIR    netboot.xyz assets directory on that host
+NETBOOT_HOST := env_var_or_default("NETBOOT_HOST", "")
+LIVE_TREE := env_var_or_default("LIVE_TREE", "")
+ASSETS_DIR := env_var_or_default("ASSETS_DIR", "/opt/stacks/netbootxyz/assets")
+
+# list recipes
+default:
+    @just --list
+
+# gofmt check + go vet + unit/component tests
+check:
+    test -z "$(gofmt -l .)" || { echo "gofmt needed:"; gofmt -l .; exit 1; }
+    go vet ./...
+    go test ./...
+
+# build both binaries for one architecture into dist/<arch>/
+build arch="amd64":
+    mkdir -p {{DIST}}/{{arch}}
+    for cmd in iotgw-status iotgw-bootstrap; do \
+      CGO_ENABLED=0 GOOS=linux GOARCH={{arch}} go build -trimpath -ldflags '{{LDFLAGS}}' \
+        -o {{DIST}}/{{arch}}/$cmd ./cmd/$cmd; \
+    done
+    @echo "built {{VERSION}} for linux/{{arch}} -> {{DIST}}/{{arch}}/"
+
+# rootfs overlay tarball for one architecture: binaries + overlay/ + release file
+overlay arch="amd64": (build arch)
+    rm -rf {{DIST}}/overlay-{{arch}}
+    mkdir -p {{DIST}}/overlay-{{arch}}/usr/local/bin {{DIST}}/overlay-{{arch}}/etc
+    cp {{DIST}}/{{arch}}/iotgw-status {{DIST}}/{{arch}}/iotgw-bootstrap {{DIST}}/overlay-{{arch}}/usr/local/bin/
+    cp -a overlay/. {{DIST}}/overlay-{{arch}}/
+    echo "iotgw-live {{VERSION}} ({{COMMIT}}, built {{DATE}})" > {{DIST}}/overlay-{{arch}}/etc/iotgw-live-release
+    # Root-owned and go-w: the overlay must never loosen /etc or /usr permissions.
+    tar --owner=0 --group=0 --numeric-owner --mode=go-w -C {{DIST}}/overlay-{{arch}} \
+      -czf {{DIST}}/iotgw-live-overlay-linux-{{arch}}.tar.gz .
+
+# release artifacts for every architecture + SHA256SUMS (what CI publishes)
+dist: check
+    rm -rf {{DIST}}
+    for a in {{ARCHES}}; do just overlay $a; done
+    cd {{DIST}} && for a in {{ARCHES}}; do \
+      cp $a/iotgw-status iotgw-status-linux-$a; cp $a/iotgw-bootstrap iotgw-bootstrap-linux-$a; \
+    done
+    cp remove.list {{DIST}}/
+    cd {{DIST}} && sha256sum iotgw-status-linux-* iotgw-bootstrap-linux-* iotgw-live-overlay-linux-*.tar.gz remove.list > SHA256SUMS
+    @cat {{DIST}}/SHA256SUMS
+
+# print the version the build would stamp
+version:
+    @echo {{VERSION}}
+
+# remove build output
+clean:
+    rm -rf {{DIST}}
+
+# ── deploy to a netboot host (wraps scripts/live-image/rebuild.sh) ──────────────
+
+# ONE-TIME: create LIVE_TREE on the netboot host from BASE_TREE's served image
+deploy-init base_tree:
+    @just _require
+    ssh -o BatchMode=yes {{NETBOOT_HOST}} 'set -e; A={{ASSETS_DIR}}; \
+      [ ! -e "$A/{{LIVE_TREE}}" ] || { echo "tree {{LIVE_TREE}} already exists" >&2; exit 1; }; \
+      mkdir -p "$A/{{LIVE_TREE}}"; \
+      cp -a "$A/{{base_tree}}/vmlinuz" "$A/{{base_tree}}/initrd" "$A/{{base_tree}}/filesystem.squashfs" "$A/{{LIVE_TREE}}/"; \
+      unsquashfs -q -n -d "$A/{{LIVE_TREE}}/squashfs-root" "$A/{{LIVE_TREE}}/filesystem.squashfs"; \
+      echo "created $A/{{LIVE_TREE}} from {{base_tree}}"'
+
+# repack LIVE_TREE with the overlay into a boot-testable <tree>-candidate/ (not served)
+deploy-stage arch="amd64": (overlay arch)
+    @just _deploy {{arch}} --stage
+
+# repack and install as the served image (previous kept as filesystem.squashfs.bak)
+deploy-swap arch="amd64": (overlay arch)
+    @just _deploy {{arch}} "--swap --yes"
+
+[private]
+_require:
+    @[ -n "{{NETBOOT_HOST}}" ] || { echo "set NETBOOT_HOST (e.g. NETBOOT_HOST=root@netboot.example just …)" >&2; exit 1; }
+    @[ -n "{{LIVE_TREE}}" ] || { echo "set LIVE_TREE (the assets directory serving the live image)" >&2; exit 1; }
+
+[private]
+_deploy arch mode:
+    @just _require
+    ssh -o BatchMode=yes {{NETBOOT_HOST}} 'rm -rf /tmp/iotgw-live-overlay && mkdir -p /tmp/iotgw-live-overlay'
+    ssh -o BatchMode=yes {{NETBOOT_HOST}} 'tar -xzf - -C /tmp/iotgw-live-overlay --numeric-owner' \
+      < {{DIST}}/iotgw-live-overlay-linux-{{arch}}.tar.gz
+    args="--tree {{LIVE_TREE}} --sync-from /tmp/iotgw-live-overlay"; \
+    while IFS= read -r p; do case "$p" in ''|\#*) ;; *) args+=" --remove $p" ;; esac; done < remove.list; \
+    ssh -o BatchMode=yes {{NETBOOT_HOST}} "ASSETS_DIR={{ASSETS_DIR}} bash -s -- $args {{mode}}" < ../scripts/live-image/rebuild.sh

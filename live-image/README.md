@@ -1,21 +1,18 @@
 # live-image — iotgw live provisioning environment
 
-The Go tooling that turns the PXE live image into an **IoT-gateway provisioning
-console**. A gateway booted from the netboot menu provisions itself (VPN + SSH
-PKI), and shows its full state on a Bubble Tea dashboard instead of the
-Clonezilla menu.
+Go tooling that turns a PXE-booted Debian **live image** (Clonezilla-based
+squashfs) into an **IoT-gateway provisioning console**. A gateway booted from
+the netboot menu provisions itself (VPN and SSH PKI), then shows its full state
+on a Bubble Tea dashboard instead of the Clonezilla menu.
 
-- **Where it runs:** on the live-booted gateway (a Debian / Clonezilla-based
-  squashfs held in RAM), **not** in the iotgw-ng cluster.
-- **Where it is served:** the netboot host y0 (`10.2.0.3`), tree
-  `/opt/stacks/netbootxyz/assets/iotgw-live/`, i.e.
-  `http://netboot.joor.net/iotgw-live/`.
-- **How it is booted:** the iPXE entry **"IoT gateway live provisioning
-  (iotgw-live)"**, in the *Provisioning* group of the menu.
-- **Architecture and rationale:**
-  [decision-031](../backlog/decisions/) (live image), plus
-  [decision-030](../backlog/decisions/) (the Netmaker bastion used to reach
-  the gateway).
+- **Where it runs:** on the live-booted gateway, in RAM. It is not part of the
+  iotgw-ng cluster; it talks to the platform's edge functions over HTTP.
+- **How it gets there:** its binaries and a small rootfs overlay are added to
+  the live image's squashfs, which a netboot server (netboot.xyz layout)
+  serves to the iPXE menu entry that asks for the device credentials.
+- **Architecture and rationale:** decision-031 (live image) and decision-030
+  (reaching gateways through the VPN hub as an SSH bastion), in
+  [`backlog/decisions/`](../backlog/decisions/).
 
 It is two static binaries built from one Go module
 (`github.com/i40sys/iotgw-ng/live-image`):
@@ -48,7 +45,7 @@ It is two static binaries built from one Go module
 
 ```text
 PXE → iPXE "IoT gateway live provisioning" → operator types device username + one-time code
-   │    (kernel args: device_id=<name>@<net8>  otp=<6 digits>  [iotgw_internet=lan|vpn]  [iotgw_api=<url>])
+   │    (kernel args: device_id=<name>@<net8>  otp=<6 digits>  iotgw_api=<url>  [iotgw_internet=lan|vpn])
    ▼
 Linux boot (live-boot, squashfs in RAM)
    │
@@ -85,7 +82,7 @@ output to the journal only, never to the console).
 
 | # | Step id | Title | What it does | Fails when |
 |---|---|---|---|---|
-| 1 | `identity` | Device identity | Reads `device_id` / `otp` / `iotgw_api` / `iotgw_internet` from `/proc/cmdline` and validates them; adds the hostname to `/etc/hosts` | No `device_id`, bad format (`<name>@<8 hex>`), code not 6 digits, bad URL |
+| 1 | `identity` | Device identity | Reads `device_id` / `otp` / `iotgw_api` / `iotgw_internet` from `/proc/cmdline` and validates them; adds the hostname to `/etc/hosts` | No `device_id`, bad format (`<name>@<8 hex>`), code not 6 digits, no API URL (neither `iotgw_api=` nor a build-time `API_BASE`), bad URL |
 | 2 | `network` | Physical network | Retries a TCP connect to the API host for up to 90 s. It does **not** require a default route, because the API may be on-link | API unreachable after 90 s |
 | 3 | `vpn-fetch` | VPN config fetch | Seals `{device_id, gateway, interface}` with the code and POSTs it to the **vpn** API. Validates the reply as a WireGuard config and saves it verbatim as `wg0.server.conf`. Reads the `# Network:` header | Transport error, non-2xx (the HTTP code is recorded), reply cannot be decrypted, invalid config |
 | 4 | `vpn-apply` | VPN configuration | Renders `wg0.conf` for the Internet mode, runs `wg-quick up wg0`, sets DNS, waits up to 25 s for a WireGuard handshake | `wg-quick` fails (FAILED); no handshake (WARNING) |
@@ -131,9 +128,9 @@ The bootstrap keeps that config untouched in `wg0.server.conf` and renders
 
 | | **`lan` (default)** — split tunnel | **`vpn`** — full tunnel |
 |---|---|---|
-| Through `wg0` | only the device's Netmaker network (e.g. `10.5.0.0/31`) | everything |
+| Through `wg0` | only the device's Netmaker network (from the config's `# Network:` header) | everything |
 | Default route | stays on the physical uplink | via `wg0` (policy routing, table 51820) |
-| Internet exits from | the local LAN gateway | the Netmaker hub (e.g. `216.45.62.117`) |
+| Internet exits from | the local LAN gateway | the Netmaker hub (the network's Internet Gateway) |
 | DNS | the LAN's DHCP resolvers and search domain, captured at boot from live-boot's `/run/net-*.conf` | the config's `DNS=` if present, else `1.1.1.1`, `9.9.9.9` through the tunnel |
 | `PreUp`/`PostDown` route hooks | removed | kept, as delivered |
 
@@ -147,7 +144,7 @@ The bootstrap keeps that config untouched in `wg0.server.conf` and renders
 - **VPN mode needs the hub to be the network's Internet Gateway** (NAT).
   `netmaker-call` sets that up for every network (decision-031).
 - **Either way the controller can reach the gateway.** Traffic from the hub
-  (`10.5.0.0`) is always inside the tunnelled range.
+  (its address in the network) is always inside the tunnelled range.
 
 ---
 
@@ -248,20 +245,20 @@ The contract between the two binaries (`internal/state`).
 
 ```jsonc
 {
-  "identity": { "device_id": "gw-c3@88b97bd9", "has_code": true, "api_base": "http://10.2.0.47:8000" },
+  "identity": { "device_id": "gw-01@1a2b3c4d", "has_code": true, "api_base": "http://api.example:8000" },
   "steps": [
     { "id": "vpn-fetch", "title": "VPN config fetch", "status": "HEALTHY",
-      "message": "configuration received for 10.5.0.1/32",
-      "endpoint": "http://10.2.0.47:8000/functions/v1/vpn?device_id=gw-c3%4088b97bd9",
+      "message": "configuration received for 10.8.0.3/32",
+      "endpoint": "http://api.example:8000/functions/v1/vpn?device_id=gw-01%401a2b3c4d",
       "http_status": 200, "started_at": "…", "finished_at": "…" }
     // … identity, network, vpn-apply, pki-fetch, user-ca, host-cert, sshd
   ],
-  "vpn": { "interface": "wg0", "addresses": ["10.5.0.1/32"], "endpoint": "216.45.62.117:443",
-           "network_cidr": "10.5.0.0/31", "internet_via": "lan", "dns": ["10.2.10.27"],
-           "allowed_ips": ["10.5.0.0/31"], "peer_public_key": "…", "applied_at": "…" },
-  "pki": { "zone": "iotgw-comforsa", "domain": "comforsa",
+  "vpn": { "interface": "wg0", "addresses": ["10.8.0.3/32"], "endpoint": "vpn-hub.example:443",
+           "network_cidr": "10.8.0.0/24", "internet_via": "lan", "dns": ["192.168.1.1"],
+           "allowed_ips": ["10.8.0.0/24"], "peer_public_key": "…", "applied_at": "…" },
+  "pki": { "zone": "iotgw-acme", "domain": "acme",
            "user_ca_fingerprints": ["SHA256:…"], "host_ca_fingerprints": ["SHA256:…"],
-           "host_fqdn": "live-gw-c3-9a8ce31d.c3.comforsa.iotgw", "host_cert_valid_before": "…" },
+           "host_fqdn": "live-gw-01-5e6f7a8b.plant-a.acme.iotgw", "host_cert_valid_before": "…" },
   "finished": true
 }
 ```
@@ -273,7 +270,7 @@ Status values: `HEALTHY`, `WARNING`, `FAILED`, `PENDING`, `RUNNING`,
 
 ## APIs it talks to
 
-Both calls go through Kong at `iotgw_api` (default `http://10.2.0.47:8000`),
+Both calls go to the platform's API gateway (Kong) at `iotgw_api`,
 `/functions/v1/<fn>?device_id=<name>@<net8>`. Both use the **same device
 envelope**:
 
@@ -340,8 +337,7 @@ live-image/
 │   ├── etc/systemd/system/iotgw-bootstrap.service (+ multi-user.target.wants link)
 │   └── etc/ocs/ocs-live.d/S98iotgw-console
 ├── remove.list                     legacy paths dropped from the image
-├── build.sh                        test + build + overlay tarball
-└── deploy.sh                       apply to the netboot host (y0) via scripts/live-image/rebuild.sh
+└── justfile                        check · build · overlay · dist · deploy-* (see below)
 ```
 
 `remove.list` drops these legacy paths from the image:
@@ -357,38 +353,89 @@ console UI.
 
 ## Build, test and deploy
 
-Requirements: Go ≥ 1.24 on the build machine (the image gets binaries only, no
-toolchain), and SSH as root to y0.
+Everything goes through the [`justfile`](justfile). Run `just --list` inside
+`live-image/`, or `just live-image::` from the repo root.
+
+Requirements: Go (version from `go.mod`) and [`just`](https://github.com/casey/just).
+The image gets **binaries only**, no Go toolchain.
+
+| Recipe | Does |
+|---|---|
+| `just check` | gofmt check, `go vet`, unit + component tests |
+| `just build [arch]` | static `CGO_ENABLED=0` binaries for `linux/<arch>` (default `amd64`) into `dist/<arch>/` |
+| `just overlay [arch]` | rootfs overlay tarball `dist/iotgw-live-overlay-linux-<arch>.tar.gz`: binaries, `overlay/`, `/etc/iotgw-live-release` |
+| `just dist` | `check`, then binaries + overlays for **amd64 and arm64**, `remove.list`, `SHA256SUMS`. This is what CI publishes |
+| `just version` | the version the build stamps (`git describe`, `-dirty` only for changes under `live-image/`) |
+| `just clean` | remove `dist/` |
+
+Build variables, all overridable (`just VERSION=1.2.3 API_BASE=https://api.example dist`):
+
+| Variable | Meaning |
+|---|---|
+| `VERSION`, `COMMIT` | stamped into both binaries and `/etc/iotgw-live-release` |
+| `API_BASE` | optional default API URL baked into `iotgw-bootstrap`. The kernel argument `iotgw_api=` always wins. Empty by default, which makes `iotgw_api=` mandatory |
+
+The overlay tarball is root-owned with group/other write stripped (`go-w`), so
+extracting it into the image can never loosen `/etc` or `/usr` permissions.
+
+### CI and published artifacts
+
+[`.github/workflows/live-image.yml`](../.github/workflows/live-image.yml) runs
+on pull requests, on pushes to `main` that touch `live-image/`, on every `v*`
+tag, and on demand. It:
+
+1. runs `just check` and `just dist`;
+2. on pushes, signs **SLSA build provenance** for every binary and tarball
+   (verify with `gh attestation verify <file> -R <owner>/<repo>`);
+3. uploads a **workflow artifact** `iotgw-live-<version>` containing
+   `iotgw-status-linux-{amd64,arm64}`, `iotgw-bootstrap-linux-{amd64,arm64}`,
+   `iotgw-live-overlay-linux-{amd64,arm64}.tar.gz`, `remove.list` and
+   `SHA256SUMS`;
+4. on `v*` tags, **attaches the same files to the GitHub release** of that tag,
+   creating the release if it does not exist.
+
+### Deploying to a netboot server
+
+The deploy recipes wrap [`scripts/live-image/rebuild.sh`](../scripts/live-image/README.md).
+Over SSH, it removes the paths in `remove.list` from the image's unpacked
+`squashfs-root/`, syncs the overlay in, repacks with the image's own
+compression, and stages or installs the result. Nothing site-specific is
+built in; pass the target per run:
+
+| Variable | Meaning |
+|---|---|
+| `NETBOOT_HOST` | SSH destination of the netboot server (root), e.g. `root@netboot.example` |
+| `LIVE_TREE` | directory under `ASSETS_DIR` that serves this live image |
+| `ASSETS_DIR` | the netboot.xyz assets directory (default `/opt/stacks/netbootxyz/assets`) |
 
 ```bash
-cd live-image
-go test ./...                 # unit + component tests (envelope vs openssl, parsers, layout, …)
-./build.sh                    # vet + test + CGO_ENABLED=0 static binaries + dist/iotgw-live-overlay.tar.gz
-./deploy.sh                   # on y0: remove legacy paths, sync overlay, repack → iotgw-live-candidate/ (not served)
-./deploy.sh --swap            # install into iotgw-live/ (previous kept as filesystem.squashfs.bak)
-./deploy.sh --init            # one-time only (done 2026-09-23): create iotgw-live/ from the Clonezilla VPN-test image
+export NETBOOT_HOST=root@netboot.example LIVE_TREE=iotgw-live
+just deploy-init <clonezilla-tree>   # one time: create LIVE_TREE from an existing Clonezilla live tree
+just deploy-stage                    # repack into <LIVE_TREE>-candidate/ (not served) to boot-test first
+just deploy-swap                     # install into LIVE_TREE (previous kept as filesystem.squashfs.bak)
 ```
 
-- **Version:** `build.sh` stamps it with `git describe`, adding `-dirty` only
-  when `live-image/` itself has uncommitted changes. It also writes
-  `/etc/iotgw-live-release`. Both are shown in the dashboard and by `-version`.
-- **Tarball:** root-owned, with group/other write stripped (`go-w`), so it can
-  never loosen `/etc` or `/usr` permissions in the image.
-- **`deploy.sh`** wraps [`scripts/live-image/rebuild.sh`](../scripts/live-image/README.md)
-  (`--remove`, `--sync-from`, `--stage` / `--swap`). Like every `--sync-from`,
-  it changes the tree's `squashfs-root/` in place.
-- **Rollback:** on y0,
-  `mv iotgw-live/filesystem.squashfs.bak iotgw-live/filesystem.squashfs`.
+Then add an iPXE menu entry that boots `<LIVE_TREE>/` and asks for the device
+credentials, and pass the API URL on the kernel command line:
 
-### Fast iteration without rebuilding the image
-
-On a live-booted gateway you can replace the binaries in RAM. They are lost on
-reboot:
-
-```bash
-scp dist/overlay/usr/local/bin/iotgw-* root@<gateway>:/usr/local/bin/
-ssh root@<gateway> 'iotgw-bootstrap -otp <current code>'   # re-provision
+```ipxe
+:iotgw-live
+echo Device username (e.g. gw-01@1a2b3c4d):
+read device_id
+echo One-time code:
+read otp
+set url ${live_endpoint}/iotgw-live/
+kernel ${url}vmlinuz boot=live username=user union=overlay config components noswap net.ifnames=0 fetch=${url}filesystem.squashfs initrd=initrd.magic device_id=${device_id} otp=${otp} iotgw_api=https://api.example
+initrd ${url}initrd
+boot
 ```
+
+**Rollback:** on the netboot server, move
+`<LIVE_TREE>/filesystem.squashfs.bak` back over `filesystem.squashfs`.
+
+**Fast iteration without rebuilding the image:** on a live-booted gateway,
+copy `dist/<arch>/iotgw-*` to `/usr/local/bin/` and run
+`iotgw-bootstrap -otp <code>`. The copies are lost on reboot.
 
 ---
 
@@ -405,9 +452,9 @@ ssh root@<gateway> 'iotgw-bootstrap -otp <current code>'   # re-provision
 | Versions | `iotgw-status -version`, `cat /etc/iotgw-live-release` |
 | Tunnel details | `sudo wg show`, `ip route`, `ip rule` |
 
-From the controller side the gateway is reached **through the Netmaker
-bastion**, `iotgw-jump@216.45.62.117` (decision-030). The client can verify the
-live host certificate strictly:
+From the controller side the gateway is reached **through the Netmaker hub as
+an SSH bastion** (a cert-only `iotgw-jump` account, decision-030). The client
+can verify the live host certificate strictly:
 `@cert-authority` + `HostKeyAlias=live-<name>-<id8>.<net>.<domain>.iotgw`.
 
 ---

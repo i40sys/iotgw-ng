@@ -24,9 +24,12 @@ import (
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
 )
 
-// DefaultAPIBase is the Kong gateway the live image talks to, overridable
-// with iotgw_api=<url> on the kernel command line (menu.ipxe).
-const DefaultAPIBase = "http://10.2.0.47:8000"
+// DefaultAPIBase is the API gateway (Kong) the live image talks to when the
+// kernel command line has no iotgw_api=<url>. Empty by default: deployments
+// either pass iotgw_api= from their iPXE entry or bake a default in at build
+// time (-ldflags "-X …/internal/bootstrap.DefaultAPIBase=<url>", see the
+// justfile's API_BASE).
+var DefaultAPIBase = ""
 
 var (
 	deviceIDRe = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}@[0-9a-fA-F]{8}$`)
@@ -130,6 +133,11 @@ func (r *Runner) identity() bool {
 	base := args["iotgw_api"]
 	if base == "" {
 		base = DefaultAPIBase
+	}
+	if base == "" {
+		r.st.Identity = state.Identity{DeviceID: args["device_id"], HasCode: args["otp"] != ""}
+		r.end(state.StepIdentity, state.Failed, "no API URL: add iotgw_api=<url> to the kernel command line (iPXE entry) or build with API_BASE", nil)
+		return false
 	}
 	r.st.Identity = state.Identity{DeviceID: deviceID, HasCode: code != "", APIBase: base}
 	switch {

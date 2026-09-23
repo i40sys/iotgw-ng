@@ -1,0 +1,94 @@
+# live-image — build, test and publish the live provisioning tooling
+# (iotgw-bootstrap + iotgw-status, Go; live-image/README.md, decision-031).
+#
+# Every run: gofmt/vet/tests (`just check`) and a full `just dist`
+# (linux/amd64 + linux/arm64 static binaries, rootfs overlay tarballs,
+# SHA256SUMS), uploaded as a workflow artifact.
+# Pushes (not PRs): signed SLSA build provenance for every artifact.
+# v* tags: the artifacts are attached to the GitHub release of that tag.
+name: live-image
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"] # path filters are not evaluated for tag pushes: every release builds
+    paths:
+      - "live-image/**"
+      - ".github/workflows/live-image.yml"
+  pull_request:
+    paths:
+      - "live-image/**"
+      - ".github/workflows/live-image.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-image-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # attach assets to the release (tags only)
+      id-token: write # keyless signing of the provenance
+      attestations: write
+    defaults:
+      run:
+        working-directory: live-image
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # `git describe --tags` stamps the version
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: live-image/go.mod
+          cache-dependency-path: live-image/go.sum
+
+      - uses: extractions/setup-just@v3
+
+      - name: Check (gofmt, vet, tests)
+        run: just check
+
+      - name: Build release artifacts
+        run: just dist
+
+      - name: Version
+        id: version
+        run: echo "version=$(just version)" >> "$GITHUB_OUTPUT"
+
+      - name: Attest build provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            live-image/dist/iotgw-status-linux-*
+            live-image/dist/iotgw-bootstrap-linux-*
+            live-image/dist/iotgw-live-overlay-linux-*.tar.gz
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iotgw-live-${{ steps.version.outputs.version }}
+          if-no-files-found: error
+          path: |
+            live-image/dist/iotgw-status-linux-*
+            live-image/dist/iotgw-bootstrap-linux-*
+            live-image/dist/iotgw-live-overlay-linux-*.tar.gz
+            live-image/dist/remove.list
+            live-image/dist/SHA256SUMS
+
+      - name: Attach to the GitHub release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 \
+            || gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+          gh release upload "$TAG" --clobber \
+            dist/iotgw-status-linux-* dist/iotgw-bootstrap-linux-* \
+            dist/iotgw-live-overlay-linux-*.tar.gz dist/remove.list dist/SHA256SUMS

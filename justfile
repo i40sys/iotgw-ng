@@ -11,6 +11,10 @@ set shell := ["bash", "-uc"]
 default:
     @just --list
 
+# Live provisioning image tooling (Go): `just live-image::` lists its recipes
+# (check, build, dist, deploy-stage/-swap). See live-image/README.md.
+mod live-image
+
 # ─────────────────────────── secrets (SOPS+age) ───────────────────────────
 
 # The k8s Secrets are created directly from the SOPS store by the kind bootstrap
