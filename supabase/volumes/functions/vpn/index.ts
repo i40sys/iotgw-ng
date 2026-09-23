@@ -15,10 +15,6 @@
 // QUERY PARAMETERS
 //   device_id   required, format "<name>@<networkPrefix>"
 //   download    optional, "true" for a Content-Disposition attachment
-//   with_ssh_ca optional, "true" to also receive the SSH CA trust material
-//               (decision-024 §7 — "in the process of getting the WireGuard
-//               configuration we also install the SSH user and host CAs").
-//               Without it the response is byte-for-byte what it always was.
 //
 // PAYLOAD (encrypted with the TOTP as the password)
 //   device_id   must match the query parameter
@@ -41,7 +37,6 @@ import {
   validTotpCodes,
   type SupabaseRestConfig,
 } from "../_shared/device-auth.ts";
-import { caPublicKey, pkiConfigFromEnv } from "../_shared/pki-manager.ts";
 
 type DenoEnv = { env: { get(key: string): string | undefined } };
 const denoEnv = (globalThis as { Deno?: DenoEnv }).Deno?.env;
@@ -78,9 +73,6 @@ interface DeviceRecord {
     domain: {
       id: string;
       name: string;
-      pki_zone: string | null;
-      pki_user_ca_id: string | null;
-      pki_host_ca_id: string | null;
     } | null;
   } | null;
 }
@@ -88,7 +80,7 @@ interface DeviceRecord {
 const DEVICE_SELECT =
   "id,network_id,name,description,ip_address,private_key,public_key," +
   "created_at,updated_at,totp_counter," +
-  "network:networks(id,domain_id,domain:domains(id,name,pki_zone,pki_user_ca_id,pki_host_ca_id))";
+  "network:networks(id,domain_id,domain:domains(id,name))";
 
 const formatDeviceAddress = (ip: string | null | undefined) => {
   const trimmed = ip?.trim();
@@ -132,40 +124,6 @@ const jsonError = (body: unknown, status: number) =>
     status,
     headers: { "Content-Type": "application/json" },
   });
-
-/**
- * The SSH CA trust material for this device's domain — public keys only.
- *
- * Best-effort by design: a PKI hiccup must never stop a device from getting its
- * WireGuard configuration, which is the primary purpose of this endpoint and
- * the only way the device gets on the network at all.
- */
-async function sshCaBundle(device: DeviceRecord): Promise<Record<string, unknown> | null> {
-  const domain = device.network?.domain;
-  if (!domain?.pki_zone || !domain.pki_user_ca_id || !domain.pki_host_ca_id) {
-    return { error: "domain is not linked to a pki-manager zone" };
-  }
-  try {
-    const pki = pkiConfigFromEnv(denoEnv);
-    const [userCa, hostCa] = await Promise.all([
-      caPublicKey(pki, domain.pki_user_ca_id),
-      caPublicKey(pki, domain.pki_host_ca_id),
-    ]);
-    const domainLabel = domain.name.toLowerCase().replace(/[^a-z0-9-]+/g, "-");
-    return {
-      zone: domain.pki_zone,
-      domain: domain.name,
-      user_ca: `${userCa}\n`,
-      host_ca: `${hostCa}\n`,
-      cert_authority: `@cert-authority *.${domainLabel}.iotgw ${hostCa}\n`,
-      principals: ["iotgw-admin", "iotgw-ops"],
-      auth_principals: "iotgw-admin\niotgw-ops\n",
-    };
-  } catch (error) {
-    console.error("ssh_ca bundle unavailable:", error);
-    return { error: error instanceof Error ? error.message : String(error) };
-  }
-}
 
 serve(async (req: Request) => {
   const url = new URL(req.url);
@@ -277,15 +235,11 @@ serve(async (req: Request) => {
       deviceRecord,
     );
 
-    // Legacy shape: the bare wg0.conf. Unchanged unless the caller opts in, so
-    // every existing gateway keeps working byte-for-byte.
-    const withSshCa = url.searchParams.get("with_ssh_ca") === "true";
-    const responseBody = withSshCa
-      ? JSON.stringify({
-          wg0_conf: wireguardConfig,
-          ssh_ca: await sshCaBundle(deviceRecord),
-        })
-      : wireguardConfig;
+    // VPN configuration ONLY. SSH trust / host identity is a separate API
+    // (`ssh-ca`) and a separate boot step — the combined `?with_ssh_ca=true`
+    // bundle was removed on purpose (decision-031): VPN and PKI must fail, be
+    // diagnosed and evolve independently.
+    const responseBody = wireguardConfig;
 
     const encryptedConfig = await encryptPayload(responseBody, totp_code);
     const download = url.searchParams.get("download") === "true";
@@ -294,7 +248,7 @@ serve(async (req: Request) => {
       headers: new Headers({
         "Content-Type": "application/octet-stream",
         "Content-Disposition": download
-          ? `attachment; filename="${withSshCa ? "bootstrap.json.enc" : "wg0.conf.enc"}"`
+          ? `attachment; filename="wg0.conf.enc"`
           : "inline",
         "Content-Length": encryptedConfig.byteLength.toString(),
       }),
