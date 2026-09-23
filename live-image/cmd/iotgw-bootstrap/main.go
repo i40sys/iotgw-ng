@@ -23,6 +23,11 @@ func main() {
 	statePath := flag.String("state", state.File, "bootstrap state document")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	otp := flag.String("otp", "", "one-time code to use instead of the boot-time one (manual retry after it expired)")
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "usage: iotgw-bootstrap [-otp CODE] [-state FILE]      provision (boot)")
+		fmt.Fprintln(os.Stderr, "       iotgw-bootstrap internet-via lan|vpn           switch Internet route + DNS")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	if *showVersion {
 		fmt.Println("iotgw-bootstrap", version.String())
@@ -35,6 +40,21 @@ func main() {
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
+
+	// `iotgw-bootstrap internet-via lan|vpn` — switch how the provisioned live
+	// image reaches the Internet (the dashboard's [i] action). No re-provisioning.
+	if flag.Arg(0) == "internet-via" {
+		via, err := bootstrap.ParseInternetVia(flag.Arg(1))
+		if err != nil || flag.Arg(1) == "" {
+			log.Fatal("usage: iotgw-bootstrap internet-via lan|vpn")
+		}
+		c, cancelT := context.WithTimeout(ctx, 2*time.Minute)
+		defer cancelT()
+		if err := bootstrap.SetInternetVia(c, *statePath, via); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	ctx, cancelT := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancelT()
 

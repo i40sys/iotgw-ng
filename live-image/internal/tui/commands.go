@@ -2,12 +2,14 @@ package tui
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/collect"
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
+	"github.com/i40sys/iotgw-ng/live-image/internal/sysexec"
 )
 
 // Refresh cadences. Kernel-local state is cheap and refreshed often; probes
@@ -29,6 +31,13 @@ type (
 	reachMsg collect.Reachability
 	inetMsg  collect.Internet
 	pkiMsg   collect.PKI
+
+	// switchDoneMsg is the outcome of the privileged Internet-mode switch.
+	switchDoneMsg struct {
+		via string
+		err error
+		out string
+	}
 
 	fastTickMsg time.Time
 	slowTickMsg time.Time
@@ -96,4 +105,16 @@ func slowTick() tea.Cmd {
 
 func hostTick() tea.Cmd {
 	return tea.Tick(hostInterval, func(t time.Time) tea.Msg { return hostTickMsg(t) })
+}
+
+// switchInternetCmd asks the privileged helper to change how the Internet is
+// reached. It is the dashboard's only state-changing action, and it runs only
+// after the operator confirmed it.
+func switchInternetCmd(via string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		res, err := sysexec.RunPrivileged(ctx, 110*time.Second, "/usr/local/bin/iotgw-bootstrap", "internet-via", via)
+		return switchDoneMsg{via: via, err: err, out: strings.TrimSpace(res.Stdout)}
+	}
 }

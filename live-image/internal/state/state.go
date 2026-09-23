@@ -91,7 +91,9 @@ type VPN struct {
 	Endpoint      string    `json:"endpoint,omitempty"` // host:port as configured
 	PeerPublicKey string    `json:"peer_public_key,omitempty"`
 	AllowedIPs    []string  `json:"allowed_ips,omitempty"`
-	PinnedRoutes  []string  `json:"pinned_routes,omitempty"`
+	NetworkCIDR   string    `json:"network_cidr,omitempty"` // the device's Netmaker network
+	InternetVia   string    `json:"internet_via,omitempty"` // lan | vpn
+	DNS           []string  `json:"dns,omitempty"`          // resolvers set for that mode
 	AppliedAt     time.Time `json:"applied_at,omitempty"`
 }
 

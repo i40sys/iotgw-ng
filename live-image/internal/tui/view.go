@@ -40,6 +40,7 @@ func (m Model) footer() string {
 	keys := []string{
 		keyStyle.Render("[r]") + " Refresh",
 		keyStyle.Render("[d]") + " Details",
+		keyStyle.Render("[i]") + " Internet via " + map[string]string{"lan": "VPN", "vpn": "LAN"}[m.currentVia()],
 		keyStyle.Render("[Up/Down PgUp/PgDn]") + " Scroll",
 		keyStyle.Render("[q]") + " Exit to shell",
 	}
@@ -64,6 +65,44 @@ func (m Model) body() string {
 	if m.showDetails {
 		return m.details()
 	}
+	top := m.switchPanel()
+	if top != "" {
+		return lipgloss.JoinVertical(lipgloss.Left, top, m.dashboard())
+	}
+	return m.dashboard()
+}
+
+// switchPanel is the Internet-mode confirmation prompt or the last notice.
+func (m Model) switchPanel() string {
+	w := m.width
+	switch {
+	case m.confirmVia == "vpn":
+		return panel("Switch Internet to VPN (full tunnel)?", state.Warning, w,
+			"All traffic and DNS would go through wg0 to the Netmaker hub.",
+			"WARNING: the hub is not an Internet gateway for the iotgw networks,",
+			"so Internet access will most likely FAIL in this mode.",
+			"wg0 restarts (a few seconds without VPN; SSH over the VPN drops).",
+			"", keyStyle.Render("[y]")+" switch   "+keyStyle.Render("[n]")+" cancel")
+	case m.confirmVia == "lan":
+		return panel("Switch Internet to LAN (split tunnel)?", state.Pending, w,
+			"Only the device's Netmaker network goes through wg0; Internet and DNS",
+			"use the local LAN gateway and resolvers.",
+			"wg0 restarts (a few seconds without VPN; SSH over the VPN drops).",
+			"", keyStyle.Render("[y]")+" switch   "+keyStyle.Render("[n]")+" cancel")
+	case m.notice != "":
+		st := state.Healthy
+		if m.switching {
+			st = state.Running
+		} else if m.noticeBad {
+			st = state.Failed
+		}
+		return panel("Internet route", st, w, m.notice)
+	}
+	return ""
+}
+
+// dashboard lays the status panels out for the terminal width.
+func (m Model) dashboard() string {
 	w := m.width
 	if w >= twoColumnMin {
 		col := w / 2
@@ -290,7 +329,15 @@ func (m Model) vpnPanel(w int) string {
 			wg = "UP"
 		}
 	}
+	via := "LAN (split tunnel — only " + orDash(v.NetworkCIDR) + " via wg0)"
+	if v.InternetVia == "vpn" {
+		via = "VPN (full tunnel — everything via wg0)"
+	} else if v.InternetVia == "" {
+		via = "-"
+	}
 	rows := []string{
+		kv("Internet via", via),
+		kv("DNS", orDash(strings.Join(v.DNS, ", "))),
 		kv("Config fetch", badge(v.ConfigStatus)+"  "+labelStyle.Render(cfg)),
 		kv("Config applied", badge(v.ApplyStatus)),
 		kv("Interface", v.Interface+"  "+wg),

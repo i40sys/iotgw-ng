@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -119,69 +118,36 @@ func (r *Runner) vpnFetch(ctx context.Context, netOK bool) (string, bool) {
 		r.end(state.StepVPNFetch, state.Failed, "VPN configuration is invalid", err)
 		return "", false
 	}
-	if err := os.MkdirAll(filepath.Dir(wgConfPath), 0o700); err == nil {
-		err = os.WriteFile(wgConfPath, []byte(conf), 0o600)
+	if err := os.MkdirAll(filepath.Dir(serverConfPath), 0o700); err == nil {
+		err = writeFile(serverConfPath, conf, 0o600)
 	}
 	if err != nil {
-		r.end(state.StepVPNFetch, state.Failed, "cannot write "+wgConfPath, err)
+		r.end(state.StepVPNFetch, state.Failed, "cannot write "+serverConfPath, err)
 		return "", false
 	}
+	network, nerr := networkFromConf(conf)
 	r.st.VPN = state.VPN{
 		ConfigPath: wgConfPath, Interface: wgIface, Addresses: sum.Addresses,
 		Endpoint: sum.Endpoint, PeerPublicKey: sum.PeerPublicKey, AllowedIPs: sum.AllowedIPs,
+		NetworkCIDR: network,
+	}
+	if nerr != nil {
+		// Still usable, but only as delivered (full tunnel).
+		r.end(state.StepVPNFetch, state.Warning, "configuration received, but its network range is unknown — split tunnel impossible", nerr)
+		return conf, true
 	}
 	r.end(state.StepVPNFetch, state.Healthy, "configuration received for "+strings.Join(sum.Addresses, ", "), nil)
 	return conf, true
 }
 
-// pinAPIRoute keeps the API reachable over the physical uplink once the
-// full-tunnel VPN replaces the default route, so the (independent) SSH PKI
-// call does not depend on the VPN's egress.
-func (r *Runner) pinAPIRoute(ctx context.Context) {
-	u, err := url.Parse(r.st.Identity.APIBase)
-	if err != nil {
-		return
-	}
-	ips, err := net.DefaultResolver.LookupIP(ctx, "ip4", u.Hostname())
-	if err != nil || len(ips) == 0 {
-		return
-	}
-	rt, err := netinfo.Lookup(ips[0])
-	if err != nil || rt == nil || rt.Gateway == nil {
-		return // on-link or unknown: nothing to pin
-	}
-	dst := ips[0].String() + "/32"
-	if _, err := sysexec.Run(ctx, 5*time.Second, "ip", "route", "replace", dst, "via", rt.Gateway.String(), "dev", rt.Iface); err == nil {
-		r.st.VPN.PinnedRoutes = append(r.st.VPN.PinnedRoutes, dst+" via "+rt.Gateway.String()+" dev "+rt.Iface+" (API)")
-	}
-}
-
 func (r *Runner) vpnApply(ctx context.Context, _ string) {
 	r.begin(state.StepVPNApply)
-	r.pinAPIRoute(ctx)
-	_, _ = sysexec.Run(ctx, 20*time.Second, "wg-quick", "down", wgIface)
-	if _, err := sysexec.Run(ctx, 30*time.Second, "wg-quick", "up", wgIface); err != nil {
-		r.end(state.StepVPNApply, state.Failed, "wg-quick up "+wgIface+" failed", err)
-		return
+	via := r.Via
+	if via == ViaLAN && r.st.VPN.NetworkCIDR == "" {
+		via = ViaVPN // cannot split without the network range
 	}
-	r.st.VPN.AppliedAt = time.Now().UTC()
-	// A WireGuard interface is "up" even with no peer; the handshake is the
-	// real proof the VPN server answered.
-	deadline := time.Now().Add(25 * time.Second)
-	for time.Now().Before(deadline) {
-		res, err := sysexec.Run(ctx, 5*time.Second, "wg", "show", wgIface, "latest-handshakes")
-		if err == nil {
-			for _, l := range strings.Split(strings.TrimSpace(res.Stdout), "\n") {
-				f := strings.Fields(l)
-				if len(f) == 2 && f[1] != "0" {
-					r.end(state.StepVPNApply, state.Healthy, wgIface+" up, handshake with "+r.st.VPN.Endpoint, nil)
-					return
-				}
-			}
-		}
-		time.Sleep(2 * time.Second)
-	}
-	r.end(state.StepVPNApply, state.Warning, wgIface+" is up but no handshake with "+r.st.VPN.Endpoint+" within 25 s", nil)
+	status, msg, err := applyInternet(ctx, via, &r.st.VPN)
+	r.end(state.StepVPNApply, status, msg, err)
 }
 
 // ── SSH PKI chain ────────────────────────────────────────────────────────────

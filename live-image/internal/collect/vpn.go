@@ -70,6 +70,7 @@ func CollectVPN(ctx context.Context, doc *state.Bootstrap) VPN {
 			v.Interface = doc.VPN.Interface
 		}
 		v.Endpoint, v.PeerPublicKey = doc.VPN.Endpoint, doc.VPN.PeerPublicKey
+		v.InternetVia, v.NetworkCIDR, v.DNS = doc.VPN.InternetVia, doc.VPN.NetworkCIDR, doc.VPN.DNS
 	}
 
 	var wgReadErr error

@@ -5,6 +5,7 @@
 package tui
 
 import (
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -32,6 +33,20 @@ type Model struct {
 
 	inflight map[string]bool
 	updated  map[string]time.Time
+
+	// Internet-mode switch ([i]): confirm → run → notice.
+	confirmVia string // target mode awaiting y/n; "" when no prompt
+	switching  bool
+	notice     string
+	noticeBad  bool
+}
+
+// currentVia is the applied Internet mode ("lan" when unknown).
+func (m *Model) currentVia() string {
+	if m.vpn != nil && m.vpn.InternetVia == "vpn" {
+		return "vpn"
+	}
+	return "lan"
 }
 
 // New returns a dashboard that starts every collector immediately.
@@ -78,9 +93,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.confirmVia != "" {
+			switch msg.String() {
+			case "y", "Y":
+				via := m.confirmVia
+				m.confirmVia, m.switching = "", true
+				m.notice, m.noticeBad = "Switching Internet to "+strings.ToUpper(via)+" — restarting wg0…", false
+				cmds = append(cmds, switchInternetCmd(via))
+			case "n", "N", "esc", "q":
+				m.confirmVia = ""
+			}
+			break
+		}
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
+		case "i":
+			if !m.switching && m.vpn != nil && m.vpn.ConfigLoaded {
+				m.confirmVia = map[string]string{"lan": "vpn", "vpn": "lan"}[m.currentVia()]
+				m.vp.GotoTop()
+			} else if m.vpn == nil || !m.vpn.ConfigLoaded {
+				m.notice, m.noticeBad = "No VPN configuration was retrieved — nothing to switch", true
+			}
 		case "r":
 			cmds = append(cmds, m.refreshAll())
 			if v := m.vpn; v != nil {
@@ -139,6 +173,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p := collect.PKI(msg)
 		m.pki = &p
 		m.done(kPKI)
+
+	case switchDoneMsg:
+		m.switching = false
+		if msg.err != nil {
+			m.notice, m.noticeBad = "Switch to "+strings.ToUpper(msg.via)+" FAILED: "+msg.err.Error(), true
+		} else {
+			m.notice, m.noticeBad = "Internet now via "+strings.ToUpper(msg.via)+". "+msg.out, false
+		}
+		cmds = append(cmds, m.refreshAll())
 
 	case fastTickMsg:
 		cmds = append(cmds, fastTick(), m.start(kNet, collectNetCmd()), m.start(kBoot, collectBootCmd()))

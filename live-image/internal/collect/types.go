@@ -94,6 +94,9 @@ type VPN struct {
 	RxBytes       uint64
 	TxBytes       uint64
 	Routes        []string
+	InternetVia   string // lan | vpn (as applied by bootstrap)
+	NetworkCIDR   string
+	DNS           []string
 	Status        Status
 	Detail        string
 }

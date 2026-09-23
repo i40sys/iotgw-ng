@@ -39,9 +39,12 @@ type Runner struct {
 	// CodeOverride replaces the one-time code from the kernel command line —
 	// for a manual retry from the shell once the boot-time code has expired.
 	CodeOverride string
-	st           *state.Bootstrap
-	code         string
-	api          *apiClient
+	// Via is how the Internet is reached once the VPN is up (kernel command
+	// line iotgw_internet=lan|vpn; default lan).
+	Via  InternetVia
+	st   *state.Bootstrap
+	code string
+	api  *apiClient
 }
 
 // NewRunner prepares a run that writes to statePath.
@@ -144,6 +147,12 @@ func (r *Runner) identity() bool {
 		r.end(state.StepIdentity, state.Failed, fmt.Sprintf("iotgw_api %q is not a URL", base), err)
 		return false
 	}
+	via, err := ParseInternetVia(args["iotgw_internet"])
+	if err != nil {
+		r.end(state.StepIdentity, state.Failed, "bad iotgw_internet on the kernel command line", err)
+		return false
+	}
+	r.Via = via
 	r.code = code
 	r.api = newAPIClient(base, deviceID, code)
 	ensureHostsEntry()
