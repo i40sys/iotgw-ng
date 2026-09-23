@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
+import { formatDuration } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -330,7 +331,7 @@ export function BootingLiveStep({
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-muted-foreground text-xs">
-                    {t("deployments.steps.refreshesIn", { seconds: timeRemaining })}
+                    {t("deployments.steps.refreshesIn", { time: formatDuration(timeRemaining) })}
                   </p>
                   <Button
                     variant="ghost"
