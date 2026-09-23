@@ -32,15 +32,16 @@ git push origin v1.2.3
 ```
 
 The tag triggers the three caller workflows → build + push + Trivy + cosign +
-SBOM/provenance. Tags emitted (decision-021): immutable `sha-<gitsha>`, `v1.2.3`,
-`1.2`, and `latest` on `main`. **Prod never references a tag — only digests.**
+SBOM/provenance. Tags emitted (decision-021): immutable `sha-<gitsha>`, `1.2.3`
+and `1.2` (docker/metadata-action semver — **without** the git tag's `v`), and
+`latest` on `main`. **Prod never references a tag — only digests.**
 
 ## 2. Read the published digests
 
 ```bash
 for img in iotgw-functions iotgw-ui-backend iotgw-ui-frontend; do
   echo -n "$img  "
-  docker buildx imagetools inspect ghcr.io/i40sys/$img:v1.2.3 \
+  docker buildx imagetools inspect ghcr.io/i40sys/$img:1.2.3 \
     --format '{{json .Manifest.Digest}}'
 done
 # or, via the API:

@@ -35,22 +35,22 @@ resources:
 # NOTE: ghcr packages must be PUBLIC, or add a dockerconfigjson imagePullSecret in
 # the iotgw-ui + supabase-app namespaces (decision-021 / decision-014).
 #
-# The digests below are PLACEHOLDERS (all-zero) until the first vX.Y.Z release
-# publishes real ones — kustomize renders them, but do NOT deploy until replaced.
+# Pinned to the v0.1.0 release (images tagged 0.1.0 / sha-b72102f; SLSA
+# provenance verified with `gh attestation verify`, deploy/RELEASE.md).
 images:
   - name: supabase/edge-runtime:v1.74.0
     newName: ghcr.io/i40sys/iotgw-functions
-    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    digest: sha256:6ac7a7357e04c2217161e0b8a9fb6cacdaf8ed02cb1cf0800dc59008a917b532
   - name: iotgw-ui-backend
     newName: ghcr.io/i40sys/iotgw-ui-backend
-    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    digest: sha256:e3d4b887023878697e31611abfe0d9aeb16222f379bd63e48d3f9cb0c0cae88c
   - name: iotgw-ui-frontend
     newName: ghcr.io/i40sys/iotgw-ui-frontend
     # Built with VITE_API_URL=https://iotgw-ui-backend.wsl.ymbihq.local/ (repo var
     # PROD_VITE_API_URL) baked in — env-specific image, task-067.18. Rebuild +
     # repin this digest whenever PROD_VITE_API_URL or ingress-prod.yaml's backend
-    # host changes. (functions/backend below stay placeholder until a vX.Y.Z release.)
-    digest: sha256:5303df69ddba5c3b5485d93989e57ecbec903e60bb8db5b5c890c5db3c40c4d0
+    # host changes.
+    digest: sha256:b308be99a14f702a92df1ae2c6097b4516b6f23e0a1ee0de2e941604b33e12f3
 
 patches:
   # Remove the emptyDir placeholder so the baked-in /home/deno/functions is used.
