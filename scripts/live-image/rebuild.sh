@@ -30,6 +30,8 @@
 #   scripts/live-image/rebuild.sh --sync-from DIR     # rsync DIR/ into squashfs-root/ first (trust material — task-095)
 #   scripts/live-image/rebuild.sh --harden            # remove baked-in private key material (task-095 AC#1)
 #   scripts/live-image/rebuild.sh --drop-key-fp FP    # drop an authorized_keys entry by fingerprint (task-107)
+#   scripts/live-image/rebuild.sh --remove PATH       # delete PATH (relative to the rootfs) — legacy files an
+#                                                     # overlay supersedes (decision-031); repeatable
 #   scripts/live-image/rebuild.sh --stage             # publish a boot-testable candidate, no swap
 #   scripts/live-image/rebuild.sh --swap --yes        # install (skips if content-identical)
 #
@@ -52,6 +54,7 @@ SYNC_FROM=""
 ASSUME_YES=0
 HARDEN=0
 DROP_FPS=()
+REMOVE_PATHS=()
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -59,6 +62,7 @@ while [ $# -gt 0 ]; do
     --sync-from) SYNC_FROM="$2"; shift 2 ;;
     --harden) HARDEN=1; shift ;;
     --drop-key-fp) DROP_FPS+=("$2"); shift 2 ;;
+    --remove) REMOVE_PATHS+=("$2"); shift 2 ;;
     --stage) MODE="stage"; shift ;;
     --swap) MODE="swap"; shift ;;
     --yes|-y) ASSUME_YES=1; shift ;;
@@ -77,6 +81,17 @@ SROOT="$DIR/squashfs-root"
 IMG="$DIR/filesystem.squashfs"
 [ -d "$SROOT" ] || die "no squashfs-root/ in $DIR"
 [ -f "$IMG" ]   || die "no filesystem.squashfs in $DIR"
+
+# --- optional: remove legacy paths an overlay supersedes (decision-031) ------
+# Runs BEFORE the sync so an overlay can re-provide a removed path.
+for rel in ${REMOVE_PATHS[@]+"${REMOVE_PATHS[@]}"}; do
+  case "$rel" in /*|*..*|'') die "--remove takes a relative path without '..': '$rel'" ;; esac
+  if [ -e "$SROOT/$rel" ] || [ -L "$SROOT/$rel" ]; then
+    rm -rf -- "${SROOT:?}/$rel"; log "removed: $rel"
+  else
+    log "already absent: $rel"
+  fi
+done
 
 # --- optional: sync trust material into squashfs-root/ (task-095) -----------
 if [ -n "$SYNC_FROM" ]; then

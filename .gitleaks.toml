@@ -30,4 +30,11 @@ regexes = [
   # Bare UUIDs are identifiers, not secrets (e.g. Cosmian KMS key-IDs in
   # kms/pki-test/README.md). Allowlist the UUID shape so key-IDs don't trip.
   '''^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$''',
+  # The OpenSSH FINGERPRINT (SHA-256 of a PUBLIC key) of the unattributed
+  # break-glass key dropped from the live image in task-107 — named in the task,
+  # the live-image README and rebuild.sh usage. A hash of a public key is not a
+  # secret; allowlisted exactly (not the SHA256:… shape) so a real token that
+  # happens to start with SHA256: is still caught.
+  # gitleaks matches the allowlist against the extracted secret (the base64 part).
+  '''^VMJ3HrTXUAmqTcnUPmJS4sTusMTcOLT8t424geeKfwg$''',
 ]

@@ -8,13 +8,18 @@
 // trust material it needs. The gateway never talks to pki-manager, never sees
 // the fleet token, and never sends a private key anywhere.
 //
-// Two actions:
-//   trust   — public trust material only (User CA, Host CA, principals).
-//             Safe to call before a host key exists; used by the live image and
-//             by migrations that only need to install trust.
-//   enroll  — the above plus: sign `host_pubkey` with the domain's Host CA,
-//             return the certificate and the sshd drop-in, and record the
-//             enrollment on the device row.
+// Three actions:
+//   trust        — public trust material only (User CA, Host CA, principals).
+//                  Safe to call before a host key exists; used by migrations
+//                  that only need to install trust.
+//   enroll       — the above plus: sign `host_pubkey` with the domain's Host CA,
+//                  return the certificate and the sshd drop-in, and record the
+//                  enrollment on the device row. The PERMANENT (OpenWRT) identity.
+//   live-enroll  — the trust bundle plus a SHORT-LIVED host certificate for the
+//                  live (PXE) provisioning image's per-boot host key, under a
+//                  separate `live-…` FQDN. It never reads or writes the device's
+//                  enrollment fields, so it cannot block or impersonate the
+//                  installed system's real enrollment (decision-031).
 //
 // Wire format (identical to the `vpn` function so a gateway needs only
 // busybox + openssl):
@@ -62,6 +67,13 @@ const REST: SupabaseRestConfig = {
  * prove its identity within a quarter, without depending on a KRL reaching it.
  */
 const HOST_CERT_VALID_SECONDS = 90 * 24 * 60 * 60;
+
+/**
+ * Live-image host certificate lifetime (decision-031). The live image generates
+ * a fresh host key on every boot and exists only for one provisioning session,
+ * so its certificate outlives that session by a margin and nothing more.
+ */
+const LIVE_HOST_CERT_VALID_SECONDS = 12 * 60 * 60;
 
 /** The two principals every zone gets (decision-024 §5). */
 const PRINCIPALS = ["iotgw-admin", "iotgw-ops"];
@@ -126,7 +138,7 @@ function label(value: string): string {
  */
 function normalizeHostPubkey(raw: unknown): { key: string; ecies: boolean } {
   if (typeof raw !== "string" || !raw.trim()) {
-    throw new Error("host_pubkey is required for action 'enroll'");
+    throw new Error("host_pubkey is required for actions 'enroll' and 'live-enroll'");
   }
   const [type, b64] = raw.trim().split(/\s+/);
   const accepted = ["ecdsa-sha2-nistp256", "ssh-ed25519"];
@@ -279,8 +291,8 @@ serve(async (req: Request) => {
   }
 
   const action = (request.action ?? "enroll").toLowerCase();
-  if (action !== "enroll" && action !== "trust") {
-    return json({ error: "action must be 'enroll' or 'trust'" }, 400);
+  if (action !== "enroll" && action !== "trust" && action !== "live-enroll") {
+    return json({ error: "action must be 'enroll', 'trust' or 'live-enroll'" }, 400);
   }
 
   // ── 4. build the response bundle ─────────────────────────────────────────
@@ -308,6 +320,44 @@ serve(async (req: Request) => {
     payload.cert_authority = hostCaKeys
       .map((k) => `@cert-authority *.${label(domain.name)}.${FQDN_SUFFIX} ${k}`)
       .join("\n") + "\n";
+
+    if (action === "live-enroll") {
+      const { key: hostPubkey } = normalizeHostPubkey(request.host_pubkey);
+      const deviceLabel = label(device.name);
+      const networkLabel = label(device.network.name);
+      const domainLabel = label(domain.name);
+
+      // A SEPARATE pki-manager host record from the permanent one: `live-` FQDN,
+      // same uuid slice for uniqueness (decision-028 §10). sign-host upserts by
+      // (zone, fqdn) and replaces the key, so every boot re-signs this record's
+      // new per-boot key without ever touching the device's real host record.
+      // No IP principal: the VPN IP belongs to the permanent identity (task-102
+      // offboards by it), and clients pin the FQDN with HostKeyAlias anyway.
+      // No continuity proof: the live key is per-boot by design; possession of
+      // the device TOTP is the whole bar here, as for a first enroll on the
+      // isolated provisioning bench (decision-028 §5).
+      const fqdn =
+        `live-${deviceLabel}-${device.id.slice(0, 8)}.${networkLabel}.${domainLabel}.${FQDN_SUFFIX}`;
+      const signed = await signHost(pki, domain.pki_zone, {
+        fqdn,
+        addresses: [`live-${deviceLabel}.${networkLabel}.${domainLabel}.${FQDN_SUFFIX}`],
+        opensshHostPubkey: hostPubkey,
+        idempotencyKey: `live-${device.id}-${(await sha256Hex(hostPubkey)).slice(0, 32)}`,
+        validForSeconds: LIVE_HOST_CERT_VALID_SECONDS,
+      });
+
+      payload.fqdn = fqdn;
+      payload.host_principals = [
+        fqdn,
+        `live-${deviceLabel}.${networkLabel}.${domainLabel}.${FQDN_SUFFIX}`,
+      ];
+      payload.host_cert = signed.certOpenssh.endsWith("\n")
+        ? signed.certOpenssh
+        : `${signed.certOpenssh}\n`;
+      payload.host_cert_serial = signed.serial;
+      payload.host_cert_valid_before = signed.validBefore;
+      payload.host_key_fingerprint = await opensshFingerprint(hostPubkey);
+    }
 
     if (action === "enroll") {
       const { key: hostPubkey, ecies } = normalizeHostPubkey(request.host_pubkey);

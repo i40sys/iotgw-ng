@@ -1,0 +1,19 @@
+[Unit]
+Description=iotgw live provisioning bootstrap: VPN (vpn API) + SSH PKI (ssh-ca API) — decision-031
+Documentation=https://github.com/i40sys/iotgw-ng (live-image/README.md)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/iotgw-bootstrap
+# Results go to /run/iotgw/bootstrap.json (the dashboard) and the journal —
+# never to the console, which belongs to the dashboard.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=iotgw-bootstrap
+TimeoutStartSec=15min
+
+[Install]
+WantedBy=multi-user.target

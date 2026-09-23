@@ -1,0 +1,13 @@
+# Paths (relative to the squashfs rootfs) the iotgw live image supersedes
+# (decision-031). Applied by deploy.sh via rebuild.sh --remove BEFORE the overlay.
+#
+# legacy single-step VPN bootstrap (vpn.sh) — replaced by iotgw-bootstrap
+etc/systemd/system/vpn-setup.service
+etc/systemd/system/multi-user.target.wants/vpn-setup.service
+opt/scripts
+# rc.local ran /opt/${clonezilla}.sh, which does not exist in this tree
+etc/rc.local
+# statically baked SSH trust (task-095, iotgw-lab only) — now per-device at boot
+etc/ssh/sshd_config.d/60-iotgw-ssh-ca.conf
+etc/ssh/ssh-user-ca.pub
+etc/ssh/auth_principals/root
