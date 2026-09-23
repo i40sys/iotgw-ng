@@ -258,6 +258,8 @@
       "deviceAccess": "Acceso al Dispositivo",
       "deviceAccessDesc": "SSH/Ansible a través del host de Netmaker (bastión) para verificar que el dispositivo puede ser gestionado",
       "latency": "Latencia: {{ms}} ms",
+      "progressTitle": "Progreso",
+      "kestraExecution": "Ejecución de Kestra",
       "sshAccessOk": "Acceso SSH verificado correctamente",
       "deviceOnline": "El dispositivo está en línea y accesible",
       "deviceOffline": "El dispositivo no está accesible"

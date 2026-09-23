@@ -206,12 +206,27 @@ Linux boot → network → identity (device_id + otp from the iPXE prompt)
   - The bastion **pulls** trust on a timer from pki-manager's public
     id-addressed CA route (the list of zones comes from a read-only endpoint),
     instead of being pushed by hand.
-- **Full-tunnel VPN has no Internet egress.** The `vpn` config removes the
-  default route (`AllowedIPs 0.0.0.0/0`), and the Netmaker host does not
-  forward/NAT extclient traffic. After the VPN comes up, the live image
-  reaches the VPN hub but not the Internet. The dashboard now shows this
-  honestly (Internet FAILED, VPN HEALTHY). Fixing it is a VPN-design decision:
-  split tunnel, or egress NAT on the hub.
+- **Internet: LAN by default, VPN on request** (added 2026-09-23). The `vpn`
+  config is a full tunnel (`AllowedIPs 0.0.0.0/0` + `ip route del default`),
+  and the Netmaker hub is an Internet Gateway only for `netmaker` /
+  `inetfromusa`. **None of the iotgw networks has it, so a full tunnel has no
+  Internet or DNS.** Decided: split tunnel on the live image. Implementation:
+  - `vpn` states the device's range in a `# Network:` header (a comment, so
+    other consumers are unaffected).
+  - `iotgw-bootstrap` keeps the server config (`wg0.server.conf`) and renders
+    `wg0.conf` per mode:
+    - **`lan` (default):** only the network through `wg0`; default route and
+      DNS stay on the LAN, using the resolvers and search domain from
+      live-boot's DHCP record (`/run/net-*.conf`).
+    - **`vpn`:** the config as delivered, with DNS from its `DNS=` or public
+      resolvers through the tunnel.
+  - `DNS=` is always lifted out, because the image has no `resolvconf`.
+  - The mode is set with the kernel argument `iotgw_internet=`, and at runtime
+    with `iotgw-bootstrap internet-via lan|vpn`, which the dashboard's `[i]`
+    calls after a y/n prompt warning that `vpn` has no egress today.
+  - Installed OpenWRT gateways are unaffected.
+  - Making the hub an Internet Gateway per network remains an option if a full
+    tunnel is ever required.
 - **`live-enroll` ↔ bootstrap contract.** The `live-enroll` response shape
   is a contract with `internal/bootstrap` (`pkiBundle`). Change them together.
 - **Boot verification is manual**, as for every image change (task-094): stage,

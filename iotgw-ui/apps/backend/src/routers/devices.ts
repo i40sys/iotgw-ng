@@ -13,6 +13,12 @@ import {
   listActiveHosts,
   isPkiConfigured,
 } from "../services/pki";
+import {
+  readConnectivityProgress,
+  startConnectivityCheck,
+  type ConnectivityRequest,
+} from "../services/connectivity";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Kestra + edge-function endpoints for the force-re-enroll path (mirrors the
 // deployments router; kept in sync deliberately — decision-020 FQDNs).
@@ -24,61 +30,31 @@ const SUPABASE_GATEWAY_URL = (
   "http://kong.supabase-app.svc.cluster.local:8000"
 ).replace(/\/+$/, "");
 
-// Debug logging for connectivity checks - enabled via LOG_LEVEL=debug environment variable
-const isDebugEnabled = process.env.LOG_LEVEL === "debug";
-
-function writeDebugLog(message: string) {
-  if (isDebugEnabled) {
-    logger.debug({ connectivity: true }, message);
+/** The device's VPN IP and its domain's pki-manager zone, for a connectivity check. */
+async function resolveConnectivityTarget(
+  supabase: SupabaseClient,
+  deviceId: string,
+): Promise<ConnectivityRequest> {
+  const { data: device, error } = await supabase
+    .from("devices")
+    .select("id, name, ip_address, network:networks(domain:domains(pki_zone))")
+    .eq("id", deviceId)
+    .single();
+  if (error || !device) {
+    throw new TRPCError({ code: "NOT_FOUND", message: `Device with ID ${deviceId} not found`, cause: error });
   }
-}
-
-/**
- * The ICMP result of a connectivity-check execution. The ping runs ON the
- * Netmaker host (decision-030) inside the runner pod, which logs the ping
- * output followed by an `ICMP_RESULT rc=<n>` marker; parse both from the
- * execution logs.
- */
-async function fetchBastionIcmpResult(
-  kestraApiUrl: string,
-  executionId: string,
-): Promise<{ success: boolean; error: string; rawOutput: string; latency: number | undefined }> {
-  const response = await fetch(`${kestraApiUrl}/api/v1/main/logs/${executionId}`, {
-    headers: {
-      Authorization:
-        "Basic " +
-        Buffer.from(`${process.env.KESTRA_USER}:${process.env.KESTRA_PASSWORD}`).toString("base64"),
-    },
-  });
-  if (!response.ok) {
-    return {
-      success: false,
-      error: `Could not read execution logs (${response.status})`,
-      rawOutput: "",
-      latency: undefined,
-    };
+  if (!device.ip_address) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Device has no IP address yet — it must be provisioned into its network first",
+    });
   }
-  const logs = (await response.json()) as Array<{ message?: string }>;
-  const lines = logs.flatMap((entry) => (entry.message ?? "").split("\n"));
-  const marker = lines.find((line) => line.includes("ICMP_RESULT rc="));
-  if (!marker) {
-    return {
-      success: false,
-      error: "The ICMP check did not run (no ICMP_RESULT in the execution logs)",
-      rawOutput: "",
-      latency: undefined,
-    };
-  }
-  const rawOutput = lines
-    .filter((line) => /PING |bytes from|packet loss|rtt |iotgw-jump/.test(line))
-    .join("\n");
-  const rttMatch = rawOutput.match(/rtt [^=]+= [\d.]+\/([\d.]+)\//);
-  const isSuccess = /ICMP_RESULT rc=0\b/.test(marker);
+  const network = device.network as { domain?: { pki_zone?: string | null } | null } | null;
   return {
-    success: isSuccess,
-    error: isSuccess ? "" : `ICMP from the Netmaker host failed (${marker.trim()})`,
-    rawOutput,
-    latency: rttMatch ? parseFloat(rttMatch[1]) : undefined,
+    targetIp: device.ip_address,
+    deviceId: device.id,
+    deviceName: device.name,
+    pkiZone: network?.domain?.pki_zone ?? "",
   };
 }
 
@@ -1051,266 +1027,50 @@ export const devicesRouter = {
     },
   ),
 
+  // Connectivity check (decision-030): start + progress so the UI can show
+  // what is being waited for; checkDeviceConnectivity waits for the result.
+  startDeviceConnectivityCheck: createMutationProcedure(
+    "start_device_connectivity_check",
+    z.object({ deviceId: z.string().min(1, "Device ID is required") }),
+    async ({ ctx, input }) => {
+      const target = await resolveConnectivityTarget(ctx.supabase, input.deviceId);
+      const executionId = await startConnectivityCheck(target);
+      logger.info(
+        `Connectivity check for ${target.deviceName} (${target.targetIp}) started: ${executionId}`,
+      );
+      return { executionId, targetIp: target.targetIp };
+    },
+  ),
+
+  getDeviceConnectivityCheck: createQueryProcedure(
+    "get_device_connectivity_check",
+    z.object({ executionId: z.string().min(1) }),
+    async ({ input }) => readConnectivityProgress(input.executionId),
+  ),
+
   checkDeviceConnectivity: createMutationProcedure(
     "check_device_connectivity",
     z.object({
       deviceId: z.string().min(1, "Device ID is required"),
     }),
     async ({ ctx, input }) => {
-      const { supabase } = ctx;
-
-      // Clear debug log for new check
-      writeDebugLog("=".repeat(80));
-      writeDebugLog("NEW CONNECTIVITY CHECK STARTED");
-      writeDebugLog(`Input deviceId: ${input.deviceId}`);
-
-      // Step 1: Get device information
-      writeDebugLog("Step 1: Fetching device information from Supabase...");
-      const { data: deviceData, error: deviceError } = await supabase
-        .from("devices")
-        .select("id, name, ip_address, network_id")
-        .eq("id", input.deviceId)
-        .single();
-
-      if (deviceError) {
-        writeDebugLog(`ERROR: Failed to fetch device: ${JSON.stringify(deviceError)}`);
-        logger.error({ error: deviceError }, "Error fetching device for connectivity check");
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Device with ID ${input.deviceId} not found`,
-          cause: deviceError,
-        });
-      }
-
-      writeDebugLog(`Device found: ${JSON.stringify(deviceData)}`);
-
-      if (!deviceData.ip_address) {
-        writeDebugLog("ERROR: Device has no IP address configured");
-        logger.warn(`Device ${input.deviceId} has no IP address configured`);
-        return {
-          success: false,
-          ping: {
-            success: false,
-            error: "Device has no IP address configured",
-            rawOutput: "Error: No IP address configured for this device",
-          },
-          ansible: {
-            success: false,
-            error: "Cannot run ansible without IP address",
-            rawOutput: "Error: Cannot run ansible check - no IP address configured",
-          },
-        };
-      }
-
-      const ipAddress = deviceData.ip_address;
-      writeDebugLog(`IP Address: ${ipAddress}`);
-
-      // Resolve the device's pki-manager zone (task-092) so the runner can mint
-      // an iotgw-ops user cert the target gateway's User CA trusts. Best-effort:
-      // an empty zone just means the runner falls back / the mint is skipped.
-      let pkiZone = "";
-      const { data: netRow } = await supabase
-        .from("networks")
-        .select("domain_id")
-        .eq("id", deviceData.network_id)
-        .single();
-      if (netRow?.domain_id) {
-        const { data: domRow } = await supabase
-          .from("domains")
-          .select("pki_zone")
-          .eq("id", netRow.domain_id)
-          .single();
-        pkiZone = domRow?.pki_zone ?? "";
-      }
-
-      // Step 2: Execute Kestra workflow for connectivity check
-      try {
-        // Kestra is in its own namespace (decision-020); default to the
-        // in-cluster FQDN, overridable via KESTRA_API_URL (set on the backend
-        // Deployment). Scoped here; reused by the status poll below.
-        const KESTRA_API_URL = (
-          process.env.KESTRA_API_URL ?? "http://kestra.kestra.svc.cluster.local:8080"
-        ).replace(/\/+$/, "");
-        const kestraUrl = `${KESTRA_API_URL}/api/v1/main/executions/iotgw-ng/connectivity-check`;
-        const requestBody = {
-          target_ip: ipAddress,
-          device_id: deviceData.id,
-          device_name: deviceData.name,
-          pki_zone: pkiZone,
-        };
-
-        writeDebugLog("Step 2: Calling Kestra workflow...");
-        writeDebugLog(`Kestra URL: ${kestraUrl}`);
-        writeDebugLog(`Request body: ${JSON.stringify(requestBody)}`);
-
-        const formData = new FormData();
-        formData.append("json_data", JSON.stringify(requestBody));
-
-        logger.info(
-          `Starting connectivity check for device ${deviceData.name} (${ipAddress})`,
-        );
-
-        writeDebugLog("Sending POST request to Kestra...");
-        const response = await fetch(kestraUrl, {
-          method: "POST",
-          headers: {
-            Authorization:
-              "Basic " +
-              Buffer.from(`${process.env.KESTRA_USER}:${process.env.KESTRA_PASSWORD}`).toString("base64"),
-          },
-          body: formData as unknown as BodyInit,
-        });
-
-        writeDebugLog(`Kestra response status: ${response.status} ${response.statusText}`);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          writeDebugLog(`ERROR: Kestra request failed`);
-          writeDebugLog(`Response body: ${errorText}`);
-          logger.error(
-            { status: response.status, error: errorText },
-            "Kestra connectivity check workflow failed to start",
-          );
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: `Failed to start connectivity check: ${response.status} ${response.statusText}. Error: ${errorText}`,
-          });
+      const target = await resolveConnectivityTarget(ctx.supabase, input.deviceId);
+      const executionId = await startConnectivityCheck(target);
+      const deadline = Date.now() + 180_000;
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const progress = await readConnectivityProgress(executionId);
+        if (progress.finished && progress.ping && progress.ansible) {
+          return {
+            success: progress.success ?? false,
+            executionId,
+            ping: progress.ping,
+            ansible: progress.ansible,
+          };
         }
-
-        const executionData = await response.json();
-        writeDebugLog(`Kestra execution response: ${JSON.stringify(executionData)}`);
-        const executionId = executionData.id;
-
-        logger.info(
-          `Kestra connectivity check started with execution ID: ${executionId}`,
-        );
-        writeDebugLog(`Execution ID: ${executionId}`);
-
-        // Step 3: Poll for execution completion (with timeout).
-        // Both checks run through the Netmaker host (decision-030): ICMP is
-        // pinged FROM the Netmaker host (the controller has no L3 route into
-        // the gateway networks) and SSH/Ansible hops through it as a bastion.
-        // The runner pod clones the flow repo, installs tools and mints an ops
-        // cert before it even connects, so allow well over the old 30 s.
-        writeDebugLog("Step 3: Polling for execution completion...");
-        const maxWaitTime = 180000; // 3 minutes
-        const pollInterval = 2000; // 2 seconds
-        const startTime = Date.now();
-        let pollCount = 0;
-
-        let pingResult = {
-          success: false,
-          error: "Timeout waiting for the connectivity-check execution",
-          rawOutput: "",
-          latency: undefined as number | undefined,
-        };
-        let ansibleResult = {
-          success: false,
-          error: "Timeout waiting for the connectivity-check execution",
-          rawOutput: "",
-        };
-
-        while (Date.now() - startTime < maxWaitTime) {
-          pollCount++;
-          const statusUrl = `${KESTRA_API_URL}/api/v1/executions/${executionId}`;
-          writeDebugLog(`Poll #${pollCount}: GET ${statusUrl}`);
-
-          const statusResponse = await fetch(statusUrl, {
-            method: "GET",
-            headers: {
-              Authorization:
-                "Basic " +
-                Buffer.from(`${process.env.KESTRA_USER}:${process.env.KESTRA_PASSWORD}`).toString("base64"),
-            },
-          });
-
-          writeDebugLog(`Poll #${pollCount} response status: ${statusResponse.status}`);
-
-          if (statusResponse.ok) {
-            const statusData = await statusResponse.json();
-            const state = statusData.state?.current?.toLowerCase() || statusData.state?.toLowerCase();
-            writeDebugLog(`Poll #${pollCount} state: ${state}`);
-
-            if (state === "success" || state === "failed" || state === "warning" || state === "killed") {
-              // Kestra stores outputs per task run, not at execution level.
-              const taskRunList = statusData.taskRunList || [];
-              const checkTask = taskRunList.find(
-                (task: { taskId: string }) => task.taskId === "run_connectivity_check",
-              );
-              writeDebugLog(`run_connectivity_check task found: ${checkTask ? "yes" : "no"}`);
-
-              const isSuccess =
-                state === "success" && checkTask?.state?.current === "SUCCESS";
-
-              ansibleResult = {
-                success: isSuccess,
-                error: isSuccess
-                  ? ""
-                  : `SSH/Ansible check failed (execution ${state}, task ${checkTask?.state?.current ?? "not run"}) — see the execution logs`,
-                rawOutput: JSON.stringify(checkTask?.outputs || {}, null, 2),
-              };
-
-              pingResult = await fetchBastionIcmpResult(
-                KESTRA_API_URL,
-                executionId,
-              );
-
-              logger.info(
-                `Connectivity check completed for device ${deviceData.name}: icmp=${pingResult.success}, ssh/ansible=${ansibleResult.success}`,
-              );
-
-              const finalResult = {
-                success: pingResult.success && ansibleResult.success,
-                executionId,
-                ping: pingResult,
-                ansible: ansibleResult,
-              };
-              writeDebugLog(`FINAL RESULT: ${JSON.stringify(finalResult)}`);
-              writeDebugLog("=".repeat(80));
-
-              return finalResult;
-            }
-          } else {
-            const errorText = await statusResponse.text();
-            writeDebugLog(`Poll #${pollCount} ERROR: ${errorText}`);
-          }
-
-          // Wait before next poll
-          await new Promise((resolve) => setTimeout(resolve, pollInterval));
-        }
-
-        // Timeout reached
-        writeDebugLog(`TIMEOUT: Connectivity check timed out after ${maxWaitTime}ms`);
-        logger.warn(
-          `Connectivity check timed out for device ${deviceData.name} after ${maxWaitTime}ms`,
-        );
-
-        const timeoutResult = {
-          success: false,
-          executionId,
-          ping: pingResult,
-          ansible: ansibleResult,
-        };
-        writeDebugLog(`TIMEOUT RESULT: ${JSON.stringify(timeoutResult)}`);
-        writeDebugLog("=".repeat(80));
-
-        return timeoutResult;
-      } catch (error) {
-        writeDebugLog(`EXCEPTION: ${error instanceof Error ? error.message : String(error)}`);
-        writeDebugLog(`Stack: ${error instanceof Error ? error.stack : "N/A"}`);
-        writeDebugLog("=".repeat(80));
-
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-
-        logger.error({ error }, "Failed to execute connectivity check");
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to execute connectivity check: ${error instanceof Error ? error.message : "Unknown error"}`,
-          cause: error,
-        });
       }
+      const timeout = { success: false, error: "Timed out waiting for the connectivity-check execution", rawOutput: "" };
+      return { success: false, executionId, ping: timeout, ansible: timeout };
     },
   ),
 };

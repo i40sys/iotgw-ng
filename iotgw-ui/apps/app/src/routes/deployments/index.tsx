@@ -1,3 +1,4 @@
+import { useConnectivityCheck } from "@/hooks/use-connectivity-check";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -769,30 +770,10 @@ function DeploymentsPage() {
     }
   };
 
-  // Connectivity check mutation - shared between step components and deploy button
-  const connectivityCheckMutation = useMutation({
-    ...trpc.checkDeviceConnectivity.mutationOptions(),
-    onSuccess: (data) => {
-      setConnectivityResult(data);
-      if (data.success) {
-        toast.success(t("deployments.steps.connectivitySuccess"));
-      } else {
-        toast.error(t("deployments.steps.connectivityFailed"));
-      }
-    },
-    onError: (error) => {
-      setConnectivityResult(null);
-      toast.error(error.message || t("deployments.steps.connectivityError"));
-    },
-  });
-
-  // State for connectivity check results (shared with step components)
-  const [connectivityResult, setConnectivityResult] = useState<{
-    success: boolean;
-    executionId?: string;
-    ping: { success: boolean; error?: string; rawOutput: string; latency?: number };
-    ansible: { success: boolean; error?: string; rawOutput: string };
-  } | null>(null);
+  // Connectivity check — start + live progress, shared between the step
+  // components, the deploy button and the dialog.
+  const connectivityCheck = useConnectivityCheck();
+  const connectivityResult = connectivityCheck.result;
 
   // State for connectivity check dialog
   const [isConnectivityDialogOpen, setIsConnectivityDialogOpen] = useState(false);
@@ -800,9 +781,8 @@ function DeploymentsPage() {
   // Handler for connectivity check - used by both step components and deploy button
   const handleCheckConnectivity = () => {
     if (selectedDeviceId) {
-      setConnectivityResult(null);
       setIsConnectivityDialogOpen(true);
-      connectivityCheckMutation.mutate({ deviceId: selectedDeviceId });
+      connectivityCheck.run(selectedDeviceId);
     }
   };
 
@@ -1098,7 +1078,7 @@ function DeploymentsPage() {
 
   // Clear connectivity result when step changes (Step 1 and Step 3 are independent checks)
   useEffect(() => {
-    setConnectivityResult(null);
+    connectivityCheck.reset();
   }, [activeDeploymentStep]);
 
   // Persist settings to localStorage whenever relevant state changes
@@ -1589,7 +1569,7 @@ function DeploymentsPage() {
                                 )?.totp_counter ?? 0
                               }
                               onCheckConnectivity={handleCheckConnectivity}
-                              isCheckingConnectivity={connectivityCheckMutation.isPending}
+                              isCheckingConnectivity={connectivityCheck.isChecking}
                               connectivityResult={connectivityResult}
                             />
                           </DeploymentStepContent>
@@ -1606,7 +1586,7 @@ function DeploymentsPage() {
                             <RebootingStep
                               deviceId={selectedDeviceId}
                               onCheckConnectivity={handleCheckConnectivity}
-                              isCheckingConnectivity={connectivityCheckMutation.isPending}
+                              isCheckingConnectivity={connectivityCheck.isChecking}
                               connectivityResult={connectivityResult}
                             />
                           </DeploymentStepContent>
@@ -1727,7 +1707,7 @@ function DeploymentsPage() {
       <DeploymentActionsPanel
         selectedDeviceId={selectedDeviceId}
         hasUnsavedChanges={hasUnsavedChanges}
-        isLoading={isLoading || connectivityCheckMutation.isPending}
+        isLoading={isLoading || connectivityCheck.isChecking}
         currentVersion={selectedVersion}
         currentStep={activeDeploymentStep}
         onReset={handleReset}
@@ -1800,8 +1780,9 @@ function DeploymentsPage() {
       <ConnectivityCheckDialog
         open={isConnectivityDialogOpen}
         onOpenChange={setIsConnectivityDialogOpen}
-        isChecking={connectivityCheckMutation.isPending}
+        isChecking={connectivityCheck.isChecking}
         result={connectivityResult}
+        progress={connectivityCheck.progress}
         deviceName={selectedDevice?.name}
         deviceIp={selectedDevice?.ip_address ?? undefined}
         sshKeyId={selectedDevice?.ssh_key_id ?? null}

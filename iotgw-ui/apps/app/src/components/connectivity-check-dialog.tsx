@@ -36,11 +36,28 @@ interface ConnectivityResult {
   };
 }
 
+/** Live phase timeline of a running check (backend getDeviceConnectivityCheck). */
+export interface ConnectivityProgressView {
+  executionId: string;
+  finished: boolean;
+  elapsedMs: number;
+  lastLog?: string;
+  phases: {
+    id: string;
+    label: string;
+    status: "pending" | "running" | "done" | "failed";
+    durationMs?: number;
+  }[];
+  ping?: ConnectivityResult["ping"];
+}
+
 interface ConnectivityCheckDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isChecking: boolean;
   result: ConnectivityResult | null;
+  /** When given, the dialog shows what the check is waiting for, live. */
+  progress?: ConnectivityProgressView | null;
   deviceName?: string;
   deviceIp?: string;
   sshKeyId?: string | null;
@@ -53,6 +70,7 @@ export function ConnectivityCheckDialog({
   onOpenChange,
   isChecking,
   result,
+  progress,
   deviceName,
   deviceIp,
   sshKeyId,
@@ -96,10 +114,23 @@ export function ConnectivityCheckDialog({
     }
   }, [result, isChecking]);
 
+  // The ICMP result is known long before the whole check ends — show it then.
+  useEffect(() => {
+    if (progress?.ping && !displayedPingResult) {
+      setDisplayedPingResult(progress.ping);
+    }
+  }, [progress?.ping, displayedPingResult]);
+
+  const phaseStatus = (id: string) =>
+    progress?.phases.find((p) => p.id === id)?.status;
+
   // Determine step statuses based on displayed state
   const getPingStatus = (): StepStatus => {
     if (displayedPingResult) {
       return displayedPingResult.success ? "success" : "failed";
+    }
+    if (progress && !progress.finished) {
+      return phaseStatus("icmp") === "running" ? "checking" : "pending";
     }
     if (isChecking) return "checking";
     return "pending";
@@ -108,6 +139,9 @@ export function ConnectivityCheckDialog({
   const getAnsibleStatus = (): StepStatus => {
     if (displayedAnsibleResult) {
       return displayedAnsibleResult.success ? "success" : "failed";
+    }
+    if (progress && !progress.finished) {
+      return phaseStatus("ssh") === "running" ? "checking" : "pending";
     }
     // Show checking state after ping result is displayed
     if (displayedPingResult && !displayedAnsibleResult) {
@@ -247,6 +281,53 @@ export function ConnectivityCheckDialog({
               </div>
             </div>
           </div>
+
+          {/* Live progress: what the check is waiting for right now */}
+          {progress && (
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">
+                  {t("deployments.connectivityCheck.progressTitle")}
+                </h4>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {formatSeconds(progress.elapsedMs)}
+                </span>
+              </div>
+              <ol className="mt-3 space-y-1.5">
+                {progress.phases.map((phase) => (
+                  <li
+                    key={phase.id}
+                    className={cn(
+                      "flex items-center gap-2 text-sm",
+                      phase.status === "pending" && "text-muted-foreground/60",
+                    )}
+                  >
+                    <span className="flex w-4 justify-center">
+                      {phaseIcon(phase.status)}
+                    </span>
+                    <span className="flex-1">{phase.label}</span>
+                    {phase.durationMs !== undefined && phase.status !== "pending" && (
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {formatSeconds(phase.durationMs)}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+              {!progress.finished && progress.lastLog && (
+                <p
+                  className="mt-3 truncate font-mono text-xs text-muted-foreground"
+                  title={progress.lastLog}
+                >
+                  {progress.lastLog}
+                </p>
+              )}
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t("deployments.connectivityCheck.kestraExecution")}{" "}
+                <span className="font-mono">#{progress.executionId}</span>
+              </p>
+            </div>
+          )}
 
           {/* Step 1: Network Reachability (ICMP Ping) */}
           <div
@@ -388,4 +469,27 @@ export function ConnectivityCheckDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function formatSeconds(ms: number): string {
+  return `${(ms / 1000).toFixed(ms < 10000 ? 1 : 0)} s`;
+}
+
+function phaseIcon(status: ConnectivityProgressView["phases"][number]["status"]) {
+  switch (status) {
+    case "done":
+      return (
+        <FontAwesomeIcon icon={faCircleCheck} className="h-3.5 w-3.5 text-green-600 dark:text-green-400" aria-label="done" />
+      );
+    case "running":
+      return (
+        <FontAwesomeIcon icon={faSpinner} className="h-3.5 w-3.5 animate-spin text-blue-600 dark:text-blue-400" aria-label="running" />
+      );
+    case "failed":
+      return (
+        <FontAwesomeIcon icon={faCircleXmark} className="h-3.5 w-3.5 text-red-600 dark:text-red-400" aria-label="failed" />
+      );
+    default:
+      return <span className="h-2.5 w-2.5 rounded-full border border-muted-foreground/40" aria-label="pending" />;
+  }
 }
