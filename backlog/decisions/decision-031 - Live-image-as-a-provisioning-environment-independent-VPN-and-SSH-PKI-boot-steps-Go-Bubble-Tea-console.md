@@ -154,6 +154,15 @@ Linux boot → network → identity (device_id + otp from the iPXE prompt)
 
 ### 5. Where it lives and how it is built
 
+- **Served as its own permanent tree** `iotgw-live/` on y0
+  (`netboot.joor.net/iotgw-live/`), booted by the iPXE entry **"IoT gateway
+  live provisioning (iotgw-live)"** (menu item `iotgw-live`, *Provisioning*
+  group), which prompts for the device username and one-time code. It was
+  derived once from the Clonezilla `VPN test` tree's served image, and that tree
+  and its entry are left untouched. New versions are installed in place with
+  `deploy.sh --swap`, keeping the previous image as `filesystem.squashfs.bak`.
+  The menu was backed up as `config/menu.ipxe.bak-20260923-pre-iotgw-live`.
+
 - `live-image/` (Go module `github.com/i40sys/iotgw-ng/live-image`):
   - `cmd/iotgw-status`, `cmd/iotgw-bootstrap`;
   - `internal/{state,envelope,bootstrap,collect,tui,netinfo,sysexec,cmdline,version}`;

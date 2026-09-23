@@ -1,7 +1,11 @@
 # live-image — iotgw live provisioning environment
 
-The PXE live image (iPXE entry **`VPN test`**) turned from a Clonezilla menu
-with scripts on top into an IoT-gateway provisioning console. Architecture and
+The PXE live image turned from a Clonezilla menu with scripts on top into an
+IoT-gateway provisioning console. It is served from its own permanent tree
+**`iotgw-live/`** on y0 (`netboot.joor.net/iotgw-live/`) and booted by the iPXE
+entry **"IoT gateway live provisioning (iotgw-live)"** under *Provisioning*,
+which asks for the device username and one-time code. The Clonezilla trees
+(including the old `VPN test` entry) are untouched. Architecture and
 rationale: [`decision-031`](../backlog/decisions/).
 
 ```text
@@ -30,9 +34,9 @@ tty1 → iotgw-status (Bubble Tea dashboard)  [q] → normal shell   `iotgw-stat
 
 ```bash
 live-image/build.sh            # vet + test + static CGO_ENABLED=0 binaries + overlay tarball (dist/)
-live-image/deploy.sh           # on y0: remove legacy paths, sync overlay, repack → <tree>-candidate/ (not served)
-# boot ONE machine from the candidate (menu.ipxe entry pointing at the -candidate path), check the dashboard
-live-image/deploy.sh --swap    # install as the served image (previous kept as filesystem.squashfs.bak)
+live-image/deploy.sh --init    # ONE-TIME (done 2026-09-23): create iotgw-live/ from the Clonezilla VPN-test image
+live-image/deploy.sh           # repack → iotgw-live-candidate/ (not served) to boot-test a risky change first
+live-image/deploy.sh --swap    # install into iotgw-live/ (previous kept as filesystem.squashfs.bak)
 ```
 
 `deploy.sh` wraps [`scripts/live-image/rebuild.sh`](../scripts/live-image/README.md)
