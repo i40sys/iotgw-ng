@@ -32,11 +32,12 @@ SESSION="dev-$(basename "$REPO")"
 # other Orca-runtime projects (5173 = Keycloak, 6430 = pki-manager backlog).
 # Keeping them fixed is what makes orphan detection possible. These MUST match
 # iotgw-ui/apps/app/vite.config.ts (frontend) and mprocs.yaml (backend PORT env,
-# backlog -p).
+# backlog -p, kms port-forward).
 FRONTEND_PORT=52173   # vite (strictPort)
 BACKEND_PORT=52174    # tRPC + WS (mprocs sets PORT; server.ts honors it)
 BACKLOG_PORT=52175    # backlog browser
-PORTS=("$FRONTEND_PORT" "$BACKEND_PORT" "$BACKLOG_PORT")
+KMS_PF_PORT=52176     # kubectl port-forward → kind KMS (backend KMS_URL)
+PORTS=("$FRONTEND_PORT" "$BACKEND_PORT" "$BACKLOG_PORT" "$KMS_PF_PORT")
 
 FORCE=0
 CMD="up"

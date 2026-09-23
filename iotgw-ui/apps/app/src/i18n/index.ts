@@ -28,8 +28,14 @@ void i18n
     interpolation: {
       escapeValue: false, // React already escapes values
     },
+    // English by default. The browser language is NOT consulted — only an
+    // explicit choice in the language switcher (persisted below) selects
+    // another language. The key was renamed from i18next's default
+    // `i18nextLng` so a language auto-detected from the browser in the past
+    // no longer sticks.
     detection: {
-      order: ["localStorage", "navigator"],
+      order: ["localStorage"],
+      lookupLocalStorage: "iotgw-ui-language",
       caches: ["localStorage"],
     },
   });

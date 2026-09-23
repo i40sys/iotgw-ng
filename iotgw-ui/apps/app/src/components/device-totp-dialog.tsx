@@ -61,12 +61,15 @@ export function DeviceTOTPDialog({
     setCurrentCounter(totpCounter);
   }, [totpCounter]);
 
-  // Auto-increment counter when timer expires
+  // On expiry, show a fresh code for the SAME counter — never bump it here.
+  // Bumping invalidates every outstanding code, so a gateway still booting with
+  // the code the operator already typed would fail `vpn` auth. Only the
+  // explicit Reset button may invalidate codes.
   useEffect(() => {
-    if (timeRemaining === 0 && open && !incrementCounterMutation.isPending) {
-      incrementCounterMutation.mutate({ id: deviceId });
+    if (timeRemaining === 0 && open) {
+      setStartTime(Math.floor(Date.now() / 1000));
     }
-  }, [timeRemaining, open, incrementCounterMutation.isPending, deviceId]);
+  }, [timeRemaining, open]);
 
   useEffect(() => {
     if (!open) return;
