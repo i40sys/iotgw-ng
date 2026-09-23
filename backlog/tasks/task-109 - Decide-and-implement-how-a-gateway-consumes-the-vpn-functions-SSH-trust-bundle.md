@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-09-14 07:09'
-updated_date: '2026-09-22 12:02'
+updated_date: '2026-09-23 07:33'
 labels:
   - ssh-ca
   - bootstrap
@@ -44,7 +44,15 @@ The `vpn` edge function now supports `?with_ssh_ca=true`, returning the domain's
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-**CLOSED-NOT-IMPLEMENTED (2026-09-22): parked — no fleet / no current need.** Marked Done to stop tracking; nothing was built for it.
+**IMPLEMENTED 2026-09-23 as decision-031 — but NOT via the combined bundle.**
 
-WHY: how a gateway consumes the vpn function's SSH trust bundle is a fleet-distribution design question with no value at single-gateway scale — enrollment already delivers the User/Host CA anchors directly via the ssh-ca edge function (proven on 10.2.0.210). Revisit only if a real fleet + the vpn-bundle distribution path becomes needed.
+**Design changed:**
+- VPN and SSH PKI are two independent APIs and boot steps: `vpn` (WireGuard only; `?with_ssh_ca=true` removed) and `ssh-ca` action `live-enroll` (trust bundle + 12 h live host cert, separate `live-…` FQDN, never writes the device row).
+- The client is the live image's `iotgw-bootstrap` (live-image/, Go), not `enable_ansible.sh` / `setup_vpn.sh`.
+
+**AC mapping:**
+- #1 caller: the live image's boot script was the only caller; it is replaced.
+- #2 one path: `iotgw-bootstrap` installs trust at boot; the static task-095 bake is removed from the VPN-test tree.
+- #3 anchor in place: proven on gw-c3 (User CA + principals + live host cert, sshd -T verified).
+- #4 legacy response: `vpn` still returns the bare wg0.conf.
 <!-- SECTION:NOTES:END -->
