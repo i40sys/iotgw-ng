@@ -2,5 +2,6 @@
   "strictLineBreaks": false,
   "showFrontmatter": false,
   "defaultViewMode": "preview",
-  "livePreview": true
+  "livePreview": true,
+  "readableLineLength": false
 }
