@@ -1,0 +1,40 @@
+#!/bin/bash
+# iotgw live provisioning console (decision-031).
+#
+# Clonezilla's S03prep-drbl-clonezilla appends `sudo -i ocs-live-run-menu` to
+# the auto-login account's ~/.bash_profile on every boot, which is how the
+# Clonezilla ncurses menu becomes the tty1 UI. This hook runs after it (from
+# start-ocs-live.service, in S-number order) and replaces that launcher with
+# the iotgw-status dashboard. Clonezilla's tooling stays installed; it is just
+# no longer the default operator UI.
+set -eu
+
+account="$(sed -n 's/^LIVE_USERNAME="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' /run/live/live-config 2>/dev/null | head -n1)"
+account="${account:-user}"
+home="$(getent passwd "$account" | cut -d: -f6)"
+if [ -z "$home" ] || [ ! -d "$home" ]; then
+  echo "iotgw-console: auto-login account '$account' has no home; leaving the console alone"
+  exit 0
+fi
+
+# Per-boot marker dir, owned by the console user: the dashboard auto-starts
+# once per boot, never again after the operator quits it.
+install -d -o "$account" -g "$account" -m 0755 /run/iotgw-console
+# The language/keyboard prompt only existed for the Clonezilla menu.
+rm -f /run/lock/start-ocs-lang-kbd-conf
+
+cat > "$home/.bash_profile" <<'PROFILE'
+# iotgw live provisioning console (decision-031). Written at boot by
+# /etc/ocs/ocs-live.d/S98iotgw-console; replaces Clonezilla's menu launcher.
+[ -f ~/.bashrc ] && . ~/.bashrc
+
+# The dashboard starts ONCE per boot on the local console. Quitting it with [q]
+# leaves you in this shell (sudo is available). Run `iotgw-status` to reopen it.
+if [ "$(tty 2>/dev/null)" = /dev/tty1 ] && [ -x /usr/local/bin/iotgw-status ] \
+   && [ ! -e /run/iotgw-console/launched ]; then
+  : > /run/iotgw-console/launched
+  /usr/local/bin/iotgw-status
+fi
+PROFILE
+chown "$account:$account" "$home/.bash_profile"
+echo "iotgw-console: tty1 UI is iotgw-status (was ocs-live-run-menu)"
