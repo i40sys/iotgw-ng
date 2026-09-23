@@ -282,7 +282,7 @@
       "credentials": "Device Credentials",
       "username": "Username",
       "password": "Password (TOTP)",
-      "refreshesIn": "Refreshes in {{seconds}}s",
+      "refreshesIn": "Refreshes in {{time}}",
       "regenerate": "Regenerate",
       "totpRegenerated": "TOTP code regenerated (valid for 10 minutes)",
       "totpRegenerateFailed": "Failed to regenerate TOTP",

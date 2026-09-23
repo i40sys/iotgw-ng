@@ -282,7 +282,7 @@
       "credentials": "Credenciales del Dispositivo",
       "username": "Usuario",
       "password": "Contraseña (TOTP)",
-      "refreshesIn": "Se actualiza en {{seconds}}s",
+      "refreshesIn": "Se actualiza en {{time}}",
       "regenerate": "Regenerar",
       "totpRegenerated": "Código TOTP regenerado (válido por 10 minutos)",
       "totpRegenerateFailed": "Error al regenerar TOTP",
