@@ -8,6 +8,10 @@
 #   52173 = frontend (vite, pinned in apps/app/vite.config.ts)
 #   52174 = backend  (PORT in the SOPS-rendered .env; server.ts honors it)
 #   52175 = backlog browser
+#   52176 = kubectl port-forward to the kind KMS. The host NodePort (9998) is
+#           blocked by the task-057 NetworkPolicy; a port-forward enters the pod
+#           netns so it is not subject to it. The backend's KMS_URL (SOPS) points
+#           here. Looped because a port-forward dies when the KMS pod restarts.
 # These must match scripts/dev-session.sh (which reclaims exactly these ports).
 procs:
   app:
@@ -23,4 +27,9 @@ procs:
   backlog:
     cwd: <CONFIG_DIR>
     shell: backlog browser --no-open -p 52175
+    autostart: true
+
+  kms:
+    cwd: <CONFIG_DIR>
+    shell: "while true; do kubectl --context kind-iotgw -n kms port-forward --address 127.0.0.1 svc/cosmian-kms 52176:9998; sleep 2; done"
     autostart: true
