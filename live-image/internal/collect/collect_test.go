@@ -1,6 +1,7 @@
 package collect
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
@@ -48,5 +49,14 @@ func TestReachabilityNoEndpoint(t *testing.T) {
 	r := CollectReachability(t.Context(), VPN{})
 	if r.Status != state.NotConfigured {
 		t.Fatalf("got %s", r.Status)
+	}
+}
+
+// Regression: a pooled keep-alive connection survives a route change and
+// black-holes (HTTPS FAILED after switching Internet via LAN <-> VPN).
+func TestHTTPSProbeNeverReusesConnections(t *testing.T) {
+	tr, ok := probeHTTP.Transport.(*http.Transport)
+	if !ok || !tr.DisableKeepAlives {
+		t.Fatal("the HTTPS probe must open a fresh connection on every run")
 	}
 }

@@ -18,6 +18,19 @@ var (
 	httpsProbe = "https://www.cloudflare.com/cdn-cgi/trace"
 )
 
+// probeHTTP never reuses connections. A connectivity probe must open a new
+// connection every time: a kept-alive one from before a route change (e.g.
+// the operator switching Internet via LAN <-> VPN) keeps its old source address
+// and silently black-holes on the new path, which reported HTTPS FAILED
+// ("context deadline exceeded") while DNS and fresh TCP were fine.
+var probeHTTP = &http.Client{
+	Transport: &http.Transport{
+		Proxy:               nil,
+		DisableKeepAlives:   true,
+		TLSHandshakeTimeout: 5 * time.Second,
+	},
+}
+
 func grade(ok, total int) Status {
 	switch {
 	case ok == total:
@@ -75,7 +88,7 @@ func CollectInternet(ctx context.Context) Internet {
 	c, cancel := context.WithTimeout(ctx, 6*time.Second)
 	defer cancel()
 	req, _ := http.NewRequestWithContext(c, http.MethodGet, httpsProbe, nil)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := probeHTTP.Do(req)
 	switch {
 	case err != nil:
 		in.HTTPS = Check{Status: state.Failed, Detail: err.Error()}
