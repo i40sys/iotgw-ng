@@ -7,7 +7,10 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo dev)"
+VERSION="$(git describe --tags --always 2>/dev/null || echo dev)"
+# "dirty" means the live-image sources differ from the commit — not unrelated
+# files elsewhere in the monorepo.
+git diff --quiet HEAD -- . 2>/dev/null || VERSION="$VERSION-dirty"
 COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 PKG=github.com/i40sys/iotgw-ng/live-image/internal/version
