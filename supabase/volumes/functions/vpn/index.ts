@@ -70,6 +70,7 @@ interface DeviceRecord {
   network: {
     id: string;
     domain_id: string;
+    ipv4_cidr: string | null;
     domain: {
       id: string;
       name: string;
@@ -80,7 +81,7 @@ interface DeviceRecord {
 const DEVICE_SELECT =
   "id,network_id,name,description,ip_address,private_key,public_key," +
   "created_at,updated_at,totp_counter," +
-  "network:networks(id,domain_id,domain:domains(id,name))";
+  "network:networks(id,domain_id,ipv4_cidr,domain:domains(id,name))";
 
 const formatDeviceAddress = (ip: string | null | undefined) => {
   const trimmed = ip?.trim();
@@ -97,6 +98,7 @@ const generateWireGuardConfig = (
 # Device metadata
 # Name: ${device.name}
 # Network ID: ${device.network_id}
+# Network: ${device.network?.ipv4_cidr ?? "n/a"}
 # Description: ${device.description ?? "n/a"}
 # Last updated: ${device.updated_at}
 
