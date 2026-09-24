@@ -227,9 +227,13 @@ boot hub \
   -netdev user,id=wan -device virtio-net-pci,netdev=wan,mac=52:54:00:10:00:02 \
   -netdev "user,id=mgmt,net=10.10.1.0/24,restrict=on,hostfwd=tcp:127.0.0.1:$HUB_SSH-10.10.1.15:2222" -device virtio-net-pci,netdev=mgmt,mac=52:54:00:10:00:03
 sleep 3
-boot gw \
-  -netdev "socket,id=site,connect=127.0.0.1:$SITE_PORT" -device virtio-net-pci,netdev=site,mac=52:54:00:20:00:01 \
-  -netdev "user,id=mgmt,net=10.10.2.0/24,restrict=on,hostfwd=tcp:127.0.0.1:$GW_SSH-10.10.2.15:2222,hostfwd=tcp:127.0.0.1:$GW_SSHD-10.10.2.15:22" -device virtio-net-pci,netdev=mgmt,mac=52:54:00:20:00:02
+boot_gw() {
+  boot gw \
+    -netdev "socket,id=site,connect=127.0.0.1:$SITE_PORT" -device virtio-net-pci,netdev=site,mac=52:54:00:20:00:01 \
+    -netdev "user,id=mgmt,net=10.10.2.0/24,restrict=on,hostfwd=tcp:127.0.0.1:$GW_SSH-10.10.2.15:2222,hostfwd=tcp:127.0.0.1:$GW_SSHD-10.10.2.15:22" -device virtio-net-pci,netdev=mgmt,mac=52:54:00:20:00:02
+  GW_PID=$!
+}
+boot_gw
 wait_ssh hub 600
 wait_ssh gw 600
 
@@ -344,8 +348,12 @@ until_ok "tunnel up after hold" 180 tunnel_up
 log "5. persistent Internet policy (task-125.06)"
 if gw "iotgw internet vpn"; then ok "iotgw internet vpn"; else ko "iotgw internet vpn"; fi
 until_ok "egress via VPN" 60 egress_is wg0
-gw "reboot" || true
-sleep 10
+# A cold power cycle (clean poweroff, new QEMU on the same disk): a warm
+# reboot under TCG emulation sometimes hangs in the bootloader.
+gw "sync; poweroff" || true
+for _ in $(seq 120); do kill -0 "$GW_PID" 2>/dev/null || break; sleep 1; done
+kill "$GW_PID" 2>/dev/null || true
+boot_gw
 wait_ssh gw 600
 if [ "$(gw 'uci -q get iotgw.main.internet_policy')" = vpn ]; then ok "policy survives reboot"; else ko "policy lost on reboot"; fi
 until_ok "egress via VPN after reboot" 180 egress_is wg0
