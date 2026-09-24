@@ -132,6 +132,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: iotgw-e2e-logs
+          include-hidden-files: true # the harness works in test/qemu/.work
           path: |
             live-image/test/qemu/.work/*.serial.log
             live-image/test/qemu/.work/fakeapi.log

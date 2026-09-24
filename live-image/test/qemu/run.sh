@@ -359,8 +359,11 @@ if [ "$(gw 'uci -q get iotgw.main.internet_policy')" = vpn ]; then ok "policy su
 until_ok "egress via VPN after reboot" 180 egress_is wg0
 gw "iotgw internet auto" >/dev/null
 until_ok "auto: back to LAN" 240 egress_is eth0
-if gw "ps w | grep -v grep | grep -q 'iotgw status'"; then ok "dashboard running on the console (task-125.04)"; else ko "dashboard not on the console"; fi
-if grep -q "iotgw gateway console" gw.serial.log; then ok "dashboard drawn on the serial console"; else ko "dashboard not on the serial console"; fi
+# the launcher waits (≤ 90 s) for the boot to settle before drawing
+dash_running() { gw "ps w | grep -v grep | grep -q 'iotgw status'"; }
+dash_serial() { grep -q "iotgw gateway console" gw.serial.log; }
+until_ok "dashboard running on the console (task-125.04)" 150 dash_running
+until_ok "dashboard drawn on the serial console" 60 dash_serial
 
 log "6. vpn refresh (task-125.07)"
 read -r BAD_KEY _ < <(./fakeapi genkey)
