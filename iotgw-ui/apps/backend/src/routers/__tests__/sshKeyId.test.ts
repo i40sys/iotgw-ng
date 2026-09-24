@@ -198,7 +198,13 @@ describe("SSH key ID routing", () => {
           id: "deployment-1",
           name: "Deployment One",
           version: "1",
-          configuration: { foo: "bar" },
+          configuration: {
+            foo: "bar",
+            osInstallation: {
+              target_disk: "/dev/nvme0n1",
+              openwrt_version: "23.05.4",
+            },
+          },
         },
         error: null,
       },
@@ -225,7 +231,53 @@ describe("SSH key ID routing", () => {
       foo: "bar",
       target_ip: "10.0.0.10",
       ssh_key_id: "ssh-key-1",
+      // The install flow reads these flat, not under osInstallation.
+      target_disk: "/dev/nvme0n1",
+      openwrt_version: "23.05.4",
     });
+  });
+
+  it("executeKestraDeployment rejects an install without OS installation settings", async () => {
+    const supabase = createSupabaseMock({
+      devices: {
+        data: {
+          id: "device-1",
+          name: "Device One",
+          ip_address: "10.0.0.10",
+          network_id: "network-1",
+          ssh_key_id: "ssh-key-1",
+        },
+        error: null,
+      },
+      networks: {
+        data: { id: "network-1", domain_id: "domain-1" },
+        error: null,
+      },
+      domains: {
+        data: { id: "domain-1", name: "example" },
+        error: null,
+      },
+      deployments: {
+        data: { id: "deployment-1", configuration: { foo: "bar" } },
+        error: null,
+      },
+    });
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock as any);
+
+    const caller = createCaller(supabase);
+    await expect(
+      caller.executeKestraDeployment({
+        device_id: "device-1",
+        deployment_id: "deployment-1",
+        flow_type: "install",
+      }),
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: expect.stringContaining("osInstallation.target_disk"),
+    } satisfies Partial<TRPCError>);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("generateMissingSshKey returns existing ssh_key_id without calling KMS", async () => {
