@@ -315,6 +315,8 @@ until_ok "iotgw_endpoint route via 172.30.0.1" 120 route_is 172.30.0.1
 until_ok "install-time route removed" 30 legacy_gone
 until_ok "tunnel up" 120 tunnel_up
 until_ok "Netmaker network routed through wg0" 60 net_via_wg
+self_enrolled() { gw "test -f /etc/ssh/ssh_host_ecdsa_key-cert.pub"; }
+until_ok "daemon enrolled the fresh install by itself (decision-032 §12)" 120 self_enrolled
 
 log "2. LAN router change (task-125.05 AC1)"
 hub "set -e

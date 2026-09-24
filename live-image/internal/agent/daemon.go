@@ -31,6 +31,8 @@ type Daemon struct {
 	lastSummary string
 	// lastSkipped dedups rate-limit / backoff notices.
 	lastSkipped string
+	// lastEnroll paces the first-enrollment attempts (see selfEnroll).
+	lastEnroll time.Time
 }
 
 // Run loops until ctx ends. The first check runs shortly after start (the
@@ -175,6 +177,8 @@ func (d *Daemon) Cycle(ctx context.Context) time.Duration {
 		d.change(ctx, cfg, "route", "keep the Netmaker route on the current LAN router", ops, NoRegression)
 	}
 
+	d.selfEnroll(ctx, cfg)
+
 	// ── 2. the Internet egress policy ───────────────────────────────────────
 	dec := Decide(cfg.Policy, cfg.Prefer, obs, &d.cnt)
 	if dec.Want != obs.Current && obs.Current != EgressUnknown {
@@ -240,4 +244,52 @@ func orNone(s string) string {
 		return "none"
 	}
 	return s
+}
+
+// enrollRetry paces first-enrollment attempts while a gateway is not enrolled.
+const enrollRetry = 10 * time.Minute
+
+// selfEnroll enrolls a gateway that has NO host certificate yet (a fresh
+// install), so the controller can reach it with its CA-signed operator
+// certificate without anyone running `iotgw ssh refresh` (decision-032 §12).
+// First enrollment only — renewals stay controller-driven (task-104). Same
+// TOTP authentication as the controller's enrollment. A reinstalled device
+// is refused (task-075 continuity) until an operator resets its enrollment
+// in the UI; the next attempt then succeeds on its own. Hold suspends it.
+func (d *Daemon) selfEnroll(ctx context.Context, cfg Config) {
+	if _, err := os.Stat(sshHostCert); err == nil {
+		return
+	}
+	if !cfg.IdentityComplete() || time.Since(d.lastEnroll) < enrollRetry {
+		return
+	}
+	if cfg.Hold {
+		d.heldOnce("enroll", "not enrolled; on hold, NOT enrolling")
+		return
+	}
+	d.lastEnroll = time.Now()
+	var lines []string
+	err := d.A.SSHRefresh(ctx, "", false, func(l string) { lines = append(lines, l) })
+	last := ""
+	if len(lines) > 0 {
+		last = lines[len(lines)-1]
+	}
+	if err != nil {
+		d.st.AddEvent("enroll", "failed", "first SSH enrollment: "+err.Error())
+		d.A.logf("enroll: first SSH enrollment failed (retry in %s): %v", enrollRetry, err)
+		return
+	}
+	d.st.AddEvent("enroll", "ok", last)
+	d.A.logf("enroll: %s", last)
+	if d.Snap != nil {
+		d.Snap.Kick()
+	}
+}
+
+// heldOnce records a held action once (not every cycle).
+func (d *Daemon) heldOnce(kind, text string) {
+	if d.lastHeld != text {
+		d.st.AddEvent(kind, "held", text)
+		d.lastHeld = text
+	}
 }

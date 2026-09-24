@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -5,6 +6,18 @@ import { ErrorDisplay } from "@/components/ui/error-display";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Card,
   CardContent,
@@ -22,6 +35,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   RefreshCw,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -84,6 +98,27 @@ function DeviceDetailsPage() {
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : t("devices.sshCert.reenrollError"),
+      );
+    },
+  });
+
+  // Reset the SSH enrollment after a reinstall (task-128): the old host key
+  // is gone, so the SSH CA would refuse every re-enroll otherwise.
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetReason, setResetReason] = useState("");
+  const resetSshMutation = useMutation({
+    ...trpc.resetSshEnrollment.mutationOptions(),
+    onSuccess: () => {
+      toast.success(t("devices.sshCert.resetDone"));
+      setResetOpen(false);
+      setResetReason("");
+      void queryClient.invalidateQueries({
+        queryKey: trpc.getSshCertStatus.queryKey({ id }),
+      });
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : t("devices.sshCert.resetError"),
       );
     },
   });
@@ -360,6 +395,60 @@ function DeviceDetailsPage() {
                   ? t("devices.sshCert.reenroll")
                   : t("devices.sshCert.enroll")}
             </Button>
+            {sshCertQuery.data?.enrolled && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-3 ml-2"
+                onClick={() => setResetOpen(true)}
+              >
+                <RotateCcw className="h-4 w-4" />
+                {t("devices.sshCert.reset")}
+              </Button>
+            )}
+            <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {t("devices.sshCert.resetTitle")}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t("devices.sshCert.resetDescription")}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2">
+                  <Label htmlFor="ssh-reset-reason">
+                    {t("devices.sshCert.resetReason")}
+                  </Label>
+                  <Input
+                    id="ssh-reset-reason"
+                    value={resetReason}
+                    placeholder={t("devices.sshCert.resetReasonPlaceholder")}
+                    onChange={(e) => setResetReason(e.target.value)}
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>
+                    {t("devices.sshCert.resetCancel")}
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={
+                      resetReason.trim().length < 3 || resetSshMutation.isPending
+                    }
+                    onClick={(e) => {
+                      e.preventDefault();
+                      resetSshMutation.mutate({
+                        id: device.id,
+                        reason: resetReason.trim(),
+                      });
+                    }}
+                  >
+                    {t("devices.sshCert.resetConfirm")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </div>

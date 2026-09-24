@@ -240,6 +240,7 @@ export type Database = {
           ssh_host_fqdn: string | null
           ssh_host_id: string | null
           ssh_host_key_fingerprint: string | null
+          ssh_host_pubkey: string | null
           ssh_key_id: string | null
           totp_counter: number
           updated_at: string | null
@@ -259,6 +260,7 @@ export type Database = {
           ssh_host_fqdn?: string | null
           ssh_host_id?: string | null
           ssh_host_key_fingerprint?: string | null
+          ssh_host_pubkey?: string | null
           ssh_key_id?: string | null
           totp_counter?: number
           updated_at?: string | null
@@ -278,6 +280,7 @@ export type Database = {
           ssh_host_fqdn?: string | null
           ssh_host_id?: string | null
           ssh_host_key_fingerprint?: string | null
+          ssh_host_pubkey?: string | null
           ssh_key_id?: string | null
           totp_counter?: number
           updated_at?: string | null

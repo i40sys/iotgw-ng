@@ -1,11 +1,11 @@
 ---
 id: TASK-125.10
 title: Remove the fixed Netmaker route from setup_vpn.sh and network.j2
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-24 07:00'
-updated_date: '2026-09-24 11:16'
+updated_date: '2026-09-24 15:29'
 labels:
   - openwrt
   - vpn
@@ -28,7 +28,7 @@ priority: medium
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 Neither file writes a route to the Netmaker server
-- [ ] #2 Install + provisioning on a test gateway still reach the VPN (route created by the daemon)
+- [x] #2 Install + provisioning on a test gateway still reach the VPN (route created by the daemon)
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -39,4 +39,6 @@ priority: medium
 **Pending AC#2:** a real install + provisioning run once the release is pinned (task-125.09).
 
 **On gw-c3 (2026-09-24):** after an install with these files, `/etc/config/network` had no route to the Netmaker server. The daemon created `network.iotgw_endpoint` (via 10.2.0.1) on its first check, the tunnel came up, and the Kestra connectivity-check (via the Netmaker host) passed. Enrollment was done with `iotgw ssh refresh`. The Kestra `provisioning` flow itself was not re-run, so AC#2 stays open until it is.
+
+**AC#2 (VPN part) verified on gw-c3:** after the release install (no static route in any file), the provisioning flow reached the gateway through the Netmaker host over the daemon-managed route and the tunnelled network (SSH OK, ok=2), once it was enrolled. The flow then failed in the third-party role gekmihesg.openwrt, unrelated to routing — tracked as task-129.
 <!-- SECTION:NOTES:END -->

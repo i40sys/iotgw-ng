@@ -125,7 +125,16 @@
       "reenrolling": "Encolando...",
       "reenrollQueued": "Reinscripción en la CA SSH encolada mediante el flujo de aprovisionamiento",
       "reenrollError": "No se pudo encolar la reinscripción en la CA SSH",
-      "deleteWarning": "Si este dispositivo está inscrito en la CA SSH, eliminarlo revoca permanentemente su certificado de host (offboard en pki-manager). Es irreversible: el certificado queda muerto, no inactivo, y su par (zona, FQDN) no puede volver a registrarse nunca."
+      "deleteWarning": "Si este dispositivo está inscrito en la CA SSH, eliminarlo revoca permanentemente su certificado de host (offboard en pki-manager). Es irreversible: el certificado queda muerto, no inactivo, y su par (zona, FQDN) no puede volver a registrarse nunca.",
+      "reset": "Restablecer inscripción",
+      "resetTitle": "¿Restablecer la inscripción SSH?",
+      "resetDescription": "Úsalo después de REINSTALAR el gateway: su clave de host anterior ya no existe, así que la CA SSH rechaza reinscribirlo (una reinscripción debe firmarse con la clave anterior). Al restablecer, la próxima inscripción se acepta como la primera, con el mismo nombre de host. No se revoca nada. Si la clave anterior pudiera estar comprometida, elimina y vuelve a crear el dispositivo.",
+      "resetReason": "Motivo",
+      "resetReasonPlaceholder": "p. ej. reinstalado desde la imagen live",
+      "resetConfirm": "Restablecer inscripción",
+      "resetCancel": "Cancelar",
+      "resetDone": "Inscripción SSH restablecida: el gateway puede volver a inscribirse (iotgw ssh refresh, o Inscribir ahora)",
+      "resetError": "No se pudo restablecer la inscripción SSH"
     }
   },
   "domains": {

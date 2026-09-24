@@ -380,6 +380,51 @@ export const devicesRouter = {
     },
   ),
 
+  // Reset a device's SSH-CA enrollment after a REINSTALL (decision-032,
+  // task-128). ssh-ca only re-enrolls a device that proves possession of its
+  // previously enrolled host key (task-075) — a reinstall destroys that key,
+  // so the device could never enroll again. An operator, with a reason,
+  // drops the stored continuity anchor (ssh_host_pubkey); the next enroll is
+  // then accepted as a first one and re-keys the SAME pki-manager host (same
+  // fqdn). Nothing is revoked or offboarded (offboard is terminal and would
+  // burn the fqdn). If the old key may be COMPROMISED, delete and recreate the
+  // device instead (that offboards).
+  resetSshEnrollment: createMutationProcedure(
+    "reset_ssh_enrollment",
+    z.object({
+      id: z.string(),
+      reason: z.string().trim().min(3, "Give a reason (e.g. 'reinstalled')"),
+    }),
+    async ({ ctx, input }) => {
+      const { data, error } = await ctx.supabase
+        .from("devices")
+        .update({ ssh_host_pubkey: null })
+        .eq("id", input.id)
+        .select("id, name, ssh_host_fqdn")
+        .single();
+
+      if (error || !data) {
+        throw new TRPCError({
+          code: error?.code === "PGRST116" ? "NOT_FOUND" : "INTERNAL_SERVER_ERROR",
+          message: error
+            ? `Failed to reset SSH enrollment: ${error.message}`
+            : `Device with ID ${input.id} not found`,
+          cause: error,
+        });
+      }
+
+      logger.warn(
+        {
+          deviceId: data.id,
+          fqdn: data.ssh_host_fqdn,
+          reason: input.reason,
+        },
+        "SSH enrollment RESET by an operator: the next enroll is accepted without proof of the previous host key",
+      );
+      return { reset: true, deviceId: data.id, fqdn: data.ssh_host_fqdn };
+    },
+  ),
+
   // Force a re-enrollment of a device's SSH host certificate (task-081, AC#2).
   //
   // UNAMBIGUOUS MEANING: this QUEUES a re-enroll by triggering the Kestra

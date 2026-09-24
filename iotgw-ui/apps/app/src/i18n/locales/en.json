@@ -125,7 +125,16 @@
       "reenrolling": "Queuing...",
       "reenrollQueued": "SSH-CA re-enrollment queued via the provisioning flow",
       "reenrollError": "Failed to queue SSH-CA re-enrollment",
-      "deleteWarning": "If this device is SSH-CA enrolled, deleting it permanently revokes its host certificate (pki-manager offboard). This is irreversible: the certificate is dead, not dormant, and its (zone, FQDN) can never be re-registered."
+      "deleteWarning": "If this device is SSH-CA enrolled, deleting it permanently revokes its host certificate (pki-manager offboard). This is irreversible: the certificate is dead, not dormant, and its (zone, FQDN) can never be re-registered.",
+      "reset": "Reset enrollment",
+      "resetTitle": "Reset SSH enrollment?",
+      "resetDescription": "Use this after the gateway was REINSTALLED: its previous host key is gone, so the SSH CA refuses to re-enroll it (a re-enroll must be signed with the old key). Resetting lets the next enrollment be accepted as a first one, for the same host name. Nothing is revoked. If the old key may be compromised, delete and recreate the device instead.",
+      "resetReason": "Reason",
+      "resetReasonPlaceholder": "e.g. reinstalled from the live image",
+      "resetConfirm": "Reset enrollment",
+      "resetCancel": "Cancel",
+      "resetDone": "SSH enrollment reset — the gateway can enroll again (iotgw ssh refresh, or Enroll now)",
+      "resetError": "Failed to reset the SSH enrollment"
     }
   },
   "domains": {

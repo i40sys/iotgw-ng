@@ -1,11 +1,11 @@
 ---
 id: TASK-125.09
 title: Deliver iotgw on installed OpenWRT via the install playbook (pinned version)
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-24 07:00'
-updated_date: '2026-09-24 14:37'
+updated_date: '2026-09-24 15:03'
 labels:
   - live-image
   - openwrt
@@ -30,7 +30,7 @@ priority: medium
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 A fresh install boots with the daemon running and the dashboard on the console
-- [ ] #2 The installed version matches the pinned one
+- [x] #2 The installed version matches the pinned one
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -47,4 +47,6 @@ priority: medium
 
 **Released + pinned (2026-09-24):** iotgw-ng v0.2.0 publishes `iotgw-openwrt-linux-amd64.tar.gz`. The SHA256 b72e145d… was checked against a fresh download, and its provenance verified. It is pinned in iotgw-kestra vars/iotgw.yml, the branch is merged to main (2a4b504), and the Kestra `install` flow is at revision 6.
 **AC#2 pending:** one install run through the UI/Kestra (runner downloads the pinned tarball).
+
+**AC#2 verified (2026-09-24):** the install was started from the UI path (backend executeKestraDeployment → Kestra install rev 6, through the Netmaker host) on gw-c3: 46 ok / 0 failed; the runner downloaded the pinned v0.2.0 package (checksum verified); the device runs `iotgw v0.2.0 (59832e2)`.
 <!-- SECTION:NOTES:END -->

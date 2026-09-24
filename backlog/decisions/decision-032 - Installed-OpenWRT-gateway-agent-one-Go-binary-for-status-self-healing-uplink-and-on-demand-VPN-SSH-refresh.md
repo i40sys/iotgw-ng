@@ -163,6 +163,25 @@ JSON-RPC → rpcd → the exec plugin `/usr/libexec/rpcd/iotgw` (= `iotgw rpcd`)
 gated by an rpcd ACL; long actions run as background jobs (rpcd's exec
 timeout is 30 s). Delivered in the same `iotgw-openwrt` package.
 
+### 12. The daemon enrolls a fresh install by itself (added 2026-09-24)
+
+Found on gw-c3: a fresh install trusts no SSH CA until it is enrolled, but
+the controller (provisioning, connectivity-check) reaches it with a
+CA-signed operator certificate — so nothing could reach a new install. The
+daemon now performs the FIRST enrollment itself when the gateway has no host
+certificate (retry every 10 min; hold suspends it). Same TOTP authentication
+as the controller's enrollment; renewals stay controller-driven (task-104).
+This narrows the "daemon never calls the APIs" rule of *Refresh
+authentication* to: never refreshes the VPN, never renews by itself.
+
+A REINSTALLED device is refused by ssh-ca (task-075: a re-enroll must be
+signed with the previous host key, which the reinstall destroyed). The
+operator action **Reset SSH enrollment** (device page; backend
+`resetSshEnrollment`, with a reason) drops the stored continuity anchor; the
+daemon's next attempt then re-keys the same pki-manager host (same fqdn).
+Nothing is revoked; a possibly-compromised key is handled by deleting and
+recreating the device (offboard).
+
 ## Consequences
 
 - An installed gateway can keep and recover its own management path after

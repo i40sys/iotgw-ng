@@ -385,6 +385,7 @@ writes `/etc/config/iotgw` (device identity from the flow + the live image's
 | `iotgw internet lan\|vpn\|auto` | persistent policy in `/etc/config/iotgw`. `auto` (default) = LAN preferred, automatic fallback to VPN; `lan`/`vpn` pin the path (applied at once) |
 | `iotgw hold enable [-reason …]\|disable\|status` | freeze automatic changes; the daemon keeps monitoring and records what it would have done. A banner on the dashboard says so |
 | `iotgw vpn refresh [-otp CODE]` | re-request the WireGuard config from `vpn`, apply it through UCI, keep it only if the tunnel comes up |
+| first enrollment (daemon) | a fresh install with no host certificate is enrolled by the daemon itself (retry every 10 min), so the controller can reach it; after a REINSTALL an operator first uses **Reset SSH enrollment** on the device page |
 | `iotgw ssh refresh [-otp CODE] [-force]` | re-request trust + host certificate from `ssh-ca` (`enroll`, with the task-075 continuity signature), `sshd -t`, reload (restart fallback), verify sshd serves them — or restore every file |
 
 **One backend, three faces.** The daemon also publishes the full status
