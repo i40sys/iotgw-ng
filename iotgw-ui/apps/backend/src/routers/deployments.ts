@@ -728,8 +728,8 @@ export const deploymentsRouter = {
           });
         }
 
-        // Import FormData for multipart/form-data
-        const FormData = (await import("formdata-node")).FormData;
+        // Node's global FormData: undici's fetch no longer serializes
+        // formdata-node instances (sends text/plain → Kestra 415).
 
         // Create form data with the configuration JSON
         const formData = new FormData();

@@ -447,7 +447,8 @@ export const devicesRouter = {
         __tags__: ["ssh_ca"],
       };
 
-      const FormData = (await import("formdata-node")).FormData;
+      // Node's global FormData: undici's fetch no longer serializes
+      // formdata-node instances (sends text/plain → Kestra 415).
       const formData = new FormData();
       formData.append("json_data", JSON.stringify(jsonData));
 
