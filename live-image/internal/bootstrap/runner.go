@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/cmdline"
+	"github.com/i40sys/iotgw-ng/live-image/internal/devapi"
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
 )
 
@@ -47,7 +48,7 @@ type Runner struct {
 	Via  InternetVia
 	st   *state.Bootstrap
 	code string
-	api  *apiClient
+	api  *devapi.Client
 }
 
 // NewRunner prepares a run that writes to statePath.
@@ -162,7 +163,7 @@ func (r *Runner) identity() bool {
 	}
 	r.Via = via
 	r.code = code
-	r.api = newAPIClient(base, deviceID, code)
+	r.api = devapi.New(base, deviceID, code)
 	ensureHostsEntry()
 	r.end(state.StepIdentity, state.Healthy, "device "+deviceID, nil)
 	return true
@@ -196,4 +197,66 @@ func (r *Runner) network(ctx context.Context) bool {
 	}
 	r.end(state.StepNetwork, state.Failed, "API "+hostPort+" not reachable after 90 s", lastErr)
 	return false
+}
+
+// resume loads the existing state document so a partial re-run keeps the
+// other chain's record.
+func (r *Runner) resume() {
+	if st, err := state.Read(r.StatePath); err == nil {
+		r.st = st
+	}
+	r.st.Finished = false
+}
+
+// RunVPN re-runs only the VPN chain (identity → network → VPN fetch → VPN
+// apply): `iotgw vpn refresh` on the live image. It reports the chain's
+// failure as an error.
+func (r *Runner) RunVPN(ctx context.Context) error {
+	r.resume()
+	defer func() { r.st.Finished = true; r.save() }()
+	if !r.identity() {
+		return fmt.Errorf("device identity: %s", r.st.Step(state.StepIdentity).Message)
+	}
+	netOK := r.network(ctx)
+	conf, ok := r.vpnFetch(ctx, netOK)
+	if !ok {
+		s := r.st.Step(state.StepVPNFetch)
+		return fmt.Errorf("VPN config fetch: %s %s", s.Message, s.Error)
+	}
+	r.vpnApply(ctx, conf)
+	if s := r.st.Step(state.StepVPNApply); s.Status == state.Failed {
+		return fmt.Errorf("VPN configuration: %s %s", s.Message, s.Error)
+	}
+	return nil
+}
+
+// RunPKI re-runs only the SSH PKI chain (identity → network → pki-fetch →
+// User CA → host certificate → sshd): `iotgw ssh refresh` on the live image.
+func (r *Runner) RunPKI(ctx context.Context) error {
+	r.resume()
+	defer func() { r.st.Finished = true; r.save() }()
+	if !r.identity() {
+		return fmt.Errorf("device identity: %s", r.st.Step(state.StepIdentity).Message)
+	}
+	netOK := r.network(ctx)
+	b, ok := r.pkiFetch(ctx, netOK)
+	if !ok {
+		s := r.st.Step(state.StepPKIFetch)
+		return fmt.Errorf("SSH PKI fetch: %s %s", s.Message, s.Error)
+	}
+	userOK := r.installUserCA(b)
+	certOK := r.installHostCert(b)
+	r.configureSSHD(ctx, userOK, certOK)
+	if s := r.st.Step(state.StepSSHD); s.Status == state.Failed {
+		return fmt.Errorf("sshd configuration: %s %s", s.Message, s.Error)
+	}
+	return nil
+}
+
+// StepMessage is a step's recorded message (for CLI output).
+func (r *Runner) StepMessage(id string) string {
+	if s := r.st.Step(id); s != nil {
+		return s.Message
+	}
+	return ""
 }

@@ -31,8 +31,12 @@ func (m Model) header() string {
 			dev = m.host.DeviceID
 		}
 	}
-	left := fmt.Sprintf("iotgw live provisioning console | %s | %s", host, dev)
-	right := "iotgw-status " + version.Version
+	title := "iotgw live provisioning console"
+	if m.owrt {
+		title = "iotgw gateway console"
+	}
+	left := fmt.Sprintf("%s | %s | %s", title, host, dev)
+	right := "iotgw " + version.Version
 	return headerStyle.Width(m.width).Render(fill(left, right, m.width-2))
 }
 
@@ -43,6 +47,20 @@ func (m Model) footer() string {
 		keyStyle.Render("[i]") + " Internet via " + map[string]string{"lan": "VPN", "vpn": "LAN"}[m.currentVia()],
 		keyStyle.Render("[Up/Down PgUp/PgDn]") + " Scroll",
 		keyStyle.Render("[q]") + " Exit to shell",
+	}
+	if m.owrt {
+		hold := "Hold"
+		if m.holdOn() {
+			hold = "Resume auto-repair"
+		}
+		keys = []string{
+			keyStyle.Render("[r]") + " Refresh",
+			keyStyle.Render("[d]") + " Details",
+			keyStyle.Render("[i]") + " Internet policy",
+			keyStyle.Render("[h]") + " " + hold,
+			keyStyle.Render("[PgUp/PgDn]") + " Scroll",
+			keyStyle.Render("[q]") + " Shell",
+		}
 	}
 	updated := ""
 	if t, ok := m.updated[kNet]; ok {
@@ -65,17 +83,42 @@ func (m Model) body() string {
 	if m.showDetails {
 		return m.details()
 	}
-	top := m.switchPanel()
-	if top != "" {
-		return lipgloss.JoinVertical(lipgloss.Left, top, m.dashboard())
+	var top []string
+	if b := m.holdBanner(); b != "" {
+		top = append(top, b)
 	}
-	return m.dashboard()
+	if p := m.switchPanel(); p != "" {
+		top = append(top, p)
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, append(top, m.dashboard())...)
 }
 
 // switchPanel is the Internet-mode confirmation prompt or the last notice.
 func (m Model) switchPanel() string {
 	w := m.width
 	switch {
+	case m.choosing:
+		cur := "auto"
+		if m.inst != nil {
+			cur = string(m.inst.Config.Policy)
+		}
+		return panel("Internet policy (now: "+strings.ToUpper(cur)+") — saved in /etc/config/iotgw, kept across reboots", state.Pending, w,
+			keyStyle.Render("[a]")+" AUTO  LAN preferred, automatic fallback to VPN when the LAN has no Internet (default)",
+			keyStyle.Render("[l]")+" LAN   pinned: Internet via the local router, no automatic switching",
+			keyStyle.Render("[v]")+" VPN   pinned: Internet via the Netmaker hub, no automatic switching",
+			"A switch is verified and rolled back automatically if the gateway loses Internet.",
+			"", keyStyle.Render("[Esc]")+" cancel")
+	case m.confirmHold == "enable":
+		return panel("Put the daemon on HOLD?", state.Pending, w,
+			"The iotgw daemon keeps checking and recording the network, but stops",
+			"changing anything automatically (routes, Internet path, VPN, SSH) so you",
+			"can diagnose by hand without it undoing your changes. It stays on hold",
+			"across reboots until you resume it ([h] again, or `iotgw hold disable`).",
+			"", keyStyle.Render("[y]")+" hold   "+keyStyle.Render("[n]")+" cancel")
+	case m.confirmHold == "disable":
+		return panel("Resume automatic repair?", state.Pending, w,
+			"The daemon will again fix the Netmaker route and the Internet path on its next check.",
+			"", keyStyle.Render("[y]")+" resume   "+keyStyle.Render("[n]")+" cancel")
 	case m.confirmVia == "vpn":
 		return panel("Switch Internet to VPN (full tunnel)?", state.Pending, w,
 			"All traffic and DNS go through wg0; the Internet egresses from the",
@@ -96,14 +139,49 @@ func (m Model) switchPanel() string {
 		} else if m.noticeBad {
 			st = state.Failed
 		}
-		return panel("Internet route", st, w, m.notice)
+		return panel("Last action", st, w, m.notice)
 	}
 	return ""
+}
+
+// holdBanner makes hold impossible to miss: what it is, since when, why,
+// and how to leave it (decision-032 §8).
+func (m Model) holdBanner() string {
+	if !m.holdOn() {
+		return ""
+	}
+	c := m.inst.Config
+	since := "-"
+	if !c.HoldSince.IsZero() {
+		since = c.HoldSince.Local().Format("2006-01-02 15:04") + " (" + ago(c.HoldSince) + ")"
+	}
+	return panel("HOLD — AUTOMATIC REPAIR IS SUSPENDED", state.Warning, m.width,
+		"The iotgw daemon is still monitoring and recording, but it will NOT change the",
+		"network, the Netmaker route, the Internet path, the VPN or SSH on its own.",
+		"This is meant for manual diagnosis; manual commands (iotgw vpn/ssh refresh,",
+		"iotgw internet …) still work. Changes it would have made are listed in Details.",
+		"",
+		kv("Since", since),
+		kv("Reason", orDash(c.HoldReason)),
+		kv("Resume", "[h] on this screen, or `iotgw hold disable`"))
 }
 
 // dashboard lays the status panels out for the terminal width.
 func (m Model) dashboard() string {
 	w := m.width
+	if m.owrt {
+		if w >= twoColumnMin {
+			col := w / 2
+			left := lipgloss.JoinVertical(lipgloss.Left,
+				m.installedPanel(col), m.agentPanel(col), m.networkPanel(col), m.hostPanel(col))
+			right := lipgloss.JoinVertical(lipgloss.Left,
+				m.vpnPanel(col), m.reachPanel(col), m.internetPanel(col), m.pkiPanel(col))
+			return lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+		}
+		return lipgloss.JoinVertical(lipgloss.Left,
+			m.installedPanel(w), m.agentPanel(w), m.vpnPanel(w), m.internetPanel(w),
+			m.pkiPanel(w), m.reachPanel(w), m.networkPanel(w), m.hostPanel(w))
+	}
 	if w >= twoColumnMin {
 		col := w / 2
 		left := lipgloss.JoinVertical(lipgloss.Left,
@@ -229,7 +307,7 @@ func (m Model) hostPanel(w int) string {
 		kv("RAM", humanBytes(h.MemTotal)),
 		kv("Kernel", orDash(h.Kernel)),
 		kv("Boot", orDash(h.BootSource)),
-		kv("Live image", orDash(h.ImageRelease)),
+		kv(map[bool]string{true: "OS", false: "Live image"}[m.owrt], orDash(h.ImageRelease)),
 		kv("Dashboard", version.String()),
 	}
 	for i, d := range h.Disks {
@@ -429,7 +507,14 @@ func (m Model) pkiPanel(w int) string {
 func (m Model) details() string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("Details — what is not healthy, and why") + "\n")
-	b.WriteString(labelStyle.Render("Press [d] or [Esc] to return. Full logs: journalctl -u iotgw-bootstrap") + "\n\n")
+	logs := "journalctl -u iotgw-bootstrap"
+	if m.owrt {
+		logs = "logread -e iotgw"
+	}
+	b.WriteString(labelStyle.Render("Press [d] or [Esc] to return. Full logs: "+logs) + "\n\n")
+	if m.owrt {
+		b.WriteString(m.agentDetails())
+	}
 	n := 0
 	if doc := m.doc(); doc != nil {
 		if doc.Identity.DeviceID != "" {
@@ -512,4 +597,8 @@ func worstOf(ss ...state.Status) state.Status {
 		}
 	}
 	return w
+}
+
+func checkOf(s state.Status, detail string) collect.Check {
+	return collect.Check{Status: s, Detail: detail}
 }

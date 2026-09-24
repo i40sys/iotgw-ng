@@ -1,9 +1,11 @@
 ---
 id: TASK-125.10
 title: Remove the fixed Netmaker route from setup_vpn.sh and network.j2
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-09-24 07:00'
+updated_date: '2026-09-24 08:37'
 labels:
   - openwrt
   - vpn

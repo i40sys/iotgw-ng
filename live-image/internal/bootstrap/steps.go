@@ -87,7 +87,7 @@ func withRetry(ctx context.Context, attempts int, f func() (int, error)) (int, e
 
 func (r *Runner) vpnFetch(ctx context.Context, netOK bool) (string, bool) {
 	s := r.st.Step(state.StepVPNFetch)
-	s.Endpoint = r.api.endpoint("vpn")
+	s.Endpoint = r.api.Endpoint("vpn")
 	if !netOK {
 		r.skip(state.StepVPNFetch, state.NotConfigured, "skipped: the API is not reachable (see Physical network)")
 		return "", false
@@ -104,7 +104,7 @@ func (r *Runner) vpnFetch(ctx context.Context, netOK bool) (string, bool) {
 	status, err := withRetry(ctx, 3, func() (int, error) {
 		var st int
 		var e error
-		reply, st, e = r.api.call(ctx, "vpn", body)
+		reply, st, e = r.api.Call(ctx, "vpn", body)
 		return st, e
 	})
 	s.HTTPStatus = status
@@ -180,7 +180,7 @@ func ensureHostKey(ctx context.Context) (string, error) {
 
 func (r *Runner) pkiFetch(ctx context.Context, netOK bool) (*pkiBundle, bool) {
 	s := r.st.Step(state.StepPKIFetch)
-	s.Endpoint = r.api.endpoint("ssh-ca") + " (action live-enroll)"
+	s.Endpoint = r.api.Endpoint("ssh-ca") + " (action live-enroll)"
 	if !netOK {
 		r.skip(state.StepPKIFetch, state.Failed, "SSH CA configuration MISSING: the API is not reachable (see Physical network)")
 		return nil, false
@@ -196,7 +196,7 @@ func (r *Runner) pkiFetch(ctx context.Context, netOK bool) (*pkiBundle, bool) {
 	status, err := withRetry(ctx, 3, func() (int, error) {
 		var st int
 		var e error
-		reply, st, e = r.api.call(ctx, "ssh-ca", req)
+		reply, st, e = r.api.Call(ctx, "ssh-ca", req)
 		return st, e
 	})
 	s.HTTPStatus = status

@@ -3,9 +3,11 @@ id: TASK-125.05
 title: >-
   Self-healing daemon: uplink/gateway detection, health checks, Netmaker route,
   Internet policy
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-09-24 07:00'
+updated_date: '2026-09-24 08:37'
 labels:
   - live-image
   - openwrt

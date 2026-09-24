@@ -12,7 +12,9 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/i40sys/iotgw-ng/live-image/internal/agent"
 	"github.com/i40sys/iotgw-ng/live-image/internal/collect"
+	"github.com/i40sys/iotgw-ng/live-image/internal/platform"
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
 )
 
@@ -31,14 +33,24 @@ type Model struct {
 	inet  *collect.Internet
 	pki   *collect.PKI
 
+	// owrt: running on the installed OpenWRT gateway (decision-032), where
+	// the Installed and Agent panels replace Provisioning.
+	owrt bool
+	inst *agent.Installed
+
 	inflight map[string]bool
 	updated  map[string]time.Time
 
-	// Internet-mode switch ([i]): confirm → run → notice.
+	// Internet-mode switch ([i]): confirm → run → notice. On OpenWRT the
+	// prompt offers the three policies (l/v/a) instead of y/n.
 	confirmVia string // target mode awaiting y/n; "" when no prompt
+	choosing   bool   // OpenWRT policy chooser open
 	switching  bool
 	notice     string
 	noticeBad  bool
+
+	// Hold ([h], OpenWRT): confirm → run → notice.
+	confirmHold string // "enable" | "disable" awaiting y/n
 }
 
 // currentVia is the applied Internet mode ("lan" when unknown).
@@ -49,9 +61,14 @@ func (m *Model) currentVia() string {
 	return "lan"
 }
 
+// holdOn reports whether the daemon is on hold (OpenWRT).
+func (m *Model) holdOn() bool {
+	return m.inst != nil && m.inst.Config.Hold
+}
+
 // New returns a dashboard that starts every collector immediately.
 func New() Model {
-	return Model{inflight: map[string]bool{}, updated: map[string]time.Time{}}
+	return Model{inflight: map[string]bool{}, updated: map[string]time.Time{}, owrt: platform.IsOpenWRT()}
 }
 
 func (m *Model) start(key string, cmd tea.Cmd) tea.Cmd {
@@ -74,11 +91,20 @@ func (m *Model) doc() *state.Bootstrap {
 	return m.boot.Doc
 }
 
+// provCmd refreshes the provisioning record: the live image's bootstrap
+// state, or the installed gateway's picture on OpenWRT.
+func (m *Model) provCmd() tea.Cmd {
+	if m.owrt {
+		return m.start(kInst, collectInstCmd())
+	}
+	return m.start(kBoot, collectBootCmd())
+}
+
 func (m *Model) refreshAll() tea.Cmd {
 	return tea.Batch(
 		m.start(kHost, collectHostCmd()),
 		m.start(kNet, collectNetCmd()),
-		m.start(kBoot, collectBootCmd()),
+		m.provCmd(),
 		m.start(kInet, collectInetCmd()),
 	)
 }
@@ -93,6 +119,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.choosing {
+			pick := map[string]string{"l": "lan", "v": "vpn", "a": "auto"}[msg.String()]
+			switch {
+			case pick != "":
+				m.choosing, m.switching = false, true
+				m.notice, m.noticeBad = "Setting the Internet policy to "+strings.ToUpper(pick)+"…", false
+				cmds = append(cmds, switchInternetCmd(pick))
+			case msg.String() == "esc" || msg.String() == "n" || msg.String() == "q":
+				m.choosing = false
+			}
+			break
+		}
+		if m.confirmHold != "" {
+			switch msg.String() {
+			case "y", "Y":
+				on := m.confirmHold == "enable"
+				m.confirmHold = ""
+				m.notice, m.noticeBad = map[bool]string{true: "Enabling hold…", false: "Disabling hold…"}[on], false
+				cmds = append(cmds, holdCmd(on))
+			case "n", "N", "esc", "q":
+				m.confirmHold = ""
+			}
+			break
+		}
 		if m.confirmVia != "" {
 			switch msg.String() {
 			case "y", "Y":
@@ -109,11 +159,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "i":
+			if m.owrt {
+				if !m.switching {
+					m.choosing = true
+					m.vp.GotoTop()
+				}
+				break
+			}
 			if !m.switching && m.vpn != nil && m.vpn.ConfigLoaded {
 				m.confirmVia = map[string]string{"lan": "vpn", "vpn": "lan"}[m.currentVia()]
 				m.vp.GotoTop()
 			} else if m.vpn == nil || !m.vpn.ConfigLoaded {
 				m.notice, m.noticeBad = "No VPN configuration was retrieved — nothing to switch", true
+			}
+		case "h":
+			if m.owrt {
+				m.confirmHold = map[bool]string{true: "disable", false: "enable"}[m.holdOn()]
+				m.vp.GotoTop()
 			}
 		case "r":
 			cmds = append(cmds, m.refreshAll())
@@ -127,6 +189,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showDetails = false
 		}
 	case tea.WindowSizeMsg:
+		// A serial console often reports 0x0: assume a classic 80x24.
+		if msg.Width < 40 {
+			msg.Width = 80
+		}
+		if msg.Height < 10 {
+			msg.Height = 24
+		}
 		m.width, m.height = msg.Width, msg.Height
 		h := max(msg.Height-2, 1) // header + footer
 		if !m.ready {
@@ -173,18 +242,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p := collect.PKI(msg)
 		m.pki = &p
 		m.done(kPKI)
+	case instMsg:
+		in := agent.Installed(msg)
+		m.inst = &in
+		m.done(kInst)
+		doc := in.SyntheticDoc()
+		cmds = append(cmds, m.start(kVPN, collectVPNCmd(doc)), m.start(kPKI, collectPKICmd(doc)))
+	case holdDoneMsg:
+		if msg.err != nil {
+			m.notice, m.noticeBad = "Hold change FAILED: "+msg.err.Error(), true
+		} else {
+			m.notice, m.noticeBad = msg.out, false
+		}
+		cmds = append(cmds, m.provCmd())
 
 	case switchDoneMsg:
 		m.switching = false
-		if msg.err != nil {
+		switch {
+		case msg.err != nil:
 			m.notice, m.noticeBad = "Switch to "+strings.ToUpper(msg.via)+" FAILED: "+msg.err.Error(), true
-		} else {
+		case m.owrt:
+			m.notice, m.noticeBad = msg.out, false
+		default:
 			m.notice, m.noticeBad = "Internet now via "+strings.ToUpper(msg.via)+". "+msg.out, false
 		}
 		cmds = append(cmds, m.refreshAll())
 
 	case fastTickMsg:
-		cmds = append(cmds, fastTick(), m.start(kNet, collectNetCmd()), m.start(kBoot, collectBootCmd()))
+		cmds = append(cmds, fastTick(), m.start(kNet, collectNetCmd()), m.provCmd())
 	case slowTickMsg:
 		cmds = append(cmds, slowTick(), m.start(kInet, collectInetCmd()))
 		if v := m.vpn; v != nil {

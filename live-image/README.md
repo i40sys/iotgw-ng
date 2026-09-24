@@ -14,13 +14,17 @@ on a Bubble Tea dashboard instead of the Clonezilla menu.
   (reaching gateways through the VPN hub as an SSH bastion), in
   [`backlog/decisions/`](../backlog/decisions/).
 
-It is two static binaries built from one Go module
-(`github.com/i40sys/iotgw-ng/live-image`):
+It is **one static binary, `iotgw`**, built from one Go module
+(`github.com/i40sys/iotgw-ng/live-image`), with modes as subcommands
+(decision-032). The same binary also runs on the **installed OpenWRT
+gateway** — see [Installed OpenWRT gateway](#installed-openwrt-gateway-decision-032).
+On the live image it is also installed as two symlinks, so the boot flow and
+muscle memory are unchanged:
 
-| Binary | Runs as | Role |
-|---|---|---|
-| **`iotgw-bootstrap`** | root, once per boot (`iotgw-bootstrap.service`) | provisions the machine: VPN, SSH trust, live host identity; records every step |
-| **`iotgw-status`** | the console user (unprivileged) | the operator dashboard on tty1; observes, never re-provisions |
+| Name on the live image | = | Runs as | Role |
+|---|---|---|---|
+| **`iotgw-bootstrap`** | `iotgw bootstrap` | root, once per boot (`iotgw-bootstrap.service`) | provisions the machine: VPN, SSH trust, live host identity; records every step |
+| **`iotgw-status`** | `iotgw status` | the console user (unprivileged) | the operator dashboard on tty1; observes, never re-provisions |
 
 ---
 
@@ -34,6 +38,7 @@ It is two static binaries built from one Go module
 - [APIs it talks to](#apis-it-talks-to)
 - [Files it writes on the live system](#files-it-writes-on-the-live-system)
 - [Code layout](#code-layout)
+- [Installed OpenWRT gateway (decision-032)](#installed-openwrt-gateway-decision-032)
 - [Build, test and deploy](#build-test-and-deploy)
 - [Operating it on a gateway](#operating-it-on-a-gateway)
 - [Troubleshooting](#troubleshooting)
@@ -320,13 +325,20 @@ it is.
 
 ```text
 live-image/
-├── cmd/
-│   ├── iotgw-bootstrap/main.go   provisioning entry point + `internet-via` subcommand
-│   └── iotgw-status/main.go      dashboard entry point (alt screen, syslog logging)
+├── cmd/iotgw/main.go   the single binary (dispatch in internal/cli)
 ├── internal/
+│   ├── cli/         subcommands; argv[0] iotgw-bootstrap / iotgw-status compatibility
+│   ├── agent/       installed-OpenWRT agent: /etc/config/iotgw, daemon, policy engine,
+│   │                transactions + rollback, vpn/ssh refresh, Installed panel data + tests
+│   ├── platform/    live image vs OpenWRT: service state, sshd reload/restart
+│   ├── uci/         `uci` CLI client, show parser, config snapshots + tests
+│   ├── iproute/     text `ip route` parser (iproute2 and BusyBox) + tests
+│   ├── devapi/      vpn / ssh-ca client (the device envelope over HTTP)
+│   ├── totp/        device code derivation (same as device-auth.ts) + tests
+│   ├── wgconf/      wg-quick config parser + tests
 │   ├── state/       /run/iotgw/bootstrap.json schema, atomic read/write, status vocabulary
 │   ├── envelope/    device-code envelope (openssl-compatible AES-256-CBC + PBKDF2) + tests
-│   ├── bootstrap/   the 8 steps, vpn/ssh-ca client, wg config parser, Internet modes + tests
+│   ├── bootstrap/   the 8 live-image steps, Internet modes, RunVPN / RunPKI + tests
 │   ├── collect/     read-only probes: host, network, internet, vpn, reachability, pki + tests
 │   ├── tui/         Bubble Tea model, commands (collectors off the loop), Lip Gloss views + tests
 │   ├── netinfo/     /proc/net/route + resolv.conf, no exec + tests
@@ -336,8 +348,14 @@ live-image/
 ├── overlay/                        files added to the squashfs
 │   ├── etc/systemd/system/iotgw-bootstrap.service (+ multi-user.target.wants link)
 │   └── etc/ocs/ocs-live.d/S98iotgw-console
+├── openwrt/overlay/                files of the installed-OpenWRT package
+│   ├── etc/init.d/iotgw            procd service: `iotgw daemon`
+│   └── usr/libexec/iotgw-console   tty1 / serial launcher: `iotgw status`, then login
+├── test/
+│   ├── fakeapi/                    vpn + ssh-ca stand-in (real envelope + TOTP)
+│   └── qemu/run.sh                 end-to-end test on two OpenWRT VMs
 ├── remove.list                     legacy paths dropped from the image
-└── justfile                        check · build · overlay · dist · deploy-* (see below)
+└── justfile                        check · build · overlay · openwrt · dist · deploy-* (see below)
 ```
 
 `remove.list` drops these legacy paths from the image:
@@ -348,6 +366,53 @@ live-image/
 
 Clonezilla's tools stay in the image; only its menu is no longer the default
 console UI.
+
+---
+
+## Installed OpenWRT gateway (decision-032)
+
+After the `install` flow the gateway boots its own OpenWRT, and the VPN is its
+**only** remote management path. The same `iotgw` binary keeps that path
+working there. The install playbook (iotgw-kestra `tasks/iotgw_agent.yaml`)
+extracts the pinned `iotgw-openwrt-linux-amd64.tar.gz` into the new rootfs and
+writes `/etc/config/iotgw` (device identity from the flow + the live image's
+`api_base`).
+
+| Piece | What it does |
+|---|---|
+| `iotgw daemon` (`/etc/init.d/iotgw`, procd) | every `check_interval` (60 s): finds the uplink and the **current** LAN router (`ubus`), probes Internet out of the uplink and out of the tunnel (`SO_BINDTODEVICE`), the WireGuard handshake and the route to the Netmaker server; keeps `network.iotgw_endpoint` (the Netmaker /32) on the current router, routes the Netmaker network through `wg0`, and applies the Internet policy |
+| `iotgw status` on tty1 + serial | the live image's panels, with **Installed** (installed / provisioned / SSH certificate / VPN / Internet / active uplink) and **Self-healing agent** instead of Provisioning; `[i]` chooses the policy, `[h]` toggles hold |
+| `iotgw internet lan\|vpn\|auto` | persistent policy in `/etc/config/iotgw`. `auto` (default) = LAN preferred, automatic fallback to VPN; `lan`/`vpn` pin the path (applied at once) |
+| `iotgw hold enable [-reason …]\|disable\|status` | freeze automatic changes; the daemon keeps monitoring and records what it would have done. A banner on the dashboard says so |
+| `iotgw vpn refresh [-otp CODE]` | re-request the WireGuard config from `vpn`, apply it through UCI, keep it only if the tunnel comes up |
+| `iotgw ssh refresh [-otp CODE] [-force]` | re-request trust + host certificate from `ssh-ca` (`enroll`, with the task-075 continuity signature), `sshd -t`, reload (restart fallback), verify sshd serves them — or restore every file |
+
+**Every change is a transaction**: snapshot `/etc/config/network` (or the SSH
+files), apply, `ubus call network reload`, verify for up to 45 s, and restore
+the snapshot if the gateway lost Internet or the tunnel. Automatic changes are
+rate-limited (3 per 15 min), back off after failures (1 → 30 min), and move the
+egress only after 3 consecutive checks agree (no LAN ⇄ VPN flapping) and never
+onto a path that is not working.
+
+**Egress mechanics**: the uplink's default route keeps metric 0 and `wg0`'s
+default route metric 5 (LAN wins). For VPN egress the agent sets the uplink's
+metric to 20, so `wg0` wins while the pinned /32 keeps the tunnel itself on the
+LAN router. DNS stays with dnsmasq.
+
+**Refresh authentication**: without `-otp`, the code is derived from the
+identifiers in `/etc/config/iotgw` exactly as the controller derives it. If the
+device's counter was reset in the UI, update `totp_counter` or pass `-otp`.
+The daemon never calls the APIs by itself.
+
+Files: `/etc/config/iotgw` (config, 0600), `/var/run/iotgw/agent.json`
+(daemon state, history), `/etc/iotgw/wg0.server.conf` (the vpn reply, 0600).
+Logs: `logread -e iotgw`.
+
+**End-to-end test**: `just e2e` boots two OpenWRT 23.05 VMs (a LAN router +
+WireGuard hub whose endpoint is off-LAN, and a gateway installed with the
+gw-c3 on-link route) and checks route repair, router change, LAN→VPN fallback
+and return, hold, policy across reboot, vpn/ssh refresh with rollback, and the
+console dashboard. It uses KVM when `/dev/kvm` is writable, TCG otherwise.
 
 ---
 
@@ -362,9 +427,11 @@ The image gets **binaries only**, no Go toolchain.
 | Recipe | Does |
 |---|---|
 | `just check` | gofmt check, `go vet`, unit + component tests |
-| `just build [arch]` | static `CGO_ENABLED=0` binaries for `linux/<arch>` (default `amd64`) into `dist/<arch>/` |
-| `just overlay [arch]` | rootfs overlay tarball `dist/iotgw-live-overlay-linux-<arch>.tar.gz`: binaries, `overlay/`, `/etc/iotgw-live-release` |
-| `just dist` | `check`, then binaries + overlays for **amd64 and arm64**, `remove.list`, `SHA256SUMS`. This is what CI publishes |
+| `just build [arch]` | the static `CGO_ENABLED=0` `iotgw` binary for `linux/<arch>` (default `amd64`) into `dist/<arch>/` |
+| `just overlay [arch]` | live-image rootfs overlay `dist/iotgw-live-overlay-linux-<arch>.tar.gz`: `iotgw` + its two symlinks, `overlay/`, `/etc/iotgw-live-release` |
+| `just openwrt [arch]` | installed-OpenWRT package `dist/iotgw-openwrt-linux-<arch>.tar.gz`: `/usr/sbin/iotgw`, `/etc/init.d/iotgw`, `/usr/libexec/iotgw-console` |
+| `just dist` | `check`, then binaries, overlays and OpenWRT packages for **amd64 and arm64**, `remove.list`, `SHA256SUMS`. This is what CI publishes |
+| `just e2e` | the QEMU end-to-end test of the OpenWRT agent (`test/qemu/run.sh`) |
 | `just version` | the version the build stamps (`git describe`, `-dirty` only for changes under `live-image/`) |
 | `just clean` | remove `dist/` |
 
@@ -388,8 +455,8 @@ tag, and on demand. It:
 2. on pushes, signs **SLSA build provenance** for every binary and tarball
    (verify with `gh attestation verify <file> -R <owner>/<repo>`);
 3. uploads a **workflow artifact** `iotgw-live-<version>` containing
-   `iotgw-status-linux-{amd64,arm64}`, `iotgw-bootstrap-linux-{amd64,arm64}`,
-   `iotgw-live-overlay-linux-{amd64,arm64}.tar.gz`, `remove.list` and
+   `iotgw-linux-{amd64,arm64}`, `iotgw-live-overlay-linux-{amd64,arm64}.tar.gz`,
+   `iotgw-openwrt-linux-{amd64,arm64}.tar.gz`, `remove.list` and
    `SHA256SUMS`;
 4. on `v*` tags, **attaches the same files to the GitHub release** of that tag,
    creating the release if it does not exist.

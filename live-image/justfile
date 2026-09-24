@@ -36,36 +36,50 @@ check:
     go vet ./...
     go test ./...
 
-# build both binaries for one architecture into dist/<arch>/
+# build the single iotgw binary for one architecture into dist/<arch>/
+# (decision-032: one binary; iotgw-bootstrap / iotgw-status are symlinks to it)
 build arch="amd64":
     mkdir -p {{DIST}}/{{arch}}
-    for cmd in iotgw-status iotgw-bootstrap; do \
-      CGO_ENABLED=0 GOOS=linux GOARCH={{arch}} go build -trimpath -ldflags '{{LDFLAGS}}' \
-        -o {{DIST}}/{{arch}}/$cmd ./cmd/$cmd; \
-    done
-    @echo "built {{VERSION}} for linux/{{arch}} -> {{DIST}}/{{arch}}/"
+    CGO_ENABLED=0 GOOS=linux GOARCH={{arch}} go build -trimpath -ldflags '{{LDFLAGS}}' \
+      -o {{DIST}}/{{arch}}/iotgw ./cmd/iotgw
+    @echo "built {{VERSION}} for linux/{{arch}} -> {{DIST}}/{{arch}}/iotgw"
 
 # rootfs overlay tarball for one architecture: binaries + overlay/ + release file
 overlay arch="amd64": (build arch)
     rm -rf {{DIST}}/overlay-{{arch}}
     mkdir -p {{DIST}}/overlay-{{arch}}/usr/local/bin {{DIST}}/overlay-{{arch}}/etc
-    cp {{DIST}}/{{arch}}/iotgw-status {{DIST}}/{{arch}}/iotgw-bootstrap {{DIST}}/overlay-{{arch}}/usr/local/bin/
+    cp {{DIST}}/{{arch}}/iotgw {{DIST}}/overlay-{{arch}}/usr/local/bin/
+    ln -s iotgw {{DIST}}/overlay-{{arch}}/usr/local/bin/iotgw-bootstrap
+    ln -s iotgw {{DIST}}/overlay-{{arch}}/usr/local/bin/iotgw-status
     cp -a overlay/. {{DIST}}/overlay-{{arch}}/
     echo "iotgw-live {{VERSION}} ({{COMMIT}}, built {{DATE}})" > {{DIST}}/overlay-{{arch}}/etc/iotgw-live-release
     # Root-owned and go-w: the overlay must never loosen /etc or /usr permissions.
     tar --owner=0 --group=0 --numeric-owner --mode=go-w -C {{DIST}}/overlay-{{arch}} \
       -czf {{DIST}}/iotgw-live-overlay-linux-{{arch}}.tar.gz .
 
+# installed-OpenWRT package tarball for one architecture: the binary + procd
+# service + console launcher, extracted into the new rootfs by the install
+# playbook (iotgw-kestra tasks/iotgw_agent.yaml, decision-032)
+openwrt arch="amd64": (build arch)
+    rm -rf {{DIST}}/openwrt-{{arch}}
+    mkdir -p {{DIST}}/openwrt-{{arch}}/usr/sbin
+    cp {{DIST}}/{{arch}}/iotgw {{DIST}}/openwrt-{{arch}}/usr/sbin/
+    cp -a openwrt/overlay/. {{DIST}}/openwrt-{{arch}}/
+    tar --owner=0 --group=0 --numeric-owner --mode=go-w -C {{DIST}}/openwrt-{{arch}} \
+      -czf {{DIST}}/iotgw-openwrt-linux-{{arch}}.tar.gz .
+
 # release artifacts for every architecture + SHA256SUMS (what CI publishes)
 dist: check
     rm -rf {{DIST}}
-    for a in {{ARCHES}}; do just overlay $a; done
-    cd {{DIST}} && for a in {{ARCHES}}; do \
-      cp $a/iotgw-status iotgw-status-linux-$a; cp $a/iotgw-bootstrap iotgw-bootstrap-linux-$a; \
-    done
+    for a in {{ARCHES}}; do just overlay $a; just openwrt $a; done
+    cd {{DIST}} && for a in {{ARCHES}}; do cp $a/iotgw iotgw-linux-$a; done
     cp remove.list {{DIST}}/
-    cd {{DIST}} && sha256sum iotgw-status-linux-* iotgw-bootstrap-linux-* iotgw-live-overlay-linux-*.tar.gz remove.list > SHA256SUMS
+    cd {{DIST}} && sha256sum iotgw-linux-* iotgw-live-overlay-linux-*.tar.gz iotgw-openwrt-linux-*.tar.gz remove.list > SHA256SUMS
     @cat {{DIST}}/SHA256SUMS
+
+# QEMU end-to-end test of the installed-OpenWRT agent (decision-032)
+e2e:
+    ./test/qemu/run.sh
 
 # print the version the build would stamp
 version:

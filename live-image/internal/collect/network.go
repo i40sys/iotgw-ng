@@ -2,38 +2,22 @@ package collect
 
 import (
 	"context"
-	"encoding/json"
 	"net"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
+	"github.com/i40sys/iotgw-ng/live-image/internal/iproute"
 	"github.com/i40sys/iotgw-ng/live-image/internal/netinfo"
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
-	"github.com/i40sys/iotgw-ng/live-image/internal/sysexec"
 )
 
-// routeGet is the subset of `ip -j route get` we use.
-type routeGet struct {
-	Dst     string `json:"dst"`
-	Gateway string `json:"gateway"`
-	Dev     string `json:"dev"`
-}
-
 // RouteTo asks the kernel which path traffic to ip takes. Unlike /proc/net/route
-// this honours policy routing (wg-quick's fwmark table).
-func RouteTo(ctx context.Context, ip string) (*routeGet, error) {
-	res, err := sysexec.Run(ctx, 3*time.Second, "ip", "-j", "route", "get", ip)
-	if err != nil {
-		return nil, err
-	}
-	var rs []routeGet
-	if err := json.Unmarshal([]byte(res.Stdout), &rs); err != nil || len(rs) == 0 {
-		return nil, err
-	}
-	return &rs[0], nil
+// this honours policy routing (wg-quick's fwmark table). Plain-text `ip route
+// get`, so it works with BusyBox `ip` on OpenWRT too.
+func RouteTo(ctx context.Context, ip string) (*iproute.Route, error) {
+	return iproute.Get(ctx, ip)
 }
 
 func ifaceKind(name string) string {

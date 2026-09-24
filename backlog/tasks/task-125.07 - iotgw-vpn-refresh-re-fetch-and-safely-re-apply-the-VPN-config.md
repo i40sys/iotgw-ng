@@ -1,9 +1,11 @@
 ---
 id: TASK-125.07
 title: 'iotgw vpn refresh: re-fetch and safely re-apply the VPN config'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-09-24 07:00'
+updated_date: '2026-09-24 08:37'
 labels:
   - live-image
   - openwrt
