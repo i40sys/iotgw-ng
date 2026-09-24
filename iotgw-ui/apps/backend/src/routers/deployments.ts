@@ -480,9 +480,15 @@ export const deploymentsRouter = {
           `Fetched ${logs.length} log entries for execution ${input.execution_id}`,
         );
 
-        // Filter for Ansible-specific logs (docker-java-stream threads)
-        const ansibleLogs = logs.filter((log: any) =>
-          log.thread?.startsWith("docker-java-stream"),
+        // Keep the user-facing lines (the Ansible play, pod lifecycle, errors)
+        // and drop Kestra's DEBUG/TRACE noise. The old docker-java-stream
+        // thread filter matched nothing once flows moved to the Kubernetes
+        // PodCreate runner (task-054), whose output uses pool-* threads.
+        const ansibleLogs = logs.filter(
+          (log: any) =>
+            log.level === "INFO" ||
+            log.level === "WARN" ||
+            log.level === "ERROR",
         );
 
         return {

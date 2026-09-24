@@ -90,16 +90,26 @@ function DeploymentDebugView() {
     }
   }, [logsQuery.data, isRunning]);
 
-  // Polling for job status when running
+  // The job row only leaves RUNNING when someone asks Kestra for the
+  // execution state (checkKestraExecutionStatus writes it back), so poll
+  // Kestra here too — not only on the deployments list page.
+  const kestraStatusQuery = useQuery({
+    ...trpc.checkKestraExecutionStatus.queryOptions({
+      execution_id: executionId,
+    }),
+    enabled: isRunning,
+    refetchInterval: isRunning ? REFETCH_INTERVAL : false,
+  });
+
+  const kestraStatus = kestraStatusQuery.data?.status;
+  const { refetch: refetchJob } = jobQuery;
+  const { refetch: refetchLogs } = logsQuery;
   useEffect(() => {
-    if (!isRunning) return;
-
-    const interval = setInterval(() => {
-      void jobQuery.refetch();
-    }, REFETCH_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, [isRunning, jobQuery]);
+    if (kestraStatus === "SUCCESS" || kestraStatus === "FAILED") {
+      void refetchJob();
+      void refetchLogs();
+    }
+  }, [kestraStatus, refetchJob, refetchLogs]);
 
   const toggleTask = (index: number) => {
     setExpandedTasks((prev) => {
