@@ -758,15 +758,49 @@ export const deploymentsRouter = {
           pki_zone: domainData.pki_zone ?? "",
         };
 
-        const configWithTargetIp =
-          typeof configToUse === "object" && configToUse !== null
-            ? {
-                ...configToUse,
-                target_ip: deviceIpAddress,
-                ssh_key_id: sshKeyId,
-                ...sshCaVars,
-              }
-            : configToUse;
+        // The UI's OS-installation step stores its fields nested under
+        // `osInstallation`, but the Kestra `install` flow reads them flat
+        // (`inputs.json_data.target_disk`) and Pebble fails the whole
+        // execution on a missing key — so lift them to the top level.
+        const isConfigObject =
+          typeof configToUse === "object" &&
+          configToUse !== null &&
+          !Array.isArray(configToUse);
+        const osInstallation =
+          isConfigObject &&
+          typeof configToUse.osInstallation === "object" &&
+          configToUse.osInstallation !== null &&
+          !Array.isArray(configToUse.osInstallation)
+            ? configToUse.osInstallation
+            : {};
+        const osInstallVars = {
+          target_disk: osInstallation.target_disk,
+          openwrt_version: osInstallation.openwrt_version,
+        };
+
+        if (
+          input.flow_type === "install" &&
+          (typeof osInstallVars.target_disk !== "string" ||
+            !osInstallVars.target_disk ||
+            typeof osInstallVars.openwrt_version !== "string" ||
+            !osInstallVars.openwrt_version)
+        ) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "Deployment configuration is missing osInstallation.target_disk / osInstallation.openwrt_version. Complete the OS Installation step first.",
+          });
+        }
+
+        const configWithTargetIp = isConfigObject
+          ? {
+              ...configToUse,
+              ...osInstallVars,
+              target_ip: deviceIpAddress,
+              ssh_key_id: sshKeyId,
+              ...sshCaVars,
+            }
+          : configToUse;
 
         if (configToUse) {
           formData.append("json_data", JSON.stringify(configWithTargetIp));
