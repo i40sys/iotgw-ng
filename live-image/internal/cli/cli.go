@@ -276,6 +276,7 @@ func sshCmd(args []string) int {
 		defer cancel()
 		p := collect.CollectPKI(ctx, docForCollectors(ctx))
 		fmt.Printf("User CA        %s %s (sshd trust %v)\n", p.UserCAStatus, p.UserCADetail, p.UserCATrusted)
+		fmt.Printf("Host CA        %s %s\n", p.HostCAStatus, p.HostCADetail)
 		fmt.Printf("Host identity  %s %s\n", p.HostIDStatus, p.HostIDDetail)
 		fmt.Printf("  certificate  present=%v principals=%s valid until %s\n", p.HostCertPresent, strings.Join(p.HostPrincipals, ","), p.HostCertValidTo.Local().Format("2006-01-02 15:04"))
 		fmt.Printf("sshd           %s %s\n", p.SSHDStatus, p.SSHDDetail)

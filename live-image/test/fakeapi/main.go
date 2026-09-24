@@ -203,6 +203,7 @@ func (s *server) sshCA(w http.ResponseWriter, r *http.Request) {
 		"action": "enroll", "zone": "iotgw-test", "domain": "test",
 		"principals": []string{"iotgw-admin", "iotgw-ops"}, "auth_principals": "iotgw-admin\niotgw-ops\n",
 		"user_ca": s.read("user_ca.pub") + "\n", "host_cert": string(cert),
+		"host_ca": s.read("host_ca.pub") + "\n", "cert_authority": "@cert-authority *.test.iotgw " + s.read("host_ca.pub") + "\n",
 		"fqdn": "gw.test.iotgw", "host_cert_valid_before": time.Now().Add(52 * 7 * 24 * time.Hour).UTC().Format(time.RFC3339),
 	})
 	s.reply(w, code, resp)

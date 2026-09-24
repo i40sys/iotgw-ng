@@ -4,10 +4,12 @@
 # Started by /etc/inittab (respawn), so logging out brings the dashboard back.
 
 # procd starts inittab entries while the boot scripts are still running and
-# the kernel is still logging to this console: wait for the boot to settle
-# (no `/etc/rc.common … boot` left, 3 quiet seconds in a row, at most 90 s),
-# so boot messages do not draw over the dashboard.
+# the kernel is still logging to this console: wait for the boot to settle —
+# procd's "- init complete -" in the log, and no `/etc/rc.common … boot`
+# left, 3 quiet seconds in a row, at most 90 s — so boot messages do not
+# draw over the dashboard.
 booting() {
+	logread 2>/dev/null | grep -q -- '- init complete -' || return 0
 	for c in /proc/[0-9]*/cmdline; do
 		case "$(tr '\0' ' ' <"$c" 2>/dev/null)" in
 		*/etc/rc.common*" boot"*) return 0 ;;

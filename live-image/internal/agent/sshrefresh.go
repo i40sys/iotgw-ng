@@ -23,6 +23,8 @@ const (
 	sshHostKey      = "/etc/ssh/ssh_host_ecdsa_key"
 	sshHostCert     = "/etc/ssh/ssh_host_ecdsa_key-cert.pub"
 	sshUserCA       = "/etc/ssh/ssh-user-ca.pub"
+	sshHostCA       = "/etc/ssh/ssh-host-ca.pub" // = collect.HostCAFile
+	sshKnownHosts   = "/etc/ssh/ssh_known_hosts"
 	sshPrincipals   = "/etc/ssh/auth_principals/root"
 	sshRevokedKeys  = "/etc/ssh/revoked_keys"
 	sshBreakGlass   = "/etc/ssh/sshd_config.d/50-iotgw-authorized-keys.conf"
@@ -50,6 +52,8 @@ type enrollReply struct {
 	FQDN                string   `json:"fqdn"`
 	AuthPrincipals      string   `json:"auth_principals"`
 	UserCA              string   `json:"user_ca"`
+	HostCA              string   `json:"host_ca"`
+	CertAuthority       string   `json:"cert_authority"`
 	HostCert            string   `json:"host_cert"`
 	HostCertValidBefore string   `json:"host_cert_valid_before"`
 	Warnings            []string `json:"warnings"`
@@ -310,7 +314,7 @@ func (a *Agent) SSHRefresh(ctx context.Context, otp string, force bool, out func
 		principals = "iotgw-admin\niotgw-ops\n"
 	}
 
-	snaps := snapFiles(sshHostCert, sshUserCA, sshPrincipals, sshRevokedKeys, sshBreakGlass, sshCADropIn, sshdConfig)
+	snaps := snapFiles(sshHostCert, sshUserCA, sshHostCA, sshKnownHosts, sshPrincipals, sshRevokedKeys, sshBreakGlass, sshCADropIn, sshdConfig)
 	rollback := func(why string, cause error) error {
 		out("ROLLING BACK: " + why)
 		rerr := restoreFiles(snaps)
@@ -333,6 +337,22 @@ func (a *Agent) SSHRefresh(ctx context.Context, otp string, force bool, out func
 		{sshPrincipals, withNL(principals), 0o644},
 		{sshBreakGlass, []byte(breakGlassDropIn), 0o644},
 		{sshCADropIn, []byte(caDropIn), 0o644},
+	}
+	// The domain's Host CA: lets the dashboard prove this machine's host
+	// certificate is signed by it, and lets the gateway verify other gateways.
+	if strings.TrimSpace(r.HostCA) != "" {
+		files = append(files, struct {
+			path    string
+			content []byte
+			mode    os.FileMode
+		}{sshHostCA, withNL(r.HostCA), 0o644})
+	}
+	if strings.TrimSpace(r.CertAuthority) != "" {
+		files = append(files, struct {
+			path    string
+			content []byte
+			mode    os.FileMode
+		}{sshKnownHosts, withNL(r.CertAuthority), 0o644})
 	}
 	if _, err := os.Stat(sshRevokedKeys); err != nil {
 		// sshd refuses to start if RevokedKeys names a missing file.

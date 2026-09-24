@@ -3,6 +3,7 @@ package collect
 import (
 	"context"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -125,22 +126,6 @@ func CollectPKI(ctx context.Context, doc *state.Bootstrap) PKI {
 		p.UserCAStatus = state.Healthy
 	}
 
-	// Host CA (trust for verifying OTHER hosts — not this machine's identity).
-	switch {
-	case platform.IsOpenWRT() && len(p.HostCAFPs) == 0:
-		// The installed gateway is only ever an SSH server: operators trust
-		// the Host CA on their side (scripts/ssh-ca/trust.sh).
-		p.HostCAStatus, p.HostCADetail = state.NotTested, "not needed on the installed gateway (it does not SSH out)"
-	case len(p.HostCAFPs) > 0 && fileExists(p.KnownHostsPath):
-		p.HostCAStatus, p.HostCADetail = state.Healthy, "@cert-authority in "+p.KnownHostsPath
-	case fetch == state.Failed:
-		p.HostCAStatus, p.HostCADetail = state.Failed, "SSH CA configuration MISSING"
-	case fetch == state.Pending || fetch == state.Running:
-		p.HostCAStatus = state.Pending
-	default:
-		p.HostCAStatus, p.HostCADetail = state.NotConfigured, "no Host CA received"
-	}
-
 	// Host identity: a signed certificate for THIS machine's host key.
 	if b, err := os.ReadFile("/etc/ssh/ssh_host_ecdsa_key.pub"); err == nil {
 		if f := strings.Fields(string(b)); len(f) > 0 {
@@ -160,6 +145,8 @@ func CollectPKI(ctx context.Context, doc *state.Bootstrap) PKI {
 			}
 		}
 	}
+	evalHostCA(ctx, &p, fetch)
+
 	switch {
 	case fetch == state.Pending || fetch == state.Running:
 		p.HostIDStatus, p.HostIDDetail = state.Pending, "waiting for bootstrap"
@@ -214,4 +201,49 @@ func CollectBootstrap(ctx context.Context) Bootstrap {
 		b.ServiceState = strings.TrimSpace(res.Stdout)
 	}
 	return b
+}
+
+// HostCAFile is where the installed gateway keeps the domain's Host CA
+// (written by `iotgw ssh refresh` / the Ansible ssh_ca task).
+const HostCAFile = "/etc/ssh/ssh-host-ca.pub"
+
+// evalHostCA checks the Host CA for real: this machine's host certificate
+// must be signed by (one of) the domain's Host CA key(s) — the check a client
+// with `@cert-authority` makes when it connects. A certificate signed by
+// another CA (e.g. after a CA rotation that this gateway missed) is FAILED.
+func evalHostCA(ctx context.Context, p *PKI, fetch Status) {
+	if fileExists(HostCAFile) {
+		if fps, err := keyFingerprints(ctx, HostCAFile); err == nil {
+			p.HostCAFPs = fps
+		}
+	}
+	switch {
+	case len(p.HostCAFPs) == 0 && fetch == state.Failed:
+		p.HostCAStatus, p.HostCADetail = state.Failed, "SSH CA configuration MISSING"
+	case len(p.HostCAFPs) == 0 && (fetch == state.Pending || fetch == state.Running):
+		p.HostCAStatus = state.Pending
+	case len(p.HostCAFPs) == 0:
+		p.HostCAStatus, p.HostCADetail = state.NotConfigured, "no Host CA installed — `iotgw ssh refresh` fetches it"
+	case !p.HostCertPresent || p.HostCertSignedBy == "":
+		p.HostCAStatus, p.HostCADetail = state.NotTested, "Host CA installed, but there is no host certificate to check against it"
+	case slices.Contains(p.HostCAFPs, p.HostCertSignedBy):
+		p.HostCAStatus, p.HostCADetail = state.Healthy, "this machine's host certificate is signed by the domain's Host CA"
+	default:
+		p.HostCAStatus, p.HostCADetail = state.Failed, "host certificate signed by "+p.HostCertSignedBy+", NOT by the domain's Host CA — clients will reject it; run `iotgw ssh refresh -force`"
+	}
+}
+
+// keyFingerprints returns the SHA256 fingerprints of the keys in path.
+func keyFingerprints(ctx context.Context, path string) ([]string, error) {
+	res, err := sysexec.Run(ctx, 5*time.Second, "ssh-keygen", "-lf", path)
+	if err != nil {
+		return nil, err
+	}
+	var fps []string
+	for _, l := range strings.Split(strings.TrimSpace(res.Stdout), "\n") {
+		if f := strings.Fields(l); len(f) >= 2 {
+			fps = append(fps, f[1])
+		}
+	}
+	return fps, nil
 }
