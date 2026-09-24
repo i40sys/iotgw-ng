@@ -1,0 +1,15 @@
+{
+	"luci-app-iotgw": {
+		"description": "Grant access to the iotgw gateway agent (IoGW NG)",
+		"read": {
+			"ubus": {
+				"iotgw": [ "status", "job" ]
+			}
+		},
+		"write": {
+			"ubus": {
+				"iotgw": [ "refresh", "set_policy", "hold", "vpn_refresh", "ssh_refresh" ]
+			}
+		}
+	}
+}

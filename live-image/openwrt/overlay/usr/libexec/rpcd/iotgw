@@ -1,0 +1,5 @@
+#!/bin/sh
+# rpcd exec plugin: ubus object "iotgw", backend of the LuCI page Status →
+# IoGW NG (iotgw-ng decision-032). rpcd runs `list` once at start and
+# `call <method>` (JSON arguments on stdin) per request.
+exec /usr/sbin/iotgw rpcd "$@"

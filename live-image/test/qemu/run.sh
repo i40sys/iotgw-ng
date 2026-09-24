@@ -32,7 +32,7 @@ MOD="$(cd "$HERE/../.." && pwd)" # live-image/
 WORK="${WORK:-$HERE/.work}"
 OWRT_VER="${OWRT_VER:-23.05.4}"
 IMG_URL="https://downloads.openwrt.org/releases/${OWRT_VER}/targets/x86/64/openwrt-${OWRT_VER}-x86-64-generic-ext4-combined.img.gz"
-HUB_SSH=12221 GW_SSH=12222 GW_SSHD=12223 SITE_PORT=12230 API_PORT=18080
+HUB_SSH=12221 GW_SSH=12222 GW_SSHD=12223 GW_HTTP=12224 SITE_PORT=12230 API_PORT=18080
 INTERVAL=15 # daemon check interval in the test (seconds)
 
 mkdir -p "$WORK"
@@ -230,7 +230,7 @@ sleep 3
 boot_gw() {
   boot gw \
     -netdev "socket,id=site,connect=127.0.0.1:$SITE_PORT" -device virtio-net-pci,netdev=site,mac=52:54:00:20:00:01 \
-    -netdev "user,id=mgmt,net=10.10.2.0/24,restrict=on,hostfwd=tcp:127.0.0.1:$GW_SSH-10.10.2.15:2222,hostfwd=tcp:127.0.0.1:$GW_SSHD-10.10.2.15:22" -device virtio-net-pci,netdev=mgmt,mac=52:54:00:20:00:02
+    -netdev "user,id=mgmt,net=10.10.2.0/24,restrict=on,hostfwd=tcp:127.0.0.1:$GW_SSH-10.10.2.15:2222,hostfwd=tcp:127.0.0.1:$GW_SSHD-10.10.2.15:22,hostfwd=tcp:127.0.0.1:$GW_HTTP-10.10.2.15:80" -device virtio-net-pci,netdev=mgmt,mac=52:54:00:20:00:02
   GW_PID=$!
 }
 boot_gw
@@ -386,6 +386,27 @@ until_ok "operator logs in with a user certificate; host certificate verified" 3
 if gw "iotgw ssh refresh" | grep -q "nothing to do"; then ok "renewal skipped while the certificate is current"; else ko "renewal not idempotent"; fi
 if gw "iotgw ssh refresh -force" && grep -q "continuity proof OK" fakeapi.log; then ok "forced renewal proves continuity"; else ko "forced renewal / continuity"; fi
 until_ok "sshd still serving after renewal" 30 opssh true
+
+log "8. LuCI page + rpcd plugin: the web backend is the daemon's snapshot"
+# Install the whole OpenWRT package the way the playbook does (extract it).
+PKG=$(mktemp -d)
+mkdir -p "$PKG/usr/sbin" && cp "$WORK/iotgw" "$PKG/usr/sbin/" && cp -a "$MOD/openwrt/overlay/." "$PKG/"
+tar --owner=0 --group=0 -C "$PKG" -czf "$WORK/iotgw-openwrt.tar.gz" . && rm -rf "$PKG"
+gw "tar xzf - -C / && /etc/init.d/rpcd restart && rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache" <"$WORK/iotgw-openwrt.tar.gz"
+sleep 3
+if gw "ubus -v list iotgw" | grep -q vpn_refresh; then ok "ubus object iotgw registered by rpcd"; else ko "ubus object iotgw missing"; fi
+if [ "$(gw "ubus call iotgw status | jsonfilter -e @.available")" = true ]; then ok "status served from the daemon's snapshot"; else ko "status not available"; fi
+gw "ubus call iotgw hold '{\"enable\":true,\"reason\":\"e2e\"}'" >/dev/null
+if [ "$(gw "uci -q get iotgw.main.hold")" = 1 ]; then ok "hold via rpcd"; else ko "hold via rpcd"; fi
+gw "ubus call iotgw hold '{\"enable\":false}'" >/dev/null
+job=$(gw "ubus call iotgw ssh_refresh '{}' | jsonfilter -e @.job")
+job_done() { [ "$(gw "ubus call iotgw job '{\"id\":\"$job\"}' | jsonfilter -e @.rc")" = 0 ]; }
+until_ok "background job (ssh refresh) finishes with rc 0" 120 job_done
+RPC="http://127.0.0.1:$GW_HTTP/ubus"
+SID=$(curl -fsS "$RPC" -d '{"jsonrpc":"2.0","id":1,"method":"call","params":["00000000000000000000000000000000","session","login",{"username":"root","password":""}]}' | jq -r '.result[1].ubus_rpc_session')
+if curl -fsS "$RPC" -d "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"call\",\"params\":[\"$SID\",\"iotgw\",\"status\",{}]}" | jq -e '.result[1].available == true' >/dev/null; then ok "LuCI session reaches iotgw status over /ubus"; else ko "LuCI session cannot call iotgw"; fi
+if curl -fsS "$RPC" -d '{"jsonrpc":"2.0","id":3,"method":"call","params":["00000000000000000000000000000000","iotgw","status",{}]}' | jq -e '.error.code == -32002' >/dev/null; then ok "anonymous call denied (ACL)"; else ko "anonymous call not denied"; fi
+if [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$GW_HTTP/luci-static/resources/view/iotgw/status.js")" = 200 ]; then ok "LuCI view served"; else ko "LuCI view not served"; fi
 
 # ── result ───────────────────────────────────────────────────────────────────
 log "agent history (gw)"

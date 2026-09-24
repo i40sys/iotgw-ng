@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/iproute"
@@ -30,6 +32,31 @@ type Agent struct {
 	Measure func(ctx context.Context, wgIface string) Health
 	// VerifyTimeout bounds how long a change may take to prove itself.
 	VerifyTimeout time.Duration
+	// LockPath serializes changes between the daemon and manual commands
+	// (dashboard, LuCI, CLI); "" = no lock.
+	LockPath string
+}
+
+// DefaultLock is the change lock on the installed gateway.
+const DefaultLock = "/var/run/iotgw/change.lock"
+
+// lock takes the change lock (waits for a running change to finish). A lock
+// that cannot be opened is not fatal: the change still runs, unserialized.
+func (a *Agent) lock() func() {
+	if a.LockPath == "" {
+		return func() {}
+	}
+	_ = os.MkdirAll(filepath.Dir(a.LockPath), 0o755)
+	f, err := os.OpenFile(a.LockPath, os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		a.logf("change lock %s: %v (continuing without it)", a.LockPath, err)
+		return func() {}
+	}
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+		f.Close()
+		return func() {}
+	}
+	return func() { _ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN); f.Close() }
 }
 
 // New returns an agent for the real system.
@@ -49,6 +76,7 @@ func New(logger *log.Logger) *Agent {
 			return err
 		},
 		StatePath:     StateFile,
+		LockPath:      DefaultLock,
 		Log:           logger,
 		VerifyTimeout: 60 * time.Second,
 	}
@@ -124,6 +152,9 @@ var ErrRolledBack = errors.New("change rolled back")
 // snapshot is restored and netifd reloaded again. It returns the health
 // before and after.
 func (a *Agent) Transact(ctx context.Context, wgIface, label string, ops []Op, accept Accept) (Health, Health, error) {
+	if len(ops) > 0 {
+		defer a.lock()()
+	}
 	before := a.measure(ctx, wgIface)
 	if len(ops) == 0 {
 		return before, before, nil

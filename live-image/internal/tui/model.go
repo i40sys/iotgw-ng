@@ -37,6 +37,9 @@ type Model struct {
 	// the Installed and Agent panels replace Provisioning.
 	owrt bool
 	inst *agent.Installed
+	// snapFresh: the daemon's snapshot is current, so the dashboard shows it
+	// instead of probing the system itself (the daemon is the backend).
+	snapFresh bool
 
 	inflight map[string]bool
 	updated  map[string]time.Time
@@ -109,8 +112,13 @@ func (m *Model) refreshAll() tea.Cmd {
 	)
 }
 
-// Init starts the collectors and the refresh tickers.
+// Init starts the collectors and the refresh tickers. On an installed
+// gateway it first reads the daemon's snapshot and only probes by itself
+// when that is missing or stale.
 func (m Model) Init() tea.Cmd {
+	if m.owrt {
+		return tea.Batch(readSnapCmd(), fastTick(), slowTick(), hostTick())
+	}
 	return tea.Batch(m.refreshAll(), fastTick(), slowTick(), hostTick())
 }
 
@@ -180,7 +188,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "r":
 			// Also a full repaint: anything written to the console behind
 			// the dashboard's back (kernel/boot messages) is wiped.
-			cmds = append(cmds, tea.ClearScreen, m.refreshAll())
+			cmds = append(cmds, tea.ClearScreen)
+			if m.owrt && m.snapFresh {
+				cmds = append(cmds, kickDaemonCmd(), tea.Tick(2*time.Second, func(time.Time) tea.Msg { return readSnapCmd()() }))
+				break
+			}
+			cmds = append(cmds, m.refreshAll())
 			if v := m.vpn; v != nil {
 				cmds = append(cmds, m.start(kReach, collectReachCmd(*v)))
 			}
@@ -250,6 +263,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.done(kInst)
 		doc := in.SyntheticDoc()
 		cmds = append(cmds, m.start(kVPN, collectVPNCmd(doc)), m.start(kPKI, collectPKICmd(doc)))
+	case snapMsg:
+		sn := msg.s
+		m.snapFresh = sn.Fresh()
+		if !m.snapFresh {
+			// No daemon (or it is stuck): probe by ourselves.
+			cmds = append(cmds, m.refreshAll())
+			break
+		}
+		m.host, m.net, m.inet, m.vpn, m.reach, m.pki, m.inst = sn.Host, sn.Network, sn.Internet, sn.VPN, sn.Reach, sn.PKI, sn.Installed
+		for _, k := range []string{kHost, kNet, kInet, kVPN, kReach, kPKI, kInst} {
+			m.updated[k] = sn.UpdatedAt
+		}
 	case holdDoneMsg:
 		if msg.err != nil {
 			m.notice, m.noticeBad = "Hold change FAILED: "+msg.err.Error(), true
@@ -271,14 +296,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, m.refreshAll())
 
 	case fastTickMsg:
+		if m.owrt {
+			cmds = append(cmds, fastTick(), readSnapCmd())
+			break
+		}
 		cmds = append(cmds, fastTick(), m.start(kNet, collectNetCmd()), m.provCmd())
 	case slowTickMsg:
+		if m.owrt && m.snapFresh {
+			cmds = append(cmds, slowTick())
+			break
+		}
 		cmds = append(cmds, slowTick(), m.start(kInet, collectInetCmd()))
 		if v := m.vpn; v != nil {
 			cmds = append(cmds, m.start(kReach, collectReachCmd(*v)))
 		}
 	case hostTickMsg:
-		cmds = append(cmds, hostTick(), m.start(kHost, collectHostCmd()))
+		cmds = append(cmds, hostTick())
+		if !m.owrt || !m.snapFresh {
+			cmds = append(cmds, m.start(kHost, collectHostCmd()))
+		}
 		if m.owrt {
 			// A console on an installed gateway is shared with the kernel and
 			// procd: repaint fully now and then so stray output never sticks.

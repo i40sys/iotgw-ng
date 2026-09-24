@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/iproute"
@@ -16,10 +19,12 @@ import (
 // the Internet policy, record. Hold mode keeps the observing and recording
 // but turns every change into a "held" event.
 type Daemon struct {
-	A   *Agent
-	st  State
-	cnt Counters
-	lim Limiter
+	A *Agent
+	// Snap publishes the full status (the dashboards' backend); nil = none.
+	Snap *Snapshotter
+	st   State
+	cnt  Counters
+	lim  Limiter
 	// lastHeld dedups "would do X" events while on hold.
 	lastHeld string
 	// lastSummary dedups check events: only a changed picture is logged.
@@ -37,6 +42,23 @@ func (d *Daemon) Run(ctx context.Context) error {
 		d.st.Events = prev.Events
 	}
 	d.st.AddEvent("info", "ok", "iotgw daemon started ("+version.Version+")")
+	if d.Snap != nil {
+		go d.Snap.Run(ctx)
+		// SIGUSR1 = "refresh now" (the dashboards' [r], LuCI's Refresh).
+		usr1 := make(chan os.Signal, 1)
+		signal.Notify(usr1, syscall.SIGUSR1)
+		defer signal.Stop(usr1)
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-usr1:
+					d.Snap.Kick()
+				}
+			}
+		}()
+	}
 	wait := 10 * time.Second
 	for {
 		d.st.NextCheck = time.Now().Add(wait).UTC()
@@ -207,6 +229,9 @@ func (d *Daemon) change(ctx context.Context, cfg Config, kind, what string, ops 
 		return false
 	}
 	d.st.AddEvent("change", "ok", fmt.Sprintf("%s (before: %s; after: %s)", desc, before, after))
+	if d.Snap != nil {
+		d.Snap.Kick()
+	}
 	return true
 }
 

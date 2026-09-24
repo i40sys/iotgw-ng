@@ -387,6 +387,41 @@ writes `/etc/config/iotgw` (device identity from the flow + the live image's
 | `iotgw vpn refresh [-otp CODE]` | re-request the WireGuard config from `vpn`, apply it through UCI, keep it only if the tunnel comes up |
 | `iotgw ssh refresh [-otp CODE] [-force]` | re-request trust + host certificate from `ssh-ca` (`enroll`, with the task-075 continuity signature), `sshd -t`, reload (restart fallback), verify sshd serves them — or restore every file |
 
+**One backend, three faces.** The daemon also publishes the full status
+(host, network, Internet, VPN, reachability, SSH PKI, the Installed/agent
+picture) to `/var/run/iotgw/status.json` — every 5 s, the probes that leave
+the machine every 30 s, and at once on SIGUSR1. The console dashboard, the
+LuCI page and `iotgw rpcd` only **read** that snapshot (the dashboard probes
+by itself only if it is stale, i.e. the daemon is down), and all actions go
+through the same code as the CLI. So `[q]` on the console closes just the
+viewer: the daemon keeps running and repairing; two consoles (tty1 + serial)
+no longer probe the system twice.
+
+**LuCI: Status → IoGW NG** (OpenWRT 23.05, client-side LuCI). Same panels
+and actions as the console (policy, hold, VPN/SSH refresh with an optional
+one-time code, history). How it talks to the system — the standard LuCI way
+on this version, no CGI:
+
+```text
+browser ──JSON-RPC──► uhttpd /ubus ──► rpcd ──exec──► /usr/libexec/rpcd/iotgw
+   view/iotgw/status.js                (ACL: acl.d/luci-app-iotgw.json)   = iotgw rpcd list|call <method>
+```
+
+| ubus `iotgw` method | Does |
+|---|---|
+| `status` | the daemon's snapshot + recent manual jobs |
+| `refresh` | SIGUSR1 to the daemon: a full status round now |
+| `hold {enable, reason}` | hold on/off (immediate) |
+| `set_policy {policy}`, `vpn_refresh {otp}`, `ssh_refresh {otp, force}` | start a **background job** (they can outlast rpcd's 30 s exec timeout); returns a job id |
+| `job {id}` | the job's output and exit code (the page polls it) |
+
+Files: `/usr/share/luci/menu.d/luci-app-iotgw.json` (menu entry),
+`/usr/share/rpcd/acl.d/luci-app-iotgw.json` (read: status, job; write: the
+actions), `/usr/libexec/rpcd/iotgw`, `/www/luci-static/resources/view/iotgw/status.js`
+— all in the `iotgw-openwrt` package. After installing them by hand run
+`/etc/init.d/rpcd restart; rm -rf /tmp/luci-*cache*`. A lock
+(`/var/run/iotgw/change.lock`) serializes the daemon's changes with manual ones.
+
 **Every change is a transaction**: snapshot `/etc/config/network` (or the SSH
 files), apply, `ubus call network reload`, verify for up to 45 s, and restore
 the snapshot if the gateway lost Internet or the tunnel. Automatic changes are

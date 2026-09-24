@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-24 07:00'
-updated_date: '2026-09-24 09:19'
+updated_date: '2026-09-24 11:16'
 labels:
   - live-image
   - openwrt
@@ -43,4 +43,6 @@ priority: medium
 **Auth (AC#1):** operator code or derived from /etc/config/iotgw; daemon never refreshes by itself — recorded in decision-032; server-side host-key proof = task-126.
 
 **Verified:** QEMU e2e (`just e2e`, live-image/test/qemu/run.sh): PASS 33 FAIL 0 on two OpenWRT 23.05.4 VMs (TCG) with test/fakeapi (real envelope + TOTP): a wrong key repaired; a bad peer rolled back, tunnel kept.
+
+**Also verified against the real `vpn` function on gw-c3:** the config was fetched with the derived code and applied (only the keepalive changed), and the tunnel stayed up.
 <!-- SECTION:NOTES:END -->

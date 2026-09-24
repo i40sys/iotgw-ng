@@ -314,6 +314,7 @@ func (a *Agent) SSHRefresh(ctx context.Context, otp string, force bool, out func
 		principals = "iotgw-admin\niotgw-ops\n"
 	}
 
+	defer a.lock()()
 	snaps := snapFiles(sshHostCert, sshUserCA, sshHostCA, sshKnownHosts, sshPrincipals, sshRevokedKeys, sshBreakGlass, sshCADropIn, sshdConfig)
 	rollback := func(why string, cause error) error {
 		out("ROLLING BACK: " + why)

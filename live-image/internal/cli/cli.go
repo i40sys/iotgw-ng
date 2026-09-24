@@ -46,6 +46,7 @@ usage: iotgw <command> [options]
   hold enable [-reason TEXT] | hold disable | hold status
                                  freeze / resume the daemon's automatic changes
   bootstrap [-otp CODE]          live-image provisioning (what iotgw-bootstrap runs)
+  rpcd list | rpcd call METHOD   rpcd exec plugin behind the LuCI page (ubus object "iotgw")
   version
 
 Without -otp, refresh derives the device code from /etc/config/iotgw.
@@ -79,6 +80,10 @@ func Main(argv []string) int {
 		return holdCmd(args)
 	case "bootstrap":
 		return bootstrapCmd(args, false)
+	case "rpcd":
+		return rpcdCmd(args)
+	case "rpcd-job":
+		return rpcdJobCmd(args)
 	case "version", "-version", "--version":
 		fmt.Println("iotgw", version.String(), "| platform:", platform.Detect())
 		return 0
@@ -91,6 +96,8 @@ func Main(argv []string) int {
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
+
+func ctxBG() context.Context { return context.Background() }
 
 func signalContext(timeout time.Duration) (context.Context, context.CancelFunc) {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -183,7 +190,7 @@ func daemonCmd(args []string) int {
 	defer cancel()
 	lg := syslogger("iotgw", *once)
 	lg.Printf("iotgw daemon %s starting", version.String())
-	d := &agent.Daemon{A: agent.New(lg)}
+	d := &agent.Daemon{A: agent.New(lg), Snap: agent.NewSnapshotter(agent.SnapshotFile)}
 	if *once {
 		d.Cycle(ctx)
 		return 0

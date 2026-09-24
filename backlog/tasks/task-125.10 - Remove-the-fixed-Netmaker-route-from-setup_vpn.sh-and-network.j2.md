@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-09-24 07:00'
-updated_date: '2026-09-24 09:19'
+updated_date: '2026-09-24 11:16'
 labels:
   - openwrt
   - vpn
@@ -37,4 +37,6 @@ priority: medium
 **Implemented** on iotgw-kestra branch `task-125-iotgw-agent`: neither files/setup_vpn.sh nor templates/network.j2 writes a route to the VPN endpoint; the unused gateway parsing and d01's dummy vpn_* vars are gone.
 
 **Pending AC#2:** a real install + provisioning run once the release is pinned (task-125.09).
+
+**On gw-c3 (2026-09-24):** after an install with these files, `/etc/config/network` had no route to the Netmaker server. The daemon created `network.iotgw_endpoint` (via 10.2.0.1) on its first check, the tunnel came up, and the Kestra connectivity-check (via the Netmaker host) passed. Enrollment was done with `iotgw ssh refresh`. The Kestra `provisioning` flow itself was not re-run, so AC#2 stays open until it is.
 <!-- SECTION:NOTES:END -->

@@ -1,0 +1,13 @@
+{
+	"admin/status/iotgw": {
+		"title": "IoGW NG",
+		"order": 90,
+		"action": {
+			"type": "view",
+			"path": "iotgw/status"
+		},
+		"depends": {
+			"acl": [ "luci-app-iotgw" ]
+		}
+	}
+}

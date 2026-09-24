@@ -152,6 +152,17 @@ The static `x86_64` binary is already built by the live-image CI.
 script and the console entry into the installed rootfs, at an **explicitly
 pinned version**.
 
+### 11. One backend for every face; LuCI page (added 2026-09-24)
+
+The daemon publishes the full status (`/var/run/iotgw/status.json`); the
+console dashboard, the LuCI page **Status → IoGW NG** and `iotgw rpcd` read it
+instead of probing on their own, and run actions through the same code. `[q]`
+on the console closes only the viewer — the backend keeps running. LuCI
+(23.05, client-side JS views) reaches it the standard way: uhttpd `/ubus`
+JSON-RPC → rpcd → the exec plugin `/usr/libexec/rpcd/iotgw` (= `iotgw rpcd`),
+gated by an rpcd ACL; long actions run as background jobs (rpcd's exec
+timeout is 30 s). Delivered in the same `iotgw-openwrt` package.
+
 ## Consequences
 
 - An installed gateway can keep and recover its own management path after

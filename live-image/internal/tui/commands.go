@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"strings"
+	"syscall"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -34,6 +35,8 @@ type (
 	inetMsg  collect.Internet
 	pkiMsg   collect.PKI
 	instMsg  agent.Installed
+	// snapMsg is the daemon's published status (nil when missing/unreadable).
+	snapMsg struct{ s *agent.Snapshot }
 
 	// holdDoneMsg is the outcome of `iotgw hold enable|disable`.
 	holdDoneMsg struct {
@@ -82,6 +85,28 @@ func collectNetCmd() tea.Cmd {
 
 func collectBootCmd() tea.Cmd {
 	return func() tea.Msg { return bootMsg(withTimeout(collect.CollectBootstrap)) }
+}
+
+// readSnapCmd reads the daemon's snapshot — on an installed gateway the
+// daemon is the backend and the dashboard only a viewer.
+func readSnapCmd() tea.Cmd {
+	return func() tea.Msg {
+		s, err := agent.ReadSnapshot(agent.SnapshotFile)
+		if err != nil {
+			return snapMsg{}
+		}
+		return snapMsg{s}
+	}
+}
+
+// kickDaemonCmd asks the daemon for an immediate status round (SIGUSR1).
+func kickDaemonCmd() tea.Cmd {
+	return func() tea.Msg {
+		if st, err := agent.ReadState(agent.StateFile); err == nil && st.PID > 0 {
+			_ = syscall.Kill(st.PID, syscall.SIGUSR1)
+		}
+		return nil
+	}
 }
 
 // collectInstCmd gathers the installed gateway's picture (OpenWRT only).
