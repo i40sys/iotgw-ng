@@ -3,35 +3,40 @@
 # serial console at boot; [q] leaves it for the normal OpenWRT login shell.
 # Started by /etc/inittab (respawn), so logging out brings the dashboard back.
 
-# procd starts inittab entries while the boot scripts are still running and
-# the kernel is still logging to this console: wait for the boot to settle —
-# procd's "- init complete -" in the log, and no `/etc/rc.common … boot`
-# left, 3 quiet seconds in a row, at most 90 s — so boot messages do not
-# draw over the dashboard.
-booting() {
-	logread 2>/dev/null | grep -q -- '- init complete -' || return 0
+# Keep kernel messages off the console from the start (console_loglevel 1 =
+# emergencies only): they still reach dmesg/logread, but no longer bury the
+# progress below or draw over the dashboard. Restored when leaving.
+printk=$(cat /proc/sys/kernel/printk 2>/dev/null)
+echo 1 >/proc/sys/kernel/printk 2>/dev/null
+
+# procd starts inittab entries while boot scripts are still running: wait
+# until none is (`/etc/rc.common /etc/init.d/<name> boot`), 3 quiet seconds
+# in a row, at most 60 s — showing what is still starting, so the wait never
+# looks like a hang. (Not the syslog "init complete" marker: logd itself can
+# crash during boot and lose it.)
+starting() {
 	for c in /proc/[0-9]*/cmdline; do
-		case "$(tr '\0' ' ' <"$c" 2>/dev/null)" in
-		*/etc/rc.common*" boot"*) return 0 ;;
-		esac
-	done
-	return 1
+		set -- $(tr '\0' ' ' <"$c" 2>/dev/null)
+		[ "$2" = /etc/rc.common ] && [ "$4" = boot ] && echo "${3##*/}"
+	done | sort -u | tr '\n' ' '
 }
-echo "iotgw: waiting for the boot to finish…"
+printf '\niotgw: waiting for the system to finish starting before opening the dashboard…\n'
 quiet=0 waited=0
-while [ "$quiet" -lt 3 ] && [ "$waited" -lt 90 ]; do
-	if booting; then quiet=0; else quiet=$((quiet + 1)); fi
+while [ "$quiet" -lt 3 ] && [ "$waited" -lt 60 ]; do
+	busy=$(starting)
+	if [ -n "$busy" ]; then
+		quiet=0
+		[ $((waited % 3)) -eq 0 ] && printf '  %2ds  still starting: %s\n' "$waited" "$busy"
+	else
+		quiet=$((quiet + 1))
+	fi
 	sleep 1
 	waited=$((waited + 1))
 done
+printf '  %2ds  ready — opening the dashboard\n' "$waited"
 
 if [ -x /usr/sbin/iotgw ]; then
-	# Keep kernel messages off the console while the dashboard owns it
-	# (console_loglevel 1 = emergencies only); restore on exit. The messages
-	# still reach the log (logread / dmesg).
-	printk=$(cat /proc/sys/kernel/printk 2>/dev/null)
-	echo 1 >/proc/sys/kernel/printk 2>/dev/null
 	/usr/sbin/iotgw status
-	[ -n "$printk" ] && echo "$printk" >/proc/sys/kernel/printk 2>/dev/null
 fi
+[ -n "$printk" ] && echo "$printk" >/proc/sys/kernel/printk 2>/dev/null
 exec /usr/libexec/login.sh

@@ -52,7 +52,9 @@ func (e *APIError) Error() string {
 	hint := ""
 	switch e.Status {
 	case http.StatusUnauthorized:
-		hint = " — the device code was rejected (expired, or the counter was reset in the UI); take the current code from the UI"
+		if !strings.Contains(e.Message, "re-enrollment requires proof") {
+			hint = " — the device code was rejected (expired, or the counter was reset in the UI); take the current code from the UI"
+		}
 	case http.StatusConflict:
 		hint = " — the device's domain is not linked to a pki-manager zone"
 	case http.StatusBadGateway, http.StatusServiceUnavailable:

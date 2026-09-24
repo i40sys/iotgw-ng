@@ -76,9 +76,14 @@ func (m Model) installedPanel(w int) string {
 		}
 		return kv(label, v)
 	}
+	provSt := statusOf(in.Provisioned())
+	if !in.Provisioned() && in.IdentityOK && in.WGConfigured {
+		// Installed but not enrolled yet: the normal state until provisioning.
+		provSt, provTxt = state.NotConfigured, "not yet — SSH enrollment missing: run the provisioning deployment (or iotgw ssh refresh)"
+	}
 	rows := []string{
 		row("Installed", statusOf(in.ConfigErr == ""), installedTxt),
-		row("Provisioned", statusOf(in.Provisioned()), provTxt),
+		row("Provisioned", provSt, provTxt),
 		row("SSH certificate", certSt, certTxt),
 		row("VPN", vpnSt, vpnTxt),
 		row("Internet", netSt, netTxt),
@@ -87,7 +92,7 @@ func (m Model) installedPanel(w int) string {
 	if in.ConfigErr != "" {
 		rows = append(rows, kv("Note", "/etc/config/iotgw: "+in.ConfigErr))
 	}
-	overall := worstOf(statusOf(in.ConfigErr == ""), statusOf(in.Provisioned()), certSt, vpnSt, netSt)
+	overall := worstOf(statusOf(in.ConfigErr == ""), provSt, certSt, vpnSt, netSt)
 	return panel("Installed", overall, w, rows...)
 }
 

@@ -315,14 +315,17 @@ return view.extend({
 		if (!inst.WGConfigured) miss.push(_('VPN config'));
 		if (!inst.HostCert) miss.push(_('SSH enrollment'));
 		var prov = !miss.length;
+		/* installed but not enrolled yet: the normal state until provisioning */
+		var notYet = !prov && inst.IdentityOK && inst.WGConfigured;
+		var provSt = prov ? 'HEALTHY' : (notYet ? 'NOT CONFIGURED' : 'FAILED');
 		var uplink = '-';
 		if (n.EgressIface)
 			uplink = (n.EgressIface == vpn.Interface) ? _('VPN (%s, via the Netmaker hub)').format(n.EgressIface) : _('LAN (%s)').format(n.EgressIface);
 		var inet = net.DNS ? _('DNS %s, IP %s, HTTPS %s').format(net.DNS.Status, net.IP.Status, net.HTTPS.Status) : '';
 		var cert = pki.HostIDStatus == 'HEALTHY' && !never(pki.HostCertValidTo) ? _('valid until %s').format(when(pki.HostCertValidTo)) : (pki.HostIDDetail || '');
-		return panel(_('Installed'), worst(ok(!inst.ConfigErr), ok(prov), pki.HostIDStatus, vpn.Status, net.Overall), [
+		return panel(_('Installed'), worst(ok(!inst.ConfigErr), provSt, pki.HostIDStatus, vpn.Status, net.Overall), [
 			[ _('Installed'), [ badge(ok(!inst.ConfigErr)), ' ', dash(inst.OS) + (inst.InstalledAt ? _(', installed %s').format(inst.InstalledAt) : '') ] ],
-			[ _('Provisioned'), [ badge(ok(prov)), ' ', prov ? _('identity, VPN and SSH enrollment present') : _('missing: %s').format(miss.join(', ')) ] ],
+			[ _('Provisioned'), [ badge(provSt), ' ', prov ? _('identity, VPN and SSH enrollment present') : notYet ? _('not yet — SSH enrollment missing: run the provisioning deployment (or SSH refresh)') : _('missing: %s').format(miss.join(', ')) ] ],
 			[ _('SSH certificate'), [ badge(pki.HostIDStatus), ' ', cert ] ],
 			[ _('VPN'), [ badge(vpn.Status), ' ', vpn.Status == 'HEALTHY' ? _('tunnel up, last handshake %s').format(ago(vpn.LastHandshake)) : (vpn.Detail || '') ] ],
 			[ _('Internet'), [ badge(net.Overall), ' ', inet ] ],

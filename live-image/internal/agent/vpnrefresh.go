@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/devapi"
@@ -36,6 +37,9 @@ func DeviceCode(cfg Config, override string) (string, string, error) {
 // hint401 explains the usual cause of a rejected derived code.
 func hint401(err error, source string) error {
 	var ae *devapi.APIError
+	if errors.As(err, &ae) && ae.Status == 401 && strings.Contains(ae.Message, "re-enrollment requires proof") {
+		return fmt.Errorf("%w\n  this device was enrolled before with ANOTHER host key (e.g. it was reinstalled) and that key is gone:\n  its old SSH enrollment must be reset by an operator before it can enroll again", err)
+	}
 	if errors.As(err, &ae) && ae.Status == 401 && source != "operator code" {
 		return fmt.Errorf("%w\n  the derived code was rejected: the device's code counter was probably reset in the UI.\n  Update it (uci set iotgw.main.totp_counter=N; uci commit iotgw) or pass -otp CODE", err)
 	}

@@ -150,6 +150,9 @@ func CollectPKI(ctx context.Context, doc *state.Bootstrap) PKI {
 	switch {
 	case fetch == state.Pending || fetch == state.Running:
 		p.HostIDStatus, p.HostIDDetail = state.Pending, "waiting for bootstrap"
+	case !p.HostCertPresent && platform.IsOpenWRT():
+		// A fresh install is not enrolled until provisioning: a normal state.
+		p.HostIDStatus, p.HostIDDetail = state.NotConfigured, "not enrolled yet — run the provisioning deployment, or `iotgw ssh refresh`"
 	case !p.HostCertPresent:
 		p.HostIDStatus, p.HostIDDetail = state.Failed, "no host certificate — this machine has no signed SSH host identity (host key is TOFU)"
 	case !p.HostCertValidTo.IsZero() && time.Now().After(p.HostCertValidTo):
