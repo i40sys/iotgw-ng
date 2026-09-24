@@ -1,11 +1,11 @@
 ---
 id: TASK-125.07
 title: 'iotgw vpn refresh: re-fetch and safely re-apply the VPN config'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-24 07:00'
-updated_date: '2026-09-24 08:37'
+updated_date: '2026-09-24 09:19'
 labels:
   - live-image
   - openwrt
@@ -30,7 +30,17 @@ priority: medium
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Auth approach decided and recorded in decision-032
-- [ ] #2 vpn refresh applies a changed peer/key and the VPN comes back
-- [ ] #3 A bad config is rolled back and the gateway keeps its egress path
+- [x] #1 Auth approach decided and recorded in decision-032
+- [x] #2 vpn refresh applies a changed peer/key and the VPN comes back
+- [x] #3 A bad config is rolled back and the gateway keeps its egress path
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Done.** `iotgw vpn refresh [-otp CODE]`: vpn API → UCI wg0 + peer (+ endpoint route), transaction with `ifup wg0`; kept if the tunnel comes up, rolled back if it was up and is not, kept if it was down both before and after. Saves /etc/iotgw/wg0.server.conf and network_cidr.
+
+**Auth (AC#1):** operator code or derived from /etc/config/iotgw; daemon never refreshes by itself — recorded in decision-032; server-side host-key proof = task-126.
+
+**Verified:** QEMU e2e (`just e2e`, live-image/test/qemu/run.sh): PASS 33 FAIL 0 on two OpenWRT 23.05.4 VMs (TCG) with test/fakeapi (real envelope + TOTP): a wrong key repaired; a bad peer rolled back, tunnel kept.
+<!-- SECTION:NOTES:END -->

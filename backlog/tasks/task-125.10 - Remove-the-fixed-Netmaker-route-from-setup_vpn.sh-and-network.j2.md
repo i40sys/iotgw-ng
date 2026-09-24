@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-09-24 07:00'
-updated_date: '2026-09-24 08:37'
+updated_date: '2026-09-24 09:19'
 labels:
   - openwrt
   - vpn
@@ -27,6 +27,14 @@ priority: medium
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Neither file writes a route to the Netmaker server
+- [x] #1 Neither file writes a route to the Netmaker server
 - [ ] #2 Install + provisioning on a test gateway still reach the VPN (route created by the daemon)
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Implemented** on iotgw-kestra branch `task-125-iotgw-agent`: neither files/setup_vpn.sh nor templates/network.j2 writes a route to the VPN endpoint; the unused gateway parsing and d01's dummy vpn_* vars are gone.
+
+**Pending AC#2:** a real install + provisioning run once the release is pinned (task-125.09).
+<!-- SECTION:NOTES:END -->
