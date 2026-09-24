@@ -35,23 +35,23 @@ resources:
 # NOTE: ghcr packages must be PUBLIC, or add a dockerconfigjson imagePullSecret in
 # the iotgw-ui + supabase-app namespaces (decision-021 / decision-014).
 #
-# Pinned to the v0.1.1 release (images tagged 0.1.1 / sha-d13675d; SLSA
+# Pinned to the v0.2.0 release (images tagged 0.2.0 / sha-59832e2; SLSA
 # provenance + SPDX SBOM attestations verified with `gh attestation verify`,
 # deploy/RELEASE.md).
 images:
   - name: supabase/edge-runtime:v1.74.0
     newName: ghcr.io/i40sys/iotgw-functions
-    digest: sha256:ef29558d0c029ac488fdc0afacba35a4588df56faf526621237a9f57de765bf0
+    digest: sha256:426e92662a20ac77de613f38159f885808dbe438e21d81fffa74e931da2e7b2a
   - name: iotgw-ui-backend
     newName: ghcr.io/i40sys/iotgw-ui-backend
-    digest: sha256:e9db2a9d519c212281dc0795f1e6bc9eb39ea7cb04cdc9d08567acffc72af73c
+    digest: sha256:296d428486da49635790e1697f6fb8f72e98c1877eaccd980328e6bff6511590
   - name: iotgw-ui-frontend
     newName: ghcr.io/i40sys/iotgw-ui-frontend
     # Built with VITE_API_URL=https://iotgw-ui-backend.wsl.ymbihq.local/ (repo var
     # PROD_VITE_API_URL) baked in — env-specific image, task-067.18. Rebuild +
     # repin this digest whenever PROD_VITE_API_URL or ingress-prod.yaml's backend
     # host changes.
-    digest: sha256:a25a562ea71c15e92c582d00b302abfab0035096e3a369b35b6581e536fbeec7
+    digest: sha256:8b1b8f53a84bd995ddc0005573317be5ac4f21b21b9ab7b699884129e171864a
 
 patches:
   # Remove the emptyDir placeholder so the baked-in /home/deno/functions is used.
