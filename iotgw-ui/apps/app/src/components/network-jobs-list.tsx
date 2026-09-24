@@ -61,6 +61,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import type { Database } from "@iotgw/supabase-contract";
+import { openPage } from "@/lib/open-page";
 
 type NetworkJob = Database["public"]["Tables"]["network_jobs"]["Row"] & {
   domain_id?: string | null;
@@ -476,9 +477,9 @@ export function NetworkJobsList({
     if (onViewLogs) {
       onViewLogs(job.execution_id);
     } else {
-      // Default behavior: open debug view in new tab
+      // Default behavior: open the debug view (new tab when allowed)
       const debugUrl = `/networks/debug/${job.execution_id}`;
-      window.open(debugUrl, "_blank");
+      openPage(debugUrl);
     }
   };
 

@@ -22,6 +22,70 @@ const SUPABASE_GATEWAY_URL = (
   "http://kong.supabase-app.svc.cluster.local:8000"
 ).replace(/\/+$/, "");
 
+// A job row only leaves RUNNING when somebody asks Kestra for the execution's
+// final state. Do that wherever jobs are READ (list, lookup), so no page can
+// show a finished execution as running forever. Bounded and best-effort: a
+// Kestra hiccup leaves the row as it is.
+type JobStatus = { status: string; completed_at: string | null; error_message: string | null };
+
+async function reconcileRunningJob(
+  supabase: SupabaseClient<Database>,
+  executionId: string,
+): Promise<JobStatus | null> {
+  try {
+    const response = await fetch(`${KESTRA_API_URL}/api/v1/executions/${executionId}`, {
+      headers: {
+        Authorization:
+          "Basic " +
+          Buffer.from(`${process.env.KESTRA_USER}:${process.env.KESTRA_PASSWORD}`).toString("base64"),
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return null;
+    const execution = await response.json();
+    const state = String(execution.state?.current ?? "").toLowerCase();
+    let status: "SUCCESS" | "FAILED" | null = null;
+    if (state === "success") status = "SUCCESS";
+    else if (state === "failed" || state === "killed" || state === "warning") status = "FAILED";
+    if (!status) return null;
+    const completedAt: string = execution.state?.endDate ?? new Date().toISOString();
+    const errorMessage: string | null = execution.state?.failedMessage ?? null;
+    const { error } = await supabase.rpc("update_deployment_job_status", {
+      p_execution_id: executionId,
+      p_status: status,
+      p_completed_at: completedAt,
+      p_error_message: errorMessage ?? undefined,
+    });
+    if (error) {
+      logger.error({ error }, `Failed to reconcile deployment job ${executionId}`);
+      return null;
+    }
+    logger.info(`Reconciled deployment job ${executionId}: ${status}`);
+    return { status, completed_at: completedAt, error_message: errorMessage };
+  } catch (error) {
+    logger.warn({ error }, `Could not reach Kestra to reconcile ${executionId}`);
+    return null;
+  }
+}
+
+/** Reconcile every RUNNING row (at most 20 per read) and patch them in place. */
+async function reconcileRows<T extends { execution_id: string; status: string; completed_at: string | null; error_message: string | null }>(
+  supabase: SupabaseClient<Database>,
+  rows: T[],
+): Promise<T[]> {
+  const running = rows.filter((r) => r.status.toUpperCase() === "RUNNING").slice(0, 20);
+  const results = await Promise.all(running.map((r) => reconcileRunningJob(supabase, r.execution_id)));
+  const byId = new Map<string, JobStatus>();
+  running.forEach((r, i) => {
+    const res = results[i];
+    if (res) byId.set(r.execution_id, res);
+  });
+  return rows.map((r) => {
+    const res = byId.get(r.execution_id);
+    return res ? { ...r, ...res } : r;
+  });
+}
+
 // JSON schema matching the database Json type
 const jsonSchema: z.ZodType<import("@iotgw/supabase-contract").Json> = z.lazy(
   () =>
@@ -1187,7 +1251,7 @@ export const deploymentsRouter = {
       }
 
       logger.info(`Successfully fetched ${data.length} deployment jobs`);
-      return data;
+      return reconcileRows(supabase, data);
     },
   ),
 
@@ -1280,7 +1344,8 @@ export const deploymentsRouter = {
       logger.info(
         `Successfully fetched deployment job with execution ID ${input.execution_id}`,
       );
-      return data[0];
+      const [job] = await reconcileRows(supabase, [data[0]]);
+      return job;
     },
   ),
 };

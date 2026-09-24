@@ -61,6 +61,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import type { Database } from "@iotgw/supabase-contract";
+import { openPage } from "@/lib/open-page";
 
 type DeviceJob = Database["public"]["Tables"]["device_jobs"]["Row"];
 
@@ -468,9 +469,9 @@ export function DeviceJobsList({
     if (onViewLogs) {
       onViewLogs(job.execution_id);
     } else {
-      // Default behavior: open debug view in new tab
+      // Default behavior: open the debug view (new tab when allowed)
       const debugUrl = `/devices/debug/${job.execution_id}`;
-      window.open(debugUrl, "_blank");
+      openPage(debugUrl);
     }
   };
 

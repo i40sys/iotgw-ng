@@ -65,6 +65,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { openPage } from "@/lib/open-page";
 const deploymentsSearchSchema = z.object({
   deviceId: z.string().optional(),
   networkId: z.string().optional(),
@@ -1696,7 +1697,7 @@ function DeploymentsPage() {
               maxItems={5}
               onViewLogs={(executionId) => {
                 const debugUrl = `/deployments/debug/${executionId}`;
-                window.open(debugUrl, "_blank");
+                openPage(debugUrl);
               }}
             />
           </div>
@@ -1769,9 +1770,9 @@ function DeploymentsPage() {
         message={deploymentStatus.message}
         onViewDebug={() => {
           if (deploymentStatus.executionId) {
-            // Open debug view in new tab
+            // Open the debug view (new tab when allowed)
             const debugUrl = `/deployments/debug/${deploymentStatus.executionId}`;
-            window.open(debugUrl, "_blank");
+            openPage(debugUrl);
           }
         }}
       />

@@ -415,13 +415,7 @@ export function DeploymentJobsList({
   };
 
   const handleViewLogs = (job: DeploymentJob) => {
-    if (onViewLogs) {
-      onViewLogs(job.execution_id);
-    } else {
-      // Default behavior: open debug view in new tab
-      const debugUrl = `/deployments/debug/${job.execution_id}`;
-      window.open(debugUrl, "_blank");
-    }
+    onViewLogs?.(job.execution_id);
   };
 
   const handleViewConfig = (job: DeploymentJob) => {
@@ -641,19 +635,39 @@ export function DeploymentJobsList({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewLogs(job)}
-                          className="flex items-center gap-1.5"
-                        >
-                          <FontAwesomeIcon
-                            icon={faArrowUpRightFromSquare}
-                            className="h-3.5 w-3.5"
-                            aria-hidden="true"
-                          />
-                          {t("deploymentJobs.viewLogs")}
-                        </Button>
+                        {onViewLogs ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewLogs(job)}
+                            className="flex items-center gap-1.5"
+                          >
+                            <FontAwesomeIcon
+                              icon={faArrowUpRightFromSquare}
+                              className="h-3.5 w-3.5"
+                              aria-hidden="true"
+                            />
+                            {t("deploymentJobs.viewLogs")}
+                          </Button>
+                        ) : (
+                          // A real link, not window.open(): embedded browsers
+                          // block popups silently, so the button did nothing.
+                          // Ctrl/middle-click still opens a new tab.
+                          <Button variant="outline" size="sm" asChild>
+                            <Link
+                              to="/deployments/debug/$executionId"
+                              params={{ executionId: job.execution_id }}
+                              className="flex items-center gap-1.5"
+                            >
+                              <FontAwesomeIcon
+                                icon={faArrowUpRightFromSquare}
+                                className="h-3.5 w-3.5"
+                                aria-hidden="true"
+                              />
+                              {t("deploymentJobs.viewLogs")}
+                            </Link>
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
