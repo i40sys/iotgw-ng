@@ -381,7 +381,7 @@ writes `/etc/config/iotgw` (device identity from the flow + the live image's
 | Piece | What it does |
 |---|---|
 | `iotgw daemon` (`/etc/init.d/iotgw`, procd) | every `check_interval` (60 s): finds the uplink and the **current** LAN router (`ubus`), probes Internet out of the uplink and out of the tunnel (`SO_BINDTODEVICE`), the WireGuard handshake and the route to the Netmaker server; keeps `network.iotgw_endpoint` (the Netmaker /32) on the current router, routes the Netmaker network through `wg0`, and applies the Internet policy |
-| `iotgw status` on tty1 + serial | the live image's panels, with **Installed** (installed / provisioned / SSH certificate / VPN / Internet / active uplink) and **Self-healing agent** instead of Provisioning; `[i]` chooses the policy, `[h]` toggles hold |
+| `iotgw status` on tty1 + serial | the live image's panels, with **Installed** (installed / provisioned / SSH certificate / VPN / Internet / active uplink) and **Self-healing agent** instead of Provisioning; `[i]` chooses the policy, `[h]` toggles hold, `[r]` refreshes and fully repaints. The launcher waits for the boot to settle and keeps kernel messages off the console while the dashboard owns it; the screen is also fully repainted every 60 s |
 | `iotgw internet lan\|vpn\|auto` | persistent policy in `/etc/config/iotgw`. `auto` (default) = LAN preferred, automatic fallback to VPN; `lan`/`vpn` pin the path (applied at once) |
 | `iotgw hold enable [-reason …]\|disable\|status` | freeze automatic changes; the daemon keeps monitoring and records what it would have done. A banner on the dashboard says so |
 | `iotgw vpn refresh [-otp CODE]` | re-request the WireGuard config from `vpn`, apply it through UCI, keep it only if the tunnel comes up |

@@ -2,7 +2,34 @@
 # iotgw console (iotgw-ng decision-032): the status dashboard on tty1 and the
 # serial console at boot; [q] leaves it for the normal OpenWRT login shell.
 # Started by /etc/inittab (respawn), so logging out brings the dashboard back.
+
+# procd starts inittab entries while the boot scripts are still running and
+# the kernel is still logging to this console: wait for the boot to settle
+# (no `/etc/rc.common … boot` left, 3 quiet seconds in a row, at most 90 s),
+# so boot messages do not draw over the dashboard.
+booting() {
+	for c in /proc/[0-9]*/cmdline; do
+		case "$(tr '\0' ' ' <"$c" 2>/dev/null)" in
+		*/etc/rc.common*" boot"*) return 0 ;;
+		esac
+	done
+	return 1
+}
+echo "iotgw: waiting for the boot to finish…"
+quiet=0 waited=0
+while [ "$quiet" -lt 3 ] && [ "$waited" -lt 90 ]; do
+	if booting; then quiet=0; else quiet=$((quiet + 1)); fi
+	sleep 1
+	waited=$((waited + 1))
+done
+
 if [ -x /usr/sbin/iotgw ]; then
+	# Keep kernel messages off the console while the dashboard owns it
+	# (console_loglevel 1 = emergencies only); restore on exit. The messages
+	# still reach the log (logread / dmesg).
+	printk=$(cat /proc/sys/kernel/printk 2>/dev/null)
+	echo 1 >/proc/sys/kernel/printk 2>/dev/null
 	/usr/sbin/iotgw status
+	[ -n "$printk" ] && echo "$printk" >/proc/sys/kernel/printk 2>/dev/null
 fi
 exec /usr/libexec/login.sh

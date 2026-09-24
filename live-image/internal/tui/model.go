@@ -178,7 +178,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.vp.GotoTop()
 			}
 		case "r":
-			cmds = append(cmds, m.refreshAll())
+			// Also a full repaint: anything written to the console behind
+			// the dashboard's back (kernel/boot messages) is wiped.
+			cmds = append(cmds, tea.ClearScreen, m.refreshAll())
 			if v := m.vpn; v != nil {
 				cmds = append(cmds, m.start(kReach, collectReachCmd(*v)))
 			}
@@ -277,6 +279,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case hostTickMsg:
 		cmds = append(cmds, hostTick(), m.start(kHost, collectHostCmd()))
+		if m.owrt {
+			// A console on an installed gateway is shared with the kernel and
+			// procd: repaint fully now and then so stray output never sticks.
+			cmds = append(cmds, tea.ClearScreen)
+		}
 	}
 
 	if m.ready {
