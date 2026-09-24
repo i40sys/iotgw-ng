@@ -1,4 +1,7 @@
-package bootstrap
+// Package devapi is the client for the device-authenticated edge functions
+// (`vpn`, `ssh-ca`). The live-image bootstrap and the installed-gateway agent
+// (decision-032) share it, so both speak exactly the same envelope.
+package devapi
 
 import (
 	"bytes"
@@ -14,18 +17,19 @@ import (
 	"github.com/i40sys/iotgw-ng/live-image/internal/envelope"
 )
 
-// apiClient talks to the device-authenticated edge functions (vpn, ssh-ca)
+// Client talks to the device-authenticated edge functions (vpn, ssh-ca)
 // through Kong. Both use the same envelope: the request body is sealed with the
 // device code and so is a successful reply; errors come back as plain JSON.
-type apiClient struct {
+type Client struct {
 	base     string // the API gateway base URL, e.g. https://api.example
 	deviceID string
 	code     string
 	http     *http.Client
 }
 
-func newAPIClient(base, deviceID, code string) *apiClient {
-	return &apiClient{
+// New returns a client for deviceID authenticated by code.
+func New(base, deviceID, code string) *Client {
+	return &Client{
 		base:     strings.TrimRight(base, "/"),
 		deviceID: deviceID,
 		code:     code,
@@ -33,22 +37,22 @@ func newAPIClient(base, deviceID, code string) *apiClient {
 	}
 }
 
-// endpoint is the function URL shown to the operator (no secrets in it).
-func (c *apiClient) endpoint(fn string) string {
+// Endpoint is the function URL shown to the operator (no secrets in it).
+func (c *Client) Endpoint(fn string) string {
 	return fmt.Sprintf("%s/functions/v1/%s?device_id=%s", c.base, fn, url.QueryEscape(c.deviceID))
 }
 
-// apiError is a non-2xx reply, with the server's error text when it sent one.
-type apiError struct {
+// APIError is a non-2xx reply, with the server's error text when it sent one.
+type APIError struct {
 	Status  int
 	Message string
 }
 
-func (e *apiError) Error() string {
+func (e *APIError) Error() string {
 	hint := ""
 	switch e.Status {
 	case http.StatusUnauthorized:
-		hint = " — the device code was rejected (expired, or the counter was reset in the UI); reboot and enter the current code"
+		hint = " — the device code was rejected (expired, or the counter was reset in the UI); take the current code from the UI"
 	case http.StatusConflict:
 		hint = " — the device's domain is not linked to a pki-manager zone"
 	case http.StatusBadGateway, http.StatusServiceUnavailable:
@@ -57,8 +61,8 @@ func (e *apiError) Error() string {
 	return fmt.Sprintf("HTTP %d: %s%s", e.Status, e.Message, hint)
 }
 
-// call seals payload, POSTs it to fn and returns the decrypted reply.
-func (c *apiClient) call(ctx context.Context, fn string, payload any) ([]byte, int, error) {
+// Call seals payload, POSTs it to fn and returns the decrypted reply.
+func (c *Client) Call(ctx context.Context, fn string, payload any) ([]byte, int, error) {
 	plain, err := json.Marshal(payload)
 	if err != nil {
 		return nil, 0, err
@@ -67,7 +71,7 @@ func (c *apiClient) call(ctx context.Context, fn string, payload any) ([]byte, i
 	if err != nil {
 		return nil, 0, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint(fn), bytes.NewReader(sealed))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.Endpoint(fn), bytes.NewReader(sealed))
 	if err != nil {
 		return nil, 0, err
 	}
@@ -96,7 +100,7 @@ func (c *apiClient) call(ctx context.Context, fn string, payload any) ([]byte, i
 		if len(msg) > 300 {
 			msg = msg[:300] + "…"
 		}
-		return nil, resp.StatusCode, &apiError{Status: resp.StatusCode, Message: msg}
+		return nil, resp.StatusCode, &APIError{Status: resp.StatusCode, Message: msg}
 	}
 	out, err := envelope.Open(body, c.code)
 	if err != nil {

@@ -164,16 +164,35 @@ pinned version**.
 - A CI job must boot OpenWRT `x86_64` (decision-029 QEMU approach) to test the
   recovery cases.
 
-### Open points (resolve during implementation)
+### Refresh authentication (decided in task-125.07)
 
-- **Refresh authentication.** The device TOTP is derived from non-secret
-  identifiers (`<domain>-<network>-<device>-<counter>`). `ssh refresh` can rely
-  on the task-075 host-key continuity proof; `vpn refresh` returns the
-  WireGuard private key and has no equivalent proof yet. Options: operator
-  one-time code (as `iotgw-bootstrap -otp`), or add host-key proof to the `vpn`
-  function. Automatic (unattended) `vpn refresh` needs the latter.
-- Default intervals, rate limits and hysteresis values.
-- Whether the daemon reports status to the platform (deferred).
+- `vpn refresh` / `ssh refresh` authenticate with the **operator's one-time
+  code** (`-otp CODE`, from the UI) when given; otherwise with the code
+  **derived on the gateway** from the identifiers in `/etc/config/iotgw`
+  (`<domain>-<network>-<device_uuid>-<totp_counter>`), exactly as the Kestra
+  controller derives it today — no weaker than the existing path.
+- `ssh refresh` additionally proves possession of the current host key
+  (task-075 continuity signature) on every re-enroll.
+- The **daemon never calls the APIs by itself**: refresh is operator-initiated
+  only. Unattended `vpn refresh` would need a proof the `vpn` function does not
+  check yet (it returns the WireGuard private key); adding a host-key proof to
+  `vpn` is a follow-up task (task-126), not part of this epic.
+- A reset `totp_counter` in the UI invalidates derived codes: the CLI says so
+  and points to `uci set iotgw.main.totp_counter=N` or `-otp`.
+
+### Implementation choices worth knowing
+
+- Egress switching uses route metrics only: uplink default metric 0 vs `wg0`
+  default metric 5 (LAN wins); VPN egress raises the uplink's metric to 20. The
+  pinned `/32` to the Netmaker server keeps the tunnel on the LAN router either
+  way. DNS is left to dnsmasq.
+- `auto` = `prefer` (default LAN) with fallback; `lan` / `vpn` pin the path.
+- The agent owns a **named** UCI section `network.iotgw_endpoint` and deletes
+  any other static route to the endpoint (the install-time one).
+- The installed-OpenWRT package (`iotgw-openwrt-linux-amd64.tar.gz`: binary,
+  procd service, console launcher) is built and released by the monorepo
+  `live-image` CI; the playbook pins its version + SHA256.
+- Still open: whether the daemon reports status to the platform (deferred).
 
 ## Related
 

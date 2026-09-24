@@ -2,13 +2,13 @@ package collect
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/i40sys/iotgw-ng/live-image/internal/iproute"
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
 	"github.com/i40sys/iotgw-ng/live-image/internal/sysexec"
 )
@@ -45,13 +45,6 @@ func parseWGDump(out string) []wgPeer {
 		peers = append(peers, p)
 	}
 	return peers
-}
-
-type ipRoute struct {
-	Dst     string `json:"dst"`
-	Gateway string `json:"gateway"`
-	Dev     string `json:"dev"`
-	Table   string `json:"table"`
 }
 
 // CollectVPN reports the WireGuard interface as the kernel sees it now,
@@ -93,17 +86,14 @@ func CollectVPN(ctx context.Context, doc *state.Bootstrap) VPN {
 		} else {
 			wgReadErr = err
 		}
-		if res, err := sysexec.Run(ctx, 3*time.Second, "ip", "-j", "route", "show", "table", "all", "dev", v.Interface); err == nil {
-			var rs []ipRoute
-			if json.Unmarshal([]byte(res.Stdout), &rs) == nil {
-				for _, r := range rs {
-					s := r.Dst
-					if r.Table != "" && r.Table != "main" && r.Table != "local" {
-						s += " (table " + r.Table + ")"
-					}
-					if r.Table != "local" {
-						v.Routes = append(v.Routes, s)
-					}
+		if rs, err := iproute.ShowDev(ctx, v.Interface); err == nil {
+			for _, r := range rs {
+				s := r.Dst
+				if r.Table != "" && r.Table != "main" && r.Table != "local" {
+					s += " (table " + r.Table + ")"
+				}
+				if r.Table != "local" {
+					v.Routes = append(v.Routes, s)
 				}
 			}
 		}

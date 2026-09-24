@@ -7,7 +7,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/i40sys/iotgw-ng/live-image/internal/agent"
 	"github.com/i40sys/iotgw-ng/live-image/internal/collect"
+	"github.com/i40sys/iotgw-ng/live-image/internal/platform"
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
 	"github.com/i40sys/iotgw-ng/live-image/internal/sysexec"
 )
@@ -31,6 +33,14 @@ type (
 	reachMsg collect.Reachability
 	inetMsg  collect.Internet
 	pkiMsg   collect.PKI
+	instMsg  agent.Installed
+
+	// holdDoneMsg is the outcome of `iotgw hold enable|disable`.
+	holdDoneMsg struct {
+		on  bool
+		err error
+		out string
+	}
 
 	// switchDoneMsg is the outcome of the privileged Internet-mode switch.
 	switchDoneMsg struct {
@@ -53,6 +63,7 @@ const (
 	kReach = "reach"
 	kInet  = "inet"
 	kPKI   = "pki"
+	kInst  = "inst"
 )
 
 func withTimeout[T any](f func(context.Context) T) T {
@@ -71,6 +82,11 @@ func collectNetCmd() tea.Cmd {
 
 func collectBootCmd() tea.Cmd {
 	return func() tea.Msg { return bootMsg(withTimeout(collect.CollectBootstrap)) }
+}
+
+// collectInstCmd gathers the installed gateway's picture (OpenWRT only).
+func collectInstCmd() tea.Cmd {
+	return func() tea.Msg { return instMsg(withTimeout(agent.CollectInstalled)) }
 }
 
 func collectVPNCmd(doc *state.Bootstrap) tea.Cmd {
@@ -107,14 +123,37 @@ func hostTick() tea.Cmd {
 	return tea.Tick(hostInterval, func(t time.Time) tea.Msg { return hostTickMsg(t) })
 }
 
-// switchInternetCmd asks the privileged helper to change how the Internet is
-// reached. It is the dashboard's only state-changing action, and it runs only
-// after the operator confirmed it.
+// switchInternetCmd asks the binary itself (`iotgw internet <mode>`, as root)
+// to change how the Internet is reached. With hold, the dashboard's only
+// state-changing actions, and they run only after the operator confirmed.
 func switchInternetCmd(via string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
-		res, err := sysexec.RunPrivileged(ctx, 110*time.Second, "/usr/local/bin/iotgw-bootstrap", "internet-via", via)
-		return switchDoneMsg{via: via, err: err, out: strings.TrimSpace(res.Stdout)}
+		res, err := sysexec.RunPrivileged(ctx, 110*time.Second, platform.Self(), "internet", via)
+		return switchDoneMsg{via: via, err: err, out: lastLine(res.Stdout)}
 	}
+}
+
+// holdCmd freezes or resumes the daemon's automatic changes.
+func holdCmd(on bool) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		verb := "disable"
+		if on {
+			verb = "enable"
+		}
+		args := []string{"hold", verb}
+		if on {
+			args = append(args, "-reason", "set from the console dashboard")
+		}
+		res, err := sysexec.RunPrivileged(ctx, 25*time.Second, platform.Self(), args...)
+		return holdDoneMsg{on: on, err: err, out: lastLine(res.Stdout)}
+	}
+}
+
+func lastLine(s string) string {
+	lines := strings.Split(strings.TrimSpace(s), "\n")
+	return lines[len(lines)-1]
 }

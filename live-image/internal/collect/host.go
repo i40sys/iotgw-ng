@@ -10,11 +10,13 @@ import (
 	"strings"
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/cmdline"
+	"github.com/i40sys/iotgw-ng/live-image/internal/platform"
+	"github.com/i40sys/iotgw-ng/live-image/internal/uci"
 	"github.com/i40sys/iotgw-ng/live-image/internal/version"
 )
 
 // CollectHost summarises the machine from procfs/sysfs (no commands).
-func CollectHost(_ context.Context) Host {
+func CollectHost(ctx context.Context) Host {
 	h := Host{
 		Arch:         runtime.GOARCH,
 		CPUs:         runtime.NumCPU(),
@@ -31,6 +33,15 @@ func CollectHost(_ context.Context) Host {
 	h.CPUModel = cpuModel()
 	h.MemTotal = memTotal()
 	h.Disks = disks()
+	if platform.IsOpenWRT() {
+		// Installed gateway: identity from /etc/config/iotgw, OS from OpenWRT.
+		h.DeviceID = uci.New().Get(ctx, "iotgw.main.device_id")
+		h.BootSource = "installed disk"
+		if r := platform.Release(); r != "" {
+			h.ImageRelease = r
+		}
+		return h
+	}
 	if args, err := cmdline.Read(); err == nil {
 		h.DeviceID = args["device_id"]
 		h.BootSource = bootSource(args)

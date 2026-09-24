@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/i40sys/iotgw-ng/live-image/internal/platform"
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
 	"github.com/i40sys/iotgw-ng/live-image/internal/sysexec"
 )
@@ -101,9 +102,7 @@ func CollectPKI(ctx context.Context, doc *state.Bootstrap) PKI {
 	}
 
 	eff, effErr := sshdEffective(ctx)
-	if res, err := sysexec.Run(ctx, 3*time.Second, "systemctl", "is-active", "ssh"); err == nil {
-		p.SSHDActive = strings.TrimSpace(res.Stdout) == "active"
-	}
+	p.SSHDActive = platform.SSHDActive(ctx)
 	if eff != nil {
 		p.UserCATrusted = eff["trustedusercakeys"] == p.UserCAPath
 		p.HostCertActive = strings.Contains(eff["hostcertificate"], p.HostCertPath)
@@ -128,6 +127,10 @@ func CollectPKI(ctx context.Context, doc *state.Bootstrap) PKI {
 
 	// Host CA (trust for verifying OTHER hosts — not this machine's identity).
 	switch {
+	case platform.IsOpenWRT() && len(p.HostCAFPs) == 0:
+		// The installed gateway is only ever an SSH server: operators trust
+		// the Host CA on their side (scripts/ssh-ca/trust.sh).
+		p.HostCAStatus, p.HostCADetail = state.NotTested, "not needed on the installed gateway (it does not SSH out)"
 	case len(p.HostCAFPs) > 0 && fileExists(p.KnownHostsPath):
 		p.HostCAStatus, p.HostCADetail = state.Healthy, "@cert-authority in "+p.KnownHostsPath
 	case fetch == state.Failed:
@@ -175,7 +178,7 @@ func CollectPKI(ctx context.Context, doc *state.Bootstrap) PKI {
 	// sshd itself.
 	switch {
 	case !p.SSHDActive:
-		p.SSHDStatus, p.SSHDDetail = state.Failed, "ssh.service is not active"
+		p.SSHDStatus, p.SSHDDetail = state.Failed, "sshd is not running"
 	case eff == nil:
 		p.SSHDStatus, p.SSHDDetail = state.Unknown, "cannot read sshd -T: "+errText(effErr)
 	case p.UserCATrusted && p.HostCertActive:
@@ -195,9 +198,13 @@ func errText(err error) string {
 	return err.Error()
 }
 
-// CollectBootstrap reads the provisioning record and the service state.
+// CollectBootstrap reads the provisioning record and the service state
+// (live image only: an installed gateway has no boot-time provisioning).
 func CollectBootstrap(ctx context.Context) Bootstrap {
 	var b Bootstrap
+	if platform.IsOpenWRT() {
+		return b
+	}
 	doc, err := state.Read(state.File)
 	if err != nil && err != state.ErrNotStarted {
 		b.Err = err.Error()

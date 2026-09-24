@@ -1,0 +1,8 @@
+#!/bin/sh
+# iotgw console (iotgw-ng decision-032): the status dashboard on tty1 and the
+# serial console at boot; [q] leaves it for the normal OpenWRT login shell.
+# Started by /etc/inittab (respawn), so logging out brings the dashboard back.
+if [ -x /usr/sbin/iotgw ]; then
+	/usr/sbin/iotgw status
+fi
+exec /usr/libexec/login.sh

@@ -1,5 +1,7 @@
 # live-image — build, test and publish the live provisioning tooling
-# (iotgw-bootstrap + iotgw-status, Go; live-image/README.md, decision-031).
+# (the single `iotgw` binary, Go; live-image/README.md, decision-031/032).
+# The installed-OpenWRT install playbook fetches iotgw-openwrt-linux-amd64.tar.gz from the
+# GitHub release of a pinned tag (iotgw-kestra d01_install_owrt.yml).
 #
 # Every run: gofmt/vet/tests (`just check`) and a full `just dist`
 # (linux/amd64 + linux/arm64 static binaries, rootfs overlay tarballs,
@@ -65,9 +67,9 @@ jobs:
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
-            live-image/dist/iotgw-status-linux-*
-            live-image/dist/iotgw-bootstrap-linux-*
+            live-image/dist/iotgw-linux-*
             live-image/dist/iotgw-live-overlay-linux-*.tar.gz
+            live-image/dist/iotgw-openwrt-linux-*.tar.gz
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
@@ -75,9 +77,9 @@ jobs:
           name: iotgw-live-${{ steps.version.outputs.version }}
           if-no-files-found: error
           path: |
-            live-image/dist/iotgw-status-linux-*
-            live-image/dist/iotgw-bootstrap-linux-*
+            live-image/dist/iotgw-linux-*
             live-image/dist/iotgw-live-overlay-linux-*.tar.gz
+            live-image/dist/iotgw-openwrt-linux-*.tar.gz
             live-image/dist/remove.list
             live-image/dist/SHA256SUMS
 
@@ -90,5 +92,46 @@ jobs:
           gh release view "$TAG" >/dev/null 2>&1 \
             || gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
           gh release upload "$TAG" --clobber \
-            dist/iotgw-status-linux-* dist/iotgw-bootstrap-linux-* \
-            dist/iotgw-live-overlay-linux-*.tar.gz dist/remove.list dist/SHA256SUMS
+            dist/iotgw-linux-* \
+            dist/iotgw-live-overlay-linux-*.tar.gz dist/iotgw-openwrt-linux-*.tar.gz dist/remove.list dist/SHA256SUMS
+
+  # End-to-end test of the installed-OpenWRT agent (decision-032, task-125.11):
+  # two OpenWRT x86-64 VMs under QEMU/KVM — route repair, router change,
+  # LAN→VPN fallback and return, hold, policy across reboot, vpn/ssh refresh
+  # with rollback, console dashboard. See live-image/test/qemu/run.sh.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: live-image
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: live-image/go.mod
+          cache-dependency-path: live-image/go.sum
+
+      - uses: extractions/setup-just@v3
+
+      - name: QEMU + KVM
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qemu-system-x86 e2fsprogs fdisk >/dev/null
+          # GitHub-hosted Linux runners expose /dev/kvm; open it to the runner user.
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: End-to-end test on OpenWRT
+        run: just e2e
+
+      - name: VM logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iotgw-e2e-logs
+          path: |
+            live-image/test/qemu/.work/*.serial.log
+            live-image/test/qemu/.work/fakeapi.log
