@@ -1,11 +1,11 @@
 ---
 id: TASK-125.11
 title: 'CI: boot OpenWRT x86_64 in QEMU and test the recovery cases'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-24 07:00'
-updated_date: '2026-09-24 09:19'
+updated_date: '2026-09-24 14:37'
 labels:
   - live-image
   - openwrt
@@ -28,8 +28,8 @@ Cases: LAN router change, lost/empty route, VPN down → fallback, breaking chan
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 CI job boots OpenWRT x86_64 with the iotgw binary
-- [ ] #2 The listed recovery cases pass in CI
+- [x] #1 CI job boots OpenWRT x86_64 with the iotgw binary
+- [x] #2 The listed recovery cases pass in CI
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -40,4 +40,6 @@ Cases: LAN router change, lost/empty route, VPN down → fallback, breaking chan
 **Local result:** PASS 33 FAIL 0 (TCG, ~45 min). Cases: route repair (gw-c3 reproduced), router change, LAN→VPN fallback + return, hold, policy across a power cycle, console dashboard, vpn refresh + rollback, ssh refresh + continuity.
 
 **Pending:** the CI run itself (after main is pushed).
+
+**CI verified:** the live-image workflow's e2e job runs on GitHub-hosted runners with KVM (~11 min): PASS 42 FAIL 0 (run on a747d92); VM serial logs are uploaded on failure.
 <!-- SECTION:NOTES:END -->

@@ -1,11 +1,11 @@
 ---
 id: TASK-125.08
 title: 'iotgw ssh refresh: re-request SSH trust + host cert and safely reload sshd'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-24 07:00'
-updated_date: '2026-09-24 11:16'
+updated_date: '2026-09-24 14:37'
 labels:
   - live-image
   - openwrt
@@ -30,7 +30,7 @@ priority: medium
 <!-- AC:BEGIN -->
 - [x] #1 ssh refresh renews the host certificate on an enrolled gateway
 - [x] #2 Trust/principal changes are applied
-- [ ] #3 A config that fails sshd -t or verification is rolled back and sshd stays up
+- [x] #3 A config that fails sshd -t or verification is rolled back and sshd stays up
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -43,4 +43,6 @@ priority: medium
 **Pending AC#3:** the rollback path (sshd -t / verification failure) is implemented but not exercised by a test yet.
 
 **Verified against the real ssh-ca / pki-manager on gw-c3:** a first enrollment of the fresh install (host cert `gw-c3-9a8ce31d.c3.comforsa.iotgw`, valid until 2026-12-23), then `-force` re-enroll accepted with the task-075 continuity proof. Afterwards the Kestra connectivity-check through the Netmaker host succeeded (ICMP + SSH/Ansible with the iotgw-ops certificate).
+
+**AC#3 (a747d92):** `sshd -t` exits 0 for a broken or mismatched HostCertificate, so `ssh refresh` now validates the certificate first: it must parse, be a host cert, certify this host key, and be valid now. Otherwise nothing is written. The post-reload failure path still restores files and restarts sshd. CI e2e: a bad certificate is rejected and sshd keeps serving the previous one (PASS 42/42). NOTE: in main, not in v0.2.0 — ships with the next release.
 <!-- SECTION:NOTES:END -->

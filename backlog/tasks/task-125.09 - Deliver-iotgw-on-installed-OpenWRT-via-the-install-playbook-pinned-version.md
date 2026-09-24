@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-09-24 07:00'
-updated_date: '2026-09-24 11:16'
+updated_date: '2026-09-24 14:37'
 labels:
   - live-image
   - openwrt
@@ -44,4 +44,7 @@ priority: medium
 
 **AC#1 verified on gw-c3 (2026-09-24):** the branch playbook with a local tarball (`iotgw_openwrt_src`) reinstalled gw-c3 from the new live image (45 ok, 0 failed). On first boot `iotgw daemon` ran (procd) and the dashboard came up on tty1 + ttyS0. `/etc/config/iotgw` held the full identity, with `api_base` taken from the live image. AC#2 (the pinned release) is still pending the v* tag.
 **Found and fixed:** the dashboard started while boot messages were still printing to the console (the launcher now waits for the boot to settle and silences kernel console output).
+
+**Released + pinned (2026-09-24):** iotgw-ng v0.2.0 publishes `iotgw-openwrt-linux-amd64.tar.gz`. The SHA256 b72e145d… was checked against a fresh download, and its provenance verified. It is pinned in iotgw-kestra vars/iotgw.yml, the branch is merged to main (2a4b504), and the Kestra `install` flow is at revision 6.
+**AC#2 pending:** one install run through the UI/Kestra (runner downloads the pinned tarball).
 <!-- SECTION:NOTES:END -->
