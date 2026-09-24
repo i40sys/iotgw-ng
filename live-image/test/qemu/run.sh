@@ -389,6 +389,11 @@ until_ok "operator logs in with a user certificate; host certificate verified" 3
 if gw "iotgw ssh refresh" | grep -q "nothing to do"; then ok "renewal skipped while the certificate is current"; else ko "renewal not idempotent"; fi
 if gw "iotgw ssh refresh -force" && grep -q "continuity proof OK" fakeapi.log; then ok "forced renewal proves continuity"; else ko "forced renewal / continuity"; fi
 until_ok "sshd still serving after renewal" 30 opssh true
+curl -fsS -X POST "http://127.0.0.1:$API_PORT/control?ssh=bad-cert" >/dev/null
+out=$(gw "iotgw ssh refresh -force" 2>&1 || true)
+if grep -q "REJECTED, nothing changed" <<<"$out"; then ok "a bad host certificate is rejected before sshd is touched"; else ko "bad host certificate not rejected: $out"; fi
+curl -fsS -X POST "http://127.0.0.1:$API_PORT/control?ssh=good" >/dev/null
+until_ok "sshd still serves the previous certificate" 30 opssh true
 
 log "8. LuCI page + rpcd plugin: the web backend is the daemon's snapshot"
 # Install the whole OpenWRT package the way the playbook does (extract it).

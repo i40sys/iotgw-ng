@@ -62,6 +62,7 @@ type server struct {
 	dir     string
 	mu      sync.Mutex
 	vpnMode string
+	sshMode string          // good | bad-cert
 	issued  map[string]bool // host pubkeys already certified (continuity)
 	counts  map[string]int
 }
@@ -114,7 +115,10 @@ func (s *server) control(w http.ResponseWriter, r *http.Request) {
 	if m := r.URL.Query().Get("vpn"); m != "" {
 		s.vpnMode = m
 	}
-	fmt.Fprintf(w, "vpn=%s\n", s.vpnMode)
+	if m := r.URL.Query().Get("ssh"); m != "" {
+		s.sshMode = m
+	}
+	fmt.Fprintf(w, "vpn=%s ssh=%s\n", s.vpnMode, s.sshMode)
 }
 
 func (s *server) vpn(w http.ResponseWriter, r *http.Request) {
@@ -188,6 +192,14 @@ func (s *server) sshCA(w http.ResponseWriter, r *http.Request) {
 	defer os.RemoveAll(tmp)
 	pubFile := filepath.Join(tmp, "host.pub")
 	_ = os.WriteFile(pubFile, []byte(norm+"\n"), 0o644)
+	s.mu.Lock()
+	bad := s.sshMode == "bad-cert"
+	s.mu.Unlock()
+	if bad {
+		// A certificate for SOME OTHER key: sshd -t would accept it.
+		_ = os.Remove(pubFile)
+		_ = exec.Command("ssh-keygen", "-q", "-t", "ecdsa", "-N", "", "-f", filepath.Join(tmp, "host")).Run()
+	}
 	out, err := exec.Command("ssh-keygen", "-q", "-s", filepath.Join(s.dir, "host_ca"), "-I", "gw-test", "-h",
 		"-n", "gw.test.iotgw,10.10.2.15", "-V", "-5m:+52w", pubFile).CombinedOutput()
 	if err != nil {
@@ -195,9 +207,11 @@ func (s *server) sshCA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cert, _ := os.ReadFile(filepath.Join(tmp, "host-cert.pub"))
-	s.mu.Lock()
-	s.issued[norm] = true
-	s.mu.Unlock()
+	if !bad {
+		s.mu.Lock()
+		s.issued[norm] = true
+		s.mu.Unlock()
+	}
 	log.Printf("ssh-ca: host certificate issued for %s", norm[:40])
 	resp, _ := json.Marshal(map[string]any{
 		"action": "enroll", "zone": "iotgw-test", "domain": "test",

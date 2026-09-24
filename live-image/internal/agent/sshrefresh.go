@@ -309,6 +309,12 @@ func (a *Agent) SSHRefresh(ctx context.Context, otp string, force bool, out func
 	for _, w := range r.Warnings {
 		out("server warning: " + w)
 	}
+	// sshd -t accepts a broken or mismatched HostCertificate (it only warns)
+	// and would then silently serve no certificate: validate it first, and
+	// touch nothing when it is wrong.
+	if err := validateHostCert(ctx, r.HostCert); err != nil {
+		return fmt.Errorf("the host certificate from ssh-ca was REJECTED, nothing changed: %w", err)
+	}
 	principals := r.AuthPrincipals
 	if strings.TrimSpace(principals) == "" {
 		principals = "iotgw-admin\niotgw-ops\n"
@@ -415,4 +421,60 @@ func ensureInclude() error {
 		mode = fi.Mode().Perm()
 	}
 	return writeAtomic(sshdConfig, append([]byte(sshIncludeLine+"\n"), b...), mode)
+}
+
+// validateHostCert checks a certificate before it is installed: it parses,
+// it is a HOST certificate, it certifies this machine's host key, and it is
+// valid now.
+func validateHostCert(ctx context.Context, cert string) error {
+	dir, err := os.MkdirTemp("", "iotgw-cert-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+	f := filepath.Join(dir, "host-cert.pub")
+	if err := os.WriteFile(f, withNL(cert), 0o600); err != nil {
+		return err
+	}
+	res, err := sysexec.Run(ctx, 5*time.Second, "ssh-keygen", "-L", "-f", f)
+	if err != nil {
+		return fmt.Errorf("does not parse: %w", err)
+	}
+	hostFP, err := keyFingerprint(ctx, sshHostKey+".pub")
+	if err != nil {
+		return fmt.Errorf("cannot read this machine's host key: %w", err)
+	}
+	var isHost bool
+	var certFP, validTo, validFrom string
+	for _, l := range strings.Split(res.Stdout, "\n") {
+		l = strings.TrimSpace(l)
+		switch {
+		case strings.HasPrefix(l, "Type:"):
+			isHost = strings.Contains(l, "host certificate")
+		case strings.HasPrefix(l, "Public key:"):
+			for _, w := range strings.Fields(l) {
+				if strings.HasPrefix(w, "SHA256:") {
+					certFP = w
+				}
+			}
+		case strings.HasPrefix(l, "Valid:"):
+			if v, ok := strings.CutPrefix(l, "Valid: from "); ok {
+				validFrom, validTo, _ = strings.Cut(v, " to ")
+			}
+		}
+	}
+	switch {
+	case !isHost:
+		return errors.New("not a host certificate")
+	case certFP != hostFP:
+		return fmt.Errorf("certifies key %s, not this machine's host key %s", certFP, hostFP)
+	}
+	now := time.Now()
+	if t, err := time.ParseInLocation("2006-01-02T15:04:05", strings.TrimSpace(validFrom), time.Local); err == nil && now.Before(t) {
+		return fmt.Errorf("not valid before %s", t.Format(time.RFC3339))
+	}
+	if t, err := time.ParseInLocation("2006-01-02T15:04:05", strings.TrimSpace(validTo), time.Local); err == nil && now.After(t) {
+		return fmt.Errorf("expired at %s", t.Format(time.RFC3339))
+	}
+	return nil
 }
