@@ -440,6 +440,11 @@ identifiers in `/etc/config/iotgw` exactly as the controller derives it. If the
 device's counter was reset in the UI, update `totp_counter` or pass `-otp`.
 The daemon never calls the APIs by itself.
 
+**Root password (accepted gap, task-127):** the install leaves root with an
+**empty password**; the provisioning `system` stack sets it (`root_password`).
+Until a gateway is provisioned, anyone on its LAN can log in to LuCI as root,
+so provision right after installing.
+
 Files: `/etc/config/iotgw` (config, 0600), `/var/run/iotgw/agent.json`
 (daemon state, history), `/etc/iotgw/wg0.server.conf` (the vpn reply, 0600).
 Logs: `logread -e iotgw`.
