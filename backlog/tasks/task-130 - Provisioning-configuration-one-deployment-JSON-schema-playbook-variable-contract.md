@@ -6,7 +6,7 @@ title: >-
 status: In Progress
 assignee: []
 created_date: '2026-09-24 19:39'
-updated_date: '2026-09-25 03:55'
+updated_date: '2026-09-25 05:07'
 labels:
   - kestra
   - ansible
@@ -140,4 +140,6 @@ The Kestra `provisioning` flow (i11_provisioning_iotgw.yaml) failed on gw-c3 (ex
 **Open**
 - **Secret storage decision still open**: secrets live in `deployments.configuration` jsonb and are copied to `deployment_jobs.configuration_json` in plaintext; Cosmian KMS refs would need a resolve step in the backend. The JSON view shows secrets in plain text (by design of a raw editor).
 - The example's placeholder values (`examples`) show as input placeholders; the page still auto-adds legacy `name`/`version` keys on deploy (old zod schema) — harmless, deprecated in the schema.
+
+**Decision (user, 2026-09-25): secrets stay in the deployment JSON** (`deployments.configuration`, copied to `deployment_jobs.configuration_json`), not in Cosmian KMS. Mitigations already in place: password inputs, no secret values in logs/toasts/validation messages, tRPC helper redaction.
 <!-- SECTION:NOTES:END -->
