@@ -148,6 +148,29 @@ describe("executeKestraDeployment — provisioning config validation", () => {
     });
   });
 
+  it("accepts an optional LAN netmask, dotted or as a prefix (task-131)", async () => {
+    for (const local_netmask of ["255.255.255.0", "24", "/26", undefined]) {
+      const config = validConfig();
+      if (local_netmask === undefined) delete config.local_netmask;
+      else config.local_netmask = local_netmask;
+      const { promise } = run(config);
+      await expect(promise).resolves.toMatchObject({ executionId: "exec-1" });
+    }
+  });
+
+  it("rejects an invalid LAN netmask before Kestra runs (task-131)", async () => {
+    for (const local_netmask of ["255.255.0.255", "31", "10.0.0.1"]) {
+      const config = validConfig();
+      config.local_netmask = local_netmask;
+      const { promise, fetchMock } = run(config);
+      await expect(promise).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        message: expect.stringContaining("local_netmask has an invalid format"),
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+    }
+  });
+
   it("does not require the fields of a disabled stack", async () => {
     const config = validConfig();
     config.mqtt = false;

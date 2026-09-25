@@ -9,6 +9,7 @@
   "num_maquina": 5,
   "root_password": "CHANGE_ME",
   "local_ip_address": "10.121.105.1",
+  "local_netmask": "255.255.255.0",
   "local_domain": "plant.example.com",
   "main_local_dns": "10.0.0.53",
   "backup_local_dns": "10.0.1.53",

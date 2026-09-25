@@ -1,9 +1,11 @@
 ---
 id: TASK-131
 title: 'Provisioning shrinks the gateway LAN to /26: network.j2 hard-codes the netmask'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-09-25 06:44'
+updated_date: '2026-09-25 06:57'
 labels:
   - kestra
   - ansible
@@ -29,7 +31,24 @@ priority: high
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 network.j2 no longer hard-codes the LAN netmask; it comes from the config or the gateway's current value
-- [ ] #2 The schema and preflight know the new variable; an invalid netmask/prefix is rejected before the gateway is touched
+- [x] #1 network.j2 no longer hard-codes the LAN netmask; it comes from the config or the gateway's current value
+- [x] #2 The schema and preflight know the new variable; an invalid netmask/prefix is rejected before the gateway is touched
 - [ ] #3 A provisioning run keeps an existing /24 LAN at /24 (verified on gw-c3, which is restored to /24)
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Implemented (2026-09-25):**
+- **iotgw-kestra b1b266e** (pushed, Kestra synced — exec 7bci7C84wDqnmSeZJfRTHU):
+  - `templates/network.j2` → `option netmask '{{ iotgw_lan_netmask }}'`; `templates/dhcp.j2` start/limit from facts.
+  - `tasks/system.yaml` (top, read-only, before anything changes on the gateway): netmask = `local_netmask` or the gateway's current `network.lan.netmask` (or CIDR on `ipaddr`); never a constant.
+  - Asserts: contiguous prefix 8-30; LAN address is a host address; the DHCP pool (offset 40) fits (limit shortened on /26, /27+ refused); every `dhcp_hosts` ip inside the subnet.
+  - `tasks/preflight.yaml`: format check of `local_netmask` (controller-only).
+- **Monorepo:** schema `local_netmask` (optional, pattern = dotted mask or prefix 8-30; empty = keep current), example, backend tests (accept/reject).
+- **Local verification:** ansible-core with mocked read-back — /24 kept, /26 kept, CIDR /23, `local_netmask` 24/`/25`/255.255.0.0 override; 255.0.255.0, missing mask, /27, network address, lease outside /25 all refused.
+
+**Finding:** the task-125 "05:24 re-apply" was this provisioning run: `network.j2` does not write `iotgw_endpoint`, so the rewrite drops it and the daemon restores it one check later (expected).
+
+**AC#3 pending:** gw-c3 is still /26 (backup `/root/.iotgw-provisioning-backup/network.20260925T052400` has /24).
+<!-- SECTION:NOTES:END -->

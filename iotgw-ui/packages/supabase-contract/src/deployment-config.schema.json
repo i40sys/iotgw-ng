@@ -206,8 +206,17 @@
     "local_ip_address": {
       "type": "string",
       "title": "LAN IP address",
-      "description": "Gateway address on br-lan (netmask /26 is fixed in templates/network.j2); also DHCP DNS option, MQTT DNAT target, mosquitto listener, plc_sniffer destination.",
+      "description": "Gateway address on br-lan (netmask: local_netmask); also DHCP DNS option, MQTT DNAT target, mosquitto listener, plc_sniffer destination.",
       "format": "ipv4",
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "local_netmask": {
+      "type": "string",
+      "title": "LAN netmask",
+      "description": "br-lan netmask, dotted (255.255.255.0) or prefix length (24 or /24, 8-30). Leave empty to keep the gateway's current LAN netmask (task-131). The DHCP pool (.40-.89) and dhcp_hosts must fit in it.",
+      "pattern": "^(255\\.((0|128|192|224|240|248|252|254)\\.0\\.0|255\\.(0|128|192|224|240|248|252|254)\\.0|255\\.255\\.(0|128|192|224|240|248|252))|/?([89]|[12][0-9]|30))$",
+      "examples": ["255.255.255.0", "24"],
       "x-step": "provisioning",
       "x-group": "system"
     },
