@@ -125,6 +125,10 @@ operator code there is no way to call `vpn`.
   envelope).
 - New secret `DEVICE_AUTH_TOKEN` (backend + functions), SOPS-managed
   (decision-014).
+- **Precondition not met yet — TASK-136:** the iotgw-ui backend has no operator
+  authentication, so on the current deployment anyone who can reach it can call
+  getDeviceCode. The design assumes a trusted, authenticated UI; until TASK-136 lands,
+  a code is only as protected as network access to the backend.
 - **Not solved here — follow-up tasks:** TLS on the device API; the gateway
   generating its own WireGuard key pair so no private key is ever transmitted or
   stored (`devices.private_key`); removing the legacy unsealed VPN reply;

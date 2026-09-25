@@ -1,10 +1,11 @@
 ---
 id: TASK-132.03
 title: 'UI: show backend-issued codes; no browser-side TOTP'
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-25 17:28'
+updated_date: '2026-09-25 18:27'
 labels:
   - frontend
   - security
@@ -21,6 +22,13 @@ decision-033 §2. device-totp-dialog and booting-live-step fetch the code from g
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The browser never computes a code or sees a seed
-- [ ] #2 Reset code rotates the seed and shows the new code
+- [x] #1 The browser never computes a code or sees a seed
+- [x] #2 Reset code rotates the seed and shows the new code
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Done.** `use-device-code` hook; device dialog + booting-live step show backend codes (validity, next-code notice); Reset code → rotateDeviceCode; `otpauth` removed.
+- Deployed bundle: getDeviceCode/rotateDeviceCode present, no TOTP library, no `combinedSecret`. App tests 12/12.
+<!-- SECTION:NOTES:END -->

@@ -1,10 +1,11 @@
 ---
 id: TASK-132.01
 title: 'DB: seed reference, single-use code ledger, lockout and renew RPCs'
-status: To Do
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-25 17:28'
+updated_date: '2026-09-25 18:27'
 labels:
   - database
   - security
@@ -21,7 +22,15 @@ decision-033 §1/§3/§5. Migration adding devices.totp_seed_id/totp_seed_rotate
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Migration applies on the kind StackGres DB and contract types are regenerated
-- [ ] #2 consume_device_otp refuses a reused or older step per device+seed+purpose, atomically
-- [ ] #3 5 failures lock the device for 15 min; renew timestamps are monotonic
+- [x] #1 Migration applies on the kind StackGres DB and contract types are regenerated
+- [x] #2 consume_device_otp refuses a reused or older step per device+seed+purpose, atomically
+- [x] #3 5 failures lock the device for 15 min; renew timestamps are monotonic
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Done (2026-09-25).** Migration `20260925000000_device_totp_seed.sql` applied to the kind StackGres DB; contract types updated.
+- Verified in rolled-back transactions: reused / older step refused, other purpose/seed accepted; 5 failures lock 15 min; renew timestamps monotonic; RPC execute only for service_role, `authenticated` denied.
+- Live: `device_otp_uses` recorded the gw-c3 vpn uses; replay refused.
+<!-- SECTION:NOTES:END -->
