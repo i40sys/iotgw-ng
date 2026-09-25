@@ -1255,406 +1255,416 @@ function DeploymentsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mx-auto max-w-7xl">
-        {/* Main Layout Flex */}
-        <div className="flex flex-col gap-6 lg:flex-row">
-          {/* Left Panel - Form */}
-          <div className="min-w-0 flex-1">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <Accordion
-                type="multiple"
-                value={accordionValue}
-                onValueChange={setAccordionValue}
-                className="space-y-6"
-              >
-                {/* Basic Information */}
-                <AccordionItem value="basic-info" className="border-none">
-                  <Card>
-                    <CardHeader>
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex w-full items-start justify-between">
-                          <div className="flex-1">
-                            <CardTitle className="flex items-center gap-2">
-                              <FontAwesomeIcon
-                                icon={faGear}
-                                className="h-5 w-5"
-                              />
-                              {t("deployments.basicInformation")}
-                            </CardTitle>
-                            {/* Show description only when expanded */}
-                            {accordionValue.includes("basic-info") && (
-                              <CardDescription className="text-left">
-                                {t("deployments.basicInformationDescription")}
-                              </CardDescription>
-                            )}
-                            {/* Show selected device when collapsed - centered */}
-                            {!accordionValue.includes("basic-info") &&
-                              selectedDeviceId && (
-                                <div className="mt-2 flex items-center justify-center gap-2">
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    {(() => {
-                                      const device = devicesQuery.data?.find(
-                                        (d) => d.id === selectedDeviceId,
+    // Viewport-height column below the 3.5rem sticky navbar: the content
+    // scrolls in its own region and the actions bar is a normal footer row, so
+    // the bar can never cover form content (task-130).
+    <div className="flex h-[calc(100dvh-3.5rem-1px)] flex-col">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        data-slot="deployments-scroll"
+      >
+        <div className="container mx-auto px-4 py-8">
+          <div className="mx-auto max-w-7xl">
+            {/* Main Layout Flex */}
+            <div className="flex flex-col gap-6 lg:flex-row">
+              {/* Left Panel - Form */}
+              <div className="min-w-0 flex-1">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <Accordion
+                    type="multiple"
+                    value={accordionValue}
+                    onValueChange={setAccordionValue}
+                    className="space-y-6"
+                  >
+                    {/* Basic Information */}
+                    <AccordionItem value="basic-info" className="border-none">
+                      <Card>
+                        <CardHeader>
+                          <AccordionTrigger className="hover:no-underline">
+                            <div className="flex w-full items-start justify-between">
+                              <div className="flex-1">
+                                <CardTitle className="flex items-center gap-2">
+                                  <FontAwesomeIcon
+                                    icon={faGear}
+                                    className="h-5 w-5"
+                                  />
+                                  {t("deployments.basicInformation")}
+                                </CardTitle>
+                                {/* Show description only when expanded */}
+                                {accordionValue.includes("basic-info") && (
+                                  <CardDescription className="text-left">
+                                    {t("deployments.basicInformationDescription")}
+                                  </CardDescription>
+                                )}
+                                {/* Show selected device when collapsed - centered */}
+                                {!accordionValue.includes("basic-info") &&
+                                  selectedDeviceId && (
+                                    <div className="mt-2 flex items-center justify-center gap-2">
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs"
+                                      >
+                                        {(() => {
+                                          const device = devicesQuery.data?.find(
+                                            (d) => d.id === selectedDeviceId,
+                                          );
+                                          if (!device)
+                                            return selectedDeviceId.slice(0, 8);
+                                          return device.name && device.ip_address
+                                            ? `${device.name} (${device.ip_address})`
+                                            : device.name
+                                              ? device.name
+                                              : device.ip_address ||
+                                                `Device ${device.id.slice(0, 8)}`;
+                                        })()}
+                                      </Badge>
+                                    </div>
+                                  )}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setFormData(initialFormData);
+                                  setSelectedDomainId(undefined);
+                                  setSelectedNetworkId(undefined);
+                                  setSelectedDeviceId(undefined);
+                                  toast.success(
+                                    t("buttons.reset") + " - Basic Information",
+                                  );
+                                }}
+                                className="shrink-0"
+                              >
+                                <FontAwesomeIcon
+                                  icon={faRotateLeft}
+                                  className="mr-2 h-4 w-4"
+                                  aria-hidden="true"
+                                />
+                                {t("buttons.reset")}
+                              </Button>
+                            </div>
+                          </AccordionTrigger>
+                        </CardHeader>
+                        <AccordionContent>
+                          <CardContent className="space-y-4">
+                            {/* Filter and Device Selection */}
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                              {/* Domain Filter */}
+                              <div className="space-y-2">
+                                <Label htmlFor="domain-selection">
+                                  {t("domains.domain")}
+                                </Label>
+                                <Select
+                                  value={selectedDomainId || "all"}
+                                  onValueChange={(value) => {
+                                    setSelectedDomainId(
+                                      value === "all" ? undefined : value,
+                                    );
+                                    // Reset network if it doesn't belong to the new domain
+                                    if (value !== "all" && networksQuery.data) {
+                                      const validNetwork = networksQuery.data.find(
+                                        (n) =>
+                                          n.id === selectedNetworkId &&
+                                          n.domain_id === value,
                                       );
-                                      if (!device)
-                                        return selectedDeviceId.slice(0, 8);
-                                      return device.name && device.ip_address
-                                        ? `${device.name} (${device.ip_address})`
-                                        : device.name
-                                          ? device.name
-                                          : device.ip_address ||
-                                            `Device ${device.id.slice(0, 8)}`;
-                                    })()}
-                                  </Badge>
-                                </div>
-                              )}
-                          </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setFormData(initialFormData);
-                              setSelectedDomainId(undefined);
-                              setSelectedNetworkId(undefined);
-                              setSelectedDeviceId(undefined);
-                              toast.success(
-                                t("buttons.reset") + " - Basic Information",
-                              );
-                            }}
-                            className="shrink-0"
-                          >
-                            <FontAwesomeIcon
-                              icon={faRotateLeft}
-                              className="mr-2 h-4 w-4"
-                              aria-hidden="true"
-                            />
-                            {t("buttons.reset")}
-                          </Button>
-                        </div>
-                      </AccordionTrigger>
-                    </CardHeader>
-                    <AccordionContent>
-                      <CardContent className="space-y-4">
-                        {/* Filter and Device Selection */}
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                          {/* Domain Filter */}
-                          <div className="space-y-2">
-                            <Label htmlFor="domain-selection">
-                              {t("domains.domain")}
-                            </Label>
-                            <Select
-                              value={selectedDomainId || "all"}
-                              onValueChange={(value) => {
-                                setSelectedDomainId(
-                                  value === "all" ? undefined : value,
-                                );
-                                // Reset network if it doesn't belong to the new domain
-                                if (value !== "all" && networksQuery.data) {
-                                  const validNetwork = networksQuery.data.find(
-                                    (n) =>
-                                      n.id === selectedNetworkId &&
-                                      n.domain_id === value,
-                                  );
-                                  if (!validNetwork) {
-                                    setSelectedNetworkId(undefined);
-                                  }
-                                }
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue
-                                  placeholder={t("domains.selectDomain")}
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">All Domains</SelectItem>
-                                {domainsQuery.data?.map((domain) => (
-                                  <SelectItem key={domain.id} value={domain.id}>
-                                    {domain.display_name || domain.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                                      if (!validNetwork) {
+                                        setSelectedNetworkId(undefined);
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue
+                                      placeholder={t("domains.selectDomain")}
+                                    />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">All Domains</SelectItem>
+                                    {domainsQuery.data?.map((domain) => (
+                                      <SelectItem key={domain.id} value={domain.id}>
+                                        {domain.display_name || domain.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
 
-                          {/* Network Filter */}
-                          <div className="space-y-2">
-                            <Label htmlFor="network-selection">
-                              {t("networks.network")}
-                            </Label>
-                            <Select
-                              value={selectedNetworkId || "all"}
-                              onValueChange={(value) => {
-                                const networkId =
-                                  value === "all" ? undefined : value;
-                                setSelectedNetworkId(networkId);
+                              {/* Network Filter */}
+                              <div className="space-y-2">
+                                <Label htmlFor="network-selection">
+                                  {t("networks.network")}
+                                </Label>
+                                <Select
+                                  value={selectedNetworkId || "all"}
+                                  onValueChange={(value) => {
+                                    const networkId =
+                                      value === "all" ? undefined : value;
+                                    setSelectedNetworkId(networkId);
 
-                                // Auto-select domain if not already selected
-                                if (networkId && !selectedDomainId) {
-                                  const network = networksQuery.data?.find(
-                                    (n) => n.id === networkId,
-                                  );
-                                  if (network?.domain_id) {
-                                    setSelectedDomainId(network.domain_id);
-                                  }
-                                }
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue
-                                  placeholder={t("networks.selectNetwork")}
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">
-                                  All Networks
-                                </SelectItem>
-                                {networksQuery.data?.map((network) => (
-                                  <SelectItem
-                                    key={network.id}
-                                    value={network.id}
-                                  >
-                                    {network.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {/* Device Selection */}
-                          <div className="space-y-2">
-                            <Label htmlFor="device-selection">
-                              {t("devices.device")}
-                            </Label>
-                            <Select
-                              value={selectedDeviceId || ""}
-                              onValueChange={(value) => {
-                                if (!value) return;
-                                if (hasUnsavedChanges) {
-                                  setPendingDeviceId(value);
-                                  setDialogMode("device-change");
-                                  setShowUnsavedChangesDialog(true);
-                                } else {
-                                  handleDeviceChange(value);
-                                }
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue
-                                  placeholder={t("devices.selectDevice")}
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {devicesQuery.data?.map((device) => {
-                                  return (
-                                    <SelectItem
-                                      key={device.id}
-                                      value={device.id}
-                                    >
-                                      {device.name && device.ip_address
-                                        ? `${device.name} (${device.ip_address})`
-                                        : device.name
-                                          ? device.name
-                                          : device.ip_address ||
-                                            `Device ${device.id.slice(0, 8)}`}
+                                    // Auto-select domain if not already selected
+                                    if (networkId && !selectedDomainId) {
+                                      const network = networksQuery.data?.find(
+                                        (n) => n.id === networkId,
+                                      );
+                                      if (network?.domain_id) {
+                                        setSelectedDomainId(network.domain_id);
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue
+                                      placeholder={t("networks.selectNetwork")}
+                                    />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">
+                                      All Networks
                                     </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
+                                    {networksQuery.data?.map((network) => (
+                                      <SelectItem
+                                        key={network.id}
+                                        value={network.id}
+                                      >
+                                        {network.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="deployment-name">
-                            {t("deployments.name")}
-                          </Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="deployment-name"
-                              type="text"
-                              value={formData.name}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  name: e.target.value,
-                                })
-                              }
-                              placeholder={
-                                t("deployments.namePlaceholder") ||
-                                "Leave empty for a fun auto-generated name"
-                              }
-                              className="flex-1"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              onClick={() => {
-                                const randomName =
-                                  generateRandomDeploymentName();
-                                setFormData({ ...formData, name: randomName });
-                                toast.success(`Generated name: ${randomName}`);
-                              }}
-                              title="Generate random name"
-                            >
-                              <FontAwesomeIcon
-                                icon={faDice}
-                                className="h-4 w-4"
-                                aria-hidden="true"
+                              {/* Device Selection */}
+                              <div className="space-y-2">
+                                <Label htmlFor="device-selection">
+                                  {t("devices.device")}
+                                </Label>
+                                <Select
+                                  value={selectedDeviceId || ""}
+                                  onValueChange={(value) => {
+                                    if (!value) return;
+                                    if (hasUnsavedChanges) {
+                                      setPendingDeviceId(value);
+                                      setDialogMode("device-change");
+                                      setShowUnsavedChangesDialog(true);
+                                    } else {
+                                      handleDeviceChange(value);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue
+                                      placeholder={t("devices.selectDevice")}
+                                    />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {devicesQuery.data?.map((device) => {
+                                      return (
+                                        <SelectItem
+                                          key={device.id}
+                                          value={device.id}
+                                        >
+                                          {device.name && device.ip_address
+                                            ? `${device.name} (${device.ip_address})`
+                                            : device.name
+                                              ? device.name
+                                              : device.ip_address ||
+                                                `Device ${device.id.slice(0, 8)}`}
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="deployment-name">
+                                {t("deployments.name")}
+                              </Label>
+                              <div className="flex gap-2">
+                                <Input
+                                  id="deployment-name"
+                                  type="text"
+                                  value={formData.name}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      name: e.target.value,
+                                    })
+                                  }
+                                  placeholder={
+                                    t("deployments.namePlaceholder") ||
+                                    "Leave empty for a fun auto-generated name"
+                                  }
+                                  className="flex-1"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => {
+                                    const randomName =
+                                      generateRandomDeploymentName();
+                                    setFormData({ ...formData, name: randomName });
+                                    toast.success(`Generated name: ${randomName}`);
+                                  }}
+                                  title="Generate random name"
+                                >
+                                  <FontAwesomeIcon
+                                    icon={faDice}
+                                    className="h-4 w-4"
+                                    aria-hidden="true"
+                                  />
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="deployment-description">
+                                {t("deployments.description")}
+                              </Label>
+                              <Textarea
+                                id="deployment-description"
+                                value={formData.description}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    description: e.target.value,
+                                  })
+                                }
+                                placeholder={t(
+                                  "deployments.descriptionPlaceholder",
+                                )}
+                                rows={3}
                               />
-                            </Button>
-                          </div>
-                        </div>
+                            </div>
+                          </CardContent>
+                        </AccordionContent>
+                      </Card>
+                    </AccordionItem>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="deployment-description">
-                            {t("deployments.description")}
-                          </Label>
-                          <Textarea
-                            id="deployment-description"
-                            value={formData.description}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                description: e.target.value,
-                              })
-                            }
-                            placeholder={t(
-                              "deployments.descriptionPlaceholder",
-                            )}
-                            rows={3}
-                          />
-                        </div>
-                      </CardContent>
-                    </AccordionContent>
-                  </Card>
-                </AccordionItem>
+                    {/* Deployment Configuration */}
+                    <AccordionItem value="configuration" className="border-none">
+                      <Card>
+                        <CardHeader>
+                          <AccordionTrigger className="hover:no-underline">
+                            <div className="w-full">
+                              <CardTitle className="flex items-center gap-2">
+                                <FontAwesomeIcon
+                                  icon={faFileLines}
+                                  className="h-5 w-5"
+                                />
+                                {t("deployments.configuration")}
+                              </CardTitle>
+                              <CardDescription>
+                                {t("deployments.configurationDescription")}
+                              </CardDescription>
+                            </div>
+                          </AccordionTrigger>
+                        </CardHeader>
+                        <AccordionContent>
+                          <CardContent className="space-y-4">
+                            <DeploymentStepTabs
+                              activeStep={activeDeploymentStep}
+                              onStepChange={handleDeploymentStepChange}
+                            >
+                              <DeploymentStepContent step="booting-live">
+                                <BootingLiveStep
+                                  deviceId={selectedDeviceId}
+                                  deviceName={
+                                    devicesQuery.data?.find(
+                                      (d) => d.id === selectedDeviceId
+                                    )?.name
+                                  }
+                                  networkId={selectedNetworkId}
+                                  domainId={selectedDomainId}
+                                  totpCounter={
+                                    devicesQuery.data?.find(
+                                      (d) => d.id === selectedDeviceId
+                                    )?.totp_counter ?? 0
+                                  }
+                                  onCheckConnectivity={handleCheckConnectivity}
+                                  isCheckingConnectivity={connectivityCheck.isChecking}
+                                  connectivityResult={connectivityResult}
+                                />
+                              </DeploymentStepContent>
 
-                {/* Deployment Configuration */}
-                <AccordionItem value="configuration" className="border-none">
-                  <Card>
-                    <CardHeader>
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="w-full">
-                          <CardTitle className="flex items-center gap-2">
-                            <FontAwesomeIcon
-                              icon={faFileLines}
-                              className="h-5 w-5"
-                            />
-                            {t("deployments.configuration")}
-                          </CardTitle>
-                          <CardDescription>
-                            {t("deployments.configurationDescription")}
-                          </CardDescription>
-                        </div>
-                      </AccordionTrigger>
-                    </CardHeader>
-                    <AccordionContent>
-                      <CardContent className="space-y-4">
-                        <DeploymentStepTabs
-                          activeStep={activeDeploymentStep}
-                          onStepChange={handleDeploymentStepChange}
-                        >
-                          <DeploymentStepContent step="booting-live">
-                            <BootingLiveStep
-                              deviceId={selectedDeviceId}
-                              deviceName={
-                                devicesQuery.data?.find(
-                                  (d) => d.id === selectedDeviceId
-                                )?.name
-                              }
-                              networkId={selectedNetworkId}
-                              domainId={selectedDomainId}
-                              totpCounter={
-                                devicesQuery.data?.find(
-                                  (d) => d.id === selectedDeviceId
-                                )?.totp_counter ?? 0
-                              }
-                              onCheckConnectivity={handleCheckConnectivity}
-                              isCheckingConnectivity={connectivityCheck.isChecking}
-                              connectivityResult={connectivityResult}
-                            />
-                          </DeploymentStepContent>
+                              <DeploymentStepContent step="os-installation">
+                                <OsInstallationStep
+                                  configurationJson={formData.configurationJson}
+                                  onConfigurationChange={handleJsonChange}
+                                  onModeChange={handleOsInstallationModeChange}
+                                />
+                              </DeploymentStepContent>
 
-                          <DeploymentStepContent step="os-installation">
-                            <OsInstallationStep
-                              configurationJson={formData.configurationJson}
-                              onConfigurationChange={handleJsonChange}
-                              onModeChange={handleOsInstallationModeChange}
-                            />
-                          </DeploymentStepContent>
+                              <DeploymentStepContent step="rebooting">
+                                <RebootingStep
+                                  deviceId={selectedDeviceId}
+                                  onCheckConnectivity={handleCheckConnectivity}
+                                  isCheckingConnectivity={connectivityCheck.isChecking}
+                                  connectivityResult={connectivityResult}
+                                />
+                              </DeploymentStepContent>
 
-                          <DeploymentStepContent step="rebooting">
-                            <RebootingStep
-                              deviceId={selectedDeviceId}
-                              onCheckConnectivity={handleCheckConnectivity}
-                              isCheckingConnectivity={connectivityCheck.isChecking}
-                              connectivityResult={connectivityResult}
-                            />
-                          </DeploymentStepContent>
+                              <DeploymentStepContent step="provisioning">
+                                <ProvisioningStep
+                                  configurationJson={formData.configurationJson}
+                                  onConfigurationChange={handleJsonChange}
+                                  onModeChange={handleOsInstallationModeChange}
+                                  onLoadFromFile={loadFromFile}
+                                />
+                              </DeploymentStepContent>
+                            </DeploymentStepTabs>
+                          </CardContent>
+                        </AccordionContent>
+                      </Card>
+                    </AccordionItem>
+                  </Accordion>
 
-                          <DeploymentStepContent step="provisioning">
-                            <ProvisioningStep
-                              configurationJson={formData.configurationJson}
-                              onConfigurationChange={handleJsonChange}
-                              onModeChange={handleOsInstallationModeChange}
-                              onLoadFromFile={loadFromFile}
-                            />
-                          </DeploymentStepContent>
-                        </DeploymentStepTabs>
-                      </CardContent>
-                    </AccordionContent>
-                  </Card>
-                </AccordionItem>
-              </Accordion>
+                  {/* Form Actions - Moved to fixed bottom panel */}
+                </form>
+              </div>
 
-              {/* Form Actions - Moved to fixed bottom panel */}
-            </form>
-          </div>
+              {/* Right Panel - Version List */}
+              <div
+                className={cn(
+                  "shrink-0 transition-all duration-300",
+                  isVersionsPanelCollapsed ? "w-12" : "w-full lg:w-80",
+                )}
+              >
+                <VersionListPanel
+                  deviceId={selectedDeviceId}
+                  activeVersionId={selectedVersion?.id}
+                  onVersionSelect={handleVersionSelect}
+                  className="sticky top-4 max-h-[calc(100vh-8rem)]"
+                  isCollapsed={isVersionsPanelCollapsed}
+                  onToggle={() =>
+                    setIsVersionsPanelCollapsed(!isVersionsPanelCollapsed)
+                  }
+                />
+              </div>
+            </div>
 
-          {/* Right Panel - Version List */}
-          <div
-            className={cn(
-              "shrink-0 transition-all duration-300",
-              isVersionsPanelCollapsed ? "w-12" : "w-full lg:w-80",
+            {/* Deployment Jobs Section - Full Width */}
+            {selectedDeviceId && (
+              <div className="mt-6">
+                <DeploymentJobsList
+                  deviceId={selectedDeviceId}
+                  maxItems={5}
+                  onViewLogs={(executionId) => {
+                    const debugUrl = `/deployments/debug/${executionId}`;
+                    openPage(debugUrl);
+                  }}
+                />
+              </div>
             )}
-          >
-            <VersionListPanel
-              deviceId={selectedDeviceId}
-              activeVersionId={selectedVersion?.id}
-              onVersionSelect={handleVersionSelect}
-              className="sticky top-4 max-h-[calc(100vh-8rem)]"
-              isCollapsed={isVersionsPanelCollapsed}
-              onToggle={() =>
-                setIsVersionsPanelCollapsed(!isVersionsPanelCollapsed)
-              }
-            />
           </div>
         </div>
-
-        {/* Deployment Jobs Section - Full Width */}
-        {selectedDeviceId && (
-          <div className="mt-6 pb-24">
-            <DeploymentJobsList
-              deviceId={selectedDeviceId}
-              maxItems={5}
-              onViewLogs={(executionId) => {
-                const debugUrl = `/deployments/debug/${executionId}`;
-                openPage(debugUrl);
-              }}
-            />
-          </div>
-        )}
       </div>
 
-      {/* Fixed Bottom Actions Panel */}
+      {/* Bottom Actions Panel (footer row of the viewport column) */}
       <DeploymentActionsPanel
         selectedDeviceId={selectedDeviceId}
         hasUnsavedChanges={hasUnsavedChanges}

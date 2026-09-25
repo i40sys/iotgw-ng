@@ -49,7 +49,9 @@ export function ProvisioningStep({
         type="file"
         accept=".json"
         onChange={onLoadFromFile}
-        className="sr-only"
+        // `hidden`, not `sr-only`: Input's w-full beats sr-only's 1px width and
+        // the absolutely-positioned input overflowed the page horizontally.
+        className="hidden"
       />
     </>
   );
