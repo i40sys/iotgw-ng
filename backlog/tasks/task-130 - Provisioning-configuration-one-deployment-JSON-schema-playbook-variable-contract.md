@@ -152,7 +152,7 @@ The Kestra `provisioning` flow (i11_provisioning_iotgw.yaml) failed on gw-c3 (ex
 - Verified headless with agent-browser on the dev stack (comforsa / c3 / gw-c3, Provisioning step, scrolled; 1440x900 and 1024x700): scroll region ends exactly at the bar's top, the last content row is fully visible, no document scroll or horizontal overflow. Screenshot `/tmp/t130-ui-fix-provisioning-scrolled.png`. Nothing saved or deployed.
 
 **Secret scan**
-- gitleaks `generic-api-key` matched a prose COMMENT in `utils/redact.ts` ("client secrets, EMQX/GLPI/Influx …" — words, no value); the first push made `secret-scan` fail (run 36097741922). Fixed by exact fingerprints in a new `.gitleaksignore` (`2ec072b`, `65d8b1d`) + rewording the comment (`65d8b1d`, `f66034a`). `secret-scan` green on `f66034a` (run 36097937202).
+- gitleaks `generic-api-key` matched a prose COMMENT in `utils/redact.ts` (a list of credential kinds — words, no value); the first push made `secret-scan` fail (run 36097741922). Fixed by exact fingerprints in a new `.gitleaksignore` (`2ec072b`, `65d8b1d`) + rewording the comment (`65d8b1d`, `f66034a`). `secret-scan` green on `f66034a` (run 36097937202).
 - iotgw-kestra (PUBLIC) `main..task-130-provisioning-schema`: gitleaks clean + manual grep of every added line — only variable references and placeholders, no client values.
 
 **Checks (monorepo branch)**

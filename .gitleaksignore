@@ -6,3 +6,5 @@
 2ec072bc6d3d00cc0ba84b6c7633b19e54898ff6:iotgw-ui/apps/backend/src/utils/redact.ts:generic-api-key:5
 # Same comment after a first rewording (65d8b1d) — still matched; reworded again.
 65d8b1dde87dca0eb31a1109f205bbb3a07c171f:iotgw-ui/apps/backend/src/utils/redact.ts:generic-api-key:5
+# The task-130 backlog note quoted that same comment (6ba7034); reworded.
+6ba703453667691b46e3569bfcbb0bce2efcc26f:backlog/tasks/task-130 - Provisioning-configuration-one-deployment-JSON-schema-playbook-variable-contract.md:generic-api-key:155
