@@ -6,7 +6,7 @@ title: >-
 status: In Progress
 assignee: []
 created_date: '2026-09-24 19:39'
-updated_date: '2026-09-25 03:42'
+updated_date: '2026-09-25 03:55'
 labels:
   - kestra
   - ansible
@@ -32,6 +32,8 @@ The Kestra `provisioning` flow (i11_provisioning_iotgw.yaml) failed on gw-c3 (ex
 - [x] #6 iotgw-ui/packages/supabase-contract/src/deployment-config.schema.json (draft 2020-12, x-step/x-group/x-secret, if/then per stack) + an example that validates against it
 - [x] #7 ansible-playbook --syntax-check passes in the pinned runner image and the templates render with the placeholder config
 - [x] #8 Open decision recorded: where provisioning secrets are stored (deployments.configuration jsonb vs Cosmian KMS)
+- [x] #9 UI: the O.S. Installation and Provisioning wizard steps render their fields from the schema (x-step/x-group), with a Form ⇄ JSON toggle over the same configuration and masked secrets
+- [x] #10 Backend: executeKestraDeployment refuses a provisioning run whose configuration fails the schema (BAD_REQUEST naming the fields) and never logs configuration values
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -112,4 +114,30 @@ The Kestra `provisioning` flow (i11_provisioning_iotgw.yaml) failed on gw-c3 (ex
 **Remaining**
 - UI: render the Provisioning step from the schema (per x-group, mask x-secret); backend: validate against the schema before executeKestraDeployment.
 - Merge + deploy the iotgw-kestra branch, then re-run provisioning on a lab gateway (task-129 AC#1).
+
+**UI + backend (task-130 part 2).** Both wizard steps now render from the ONE schema; provisioning runs are validated server-side.
+
+**Shared validator**
+- `packages/supabase-contract/src/deployment-config.validate.ts` — `validateDeploymentConfigStep(config, step)` builds the step sub-schema (that step's properties, required keys and if/then rules; other keys allowed so unknown keys round-trip) and validates it with **ajv 2020 + ajv-formats**. ajv@8.17.1 / ajv-formats@3.0.1 were already in the lockfile (fastify); a hand-rolled validator for 2020-12 + if/then + anyOf-format would drift from the playbook contract.
+- Messages name fields only (never values): `iiot_host is required when \`mqtt\` is enabled`, `primary_ntp must be a valid ipv4 or hostname`; also flags `CHANGE_ME` left in currently-required keys (preflight rejects them too).
+- Imported by RELATIVE path from both apps: the contract's `dist/` is not built/shipped in the images and the backend bundles with `--packages=external`, so a package import would break at runtime. (Contract tsconfig got target/module ES2020/bundler so it typechecks.)
+
+**UI (apps/app)**
+- `lib/deployment-config-form.ts` — schema → groups/fields (`x-group`, stack flag via `x-stack-tag`, widget kind from type/enum/items/x-secret, `x-advanced`/`x-unused` folded under "advanced"), immutable `getIn/setIn`, `withStepDefaults`.
+- `components/deployment-steps/schema-step-form.tsx` — generic renderer on shadcn: collapsible section per group, stack switch first (off → its fields hidden unless another enabled stack requires them, e.g. `ghcr_pat` for GLPI), secrets as password inputs with show/hide, enum → Select, `__tags__` → checkboxes, object arrays (`dhcp_hosts`, `users`, `allowed_internet`, `management_cidrs`) and `mqtt_bridge_topics` with add/remove rows, per-field errors.
+- `config-step-editor.tsx` — Form ⇄ JSON toggle. The page's configuration JSON is the only state: each form edit sets ONE key on the whole document, so other-step/backend/legacy/unknown keys survive. The JSON view shows the WHOLE document (both steps edit it; makes the round-trip obviously lossless); unparsable drafts stay in Monaco and are never propagated. Schema defaults are displayed and stored on the first edit (or "Apply defaults").
+- `provisioning-step.tsx` replaces the raw Monaco tab (keeps "Load from file"); `os-installation-step.tsx` now uses the same renderer (help table kept). Deploy pre-checks provisioning with the same validator (toast lists field names only). i18n keys in en.json + es.json (`deployments.steps.config.*`); labels/descriptions come from the schema.
+
+**Backend (apps/backend)**
+- `executeKestraDeployment`, `flow_type: provisioning` → BAD_REQUEST `Provisioning configuration is invalid (N problems): …` before Kestra is called; configuration otherwise passed unchanged. Install path unchanged.
+- Save paths (`createDeployment`/`updateDeployment`) deliberately NOT validated: steps are completed progressively and drafts must save.
+- No secret logging: `utils/redact.ts` (`redactForLog`) used by the query/mutation helpers' error logs (they logged the whole input, incl. `configuration`); pino `redact` paths as defense in depth.
+
+**Verification**
+- Backend vitest 16/16 (new `provisioningConfig.test.ts`: valid passes + passthrough, enabled-stack missing field → BAD_REQUEST naming it and no secret in logs, CHANGE_ME, disabled stack OK, install unaffected, redaction). App vitest 22/22 (new `config-step-editor.test.tsx`). Typecheck backend/app/contract OK; `vite build` + backend esbuild bundle OK.
+- Visual check on the dev stack (gw-c3, nothing saved or executed): 12 provisioning sections render, O.S. step renders from schema.
+
+**Open**
+- **Secret storage decision still open**: secrets live in `deployments.configuration` jsonb and are copied to `deployment_jobs.configuration_json` in plaintext; Cosmian KMS refs would need a resolve step in the backend. The JSON view shows secrets in plain text (by design of a raw editor).
+- The example's placeholder values (`examples`) show as input placeholders; the page still auto-adds legacy `name`/`version` keys on deploy (old zod schema) — harmless, deprecated in the schema.
 <!-- SECTION:NOTES:END -->

@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { logger } from "../logger";
+import { redactForLog } from "./redact";
 import type { Context } from "../context";
 import { supabaseProcedure } from "../routers/trpc";
 
@@ -35,7 +36,7 @@ export const createQueryProcedure = <T extends z.ZodType<unknown>, TOutput>(
       });
     } catch (error) {
       logger.error(
-        { error, functionName, input: opts.input },
+        { error, functionName, input: redactForLog(opts.input) },
         "Error in query procedure",
       );
 

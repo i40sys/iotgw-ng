@@ -23,14 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Editor from "@monaco-editor/react";
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useDeploymentSettings } from "@/hooks/use-deployment-settings";
 import { trpc } from "@/utils/trpc";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faUpload,
   faServer,
   faGear,
   faFileLines,
@@ -50,6 +48,11 @@ import {
 import { BootingLiveStep } from "@/components/deployment-steps/booting-live-step";
 import { OsInstallationStep } from "@/components/deployment-steps/os-installation-step";
 import { RebootingStep } from "@/components/deployment-steps/rebooting-step";
+import { ProvisioningStep } from "@/components/deployment-steps/provisioning-step";
+import {
+  formatConfigPath,
+  validateDeploymentConfigStep,
+} from "@/lib/deployment-config-form";
 import {
   defaultDeploymentConfig,
   deploymentConfigSchema,
@@ -103,7 +106,6 @@ interface DeploymentVersion {
 function DeploymentsPage() {
   const { t } = useTranslation();
   const { deviceId, networkId, domainId } = Route.useSearch();
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [deploymentStatus, setDeploymentStatus] = useState<{
     open: boolean;
     executionId?: string;
@@ -124,21 +126,6 @@ function DeploymentsPage() {
   const { settings: persistedSettings, updateSettings: persistSettings } =
     useDeploymentSettings();
   const isInitialMount = useRef(true);
-
-  // Detect theme for Monaco editor
-  React.useEffect(() => {
-    const checkDarkMode = () => {
-      const root = window.document.documentElement;
-      setIsDarkMode(root.classList.contains("dark"));
-    };
-    checkDarkMode();
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(window.document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   // Use URL params if provided, otherwise fall back to persisted settings
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(
@@ -841,6 +828,27 @@ function DeploymentsPage() {
 
         // Validate the configuration with Zod schema
         deploymentConfigSchema.parse(configObject);
+
+        // Provisioning: refuse early with the same schema check the backend
+        // runs (task-130). Messages name fields only — never secret values.
+        if (flowType === "provisioning") {
+          const issues = validateDeploymentConfigStep(
+            configObject,
+            "provisioning",
+          );
+          if (issues.length > 0) {
+            toast.error(
+              t("deployments.steps.config.deployBlocked", {
+                count: issues.length,
+                fields: issues
+                  .slice(0, 5)
+                  .map((issue) => formatConfigPath(issue.path))
+                  .join(", "),
+              }),
+            );
+            return;
+          }
+        }
 
         // Always save the configuration before deploying to ensure target_ip is persisted
         const deploymentName =
@@ -1593,70 +1601,12 @@ function DeploymentsPage() {
                           </DeploymentStepContent>
 
                           <DeploymentStepContent step="provisioning">
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <Label>JSON Configuration</Label>
-                                <div className="flex items-center gap-2">
-                                  <Label
-                                    htmlFor="load-file"
-                                    className="cursor-pointer"
-                                  >
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="flex items-center gap-2"
-                                      asChild
-                                    >
-                                      <span>
-                                        <FontAwesomeIcon
-                                          icon={faUpload}
-                                          className="h-4 w-4"
-                                          aria-hidden="true"
-                                        />
-                                        Load from file
-                                      </span>
-                                    </Button>
-                                  </Label>
-                                  <Input
-                                    id="load-file"
-                                    type="file"
-                                    onChange={loadFromFile}
-                                    accept=".json"
-                                    className="sr-only"
-                                  />
-                                </div>
-                              </div>
-                              <div className="overflow-hidden rounded-md border">
-                                <Editor
-                                  height="500px"
-                                  language="json"
-                                  theme={isDarkMode ? "vs-dark" : "light"}
-                                  value={formData.configurationJson}
-                                  onChange={handleJsonChange}
-                                  options={{
-                                    minimap: { enabled: false },
-                                    fontSize: 14,
-                                    lineNumbers: "on",
-                                    readOnly: false,
-                                    domReadOnly: false,
-                                    formatOnType: false,
-                                    formatOnPaste: false,
-                                    automaticLayout: true,
-                                    scrollBeyondLastLine: false,
-                                    wordWrap: "on",
-                                    tabSize: 2,
-                                    insertSpaces: true,
-                                  }}
-                                />
-                              </div>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Edit your deployment configuration directly or
-                                load from a JSON file. The editor provides
-                                syntax highlighting, validation, and
-                                auto-formatting.
-                              </p>
-                            </div>
+                            <ProvisioningStep
+                              configurationJson={formData.configurationJson}
+                              onConfigurationChange={handleJsonChange}
+                              onModeChange={handleOsInstallationModeChange}
+                              onLoadFromFile={loadFromFile}
+                            />
                           </DeploymentStepContent>
                         </DeploymentStepTabs>
                       </CardContent>

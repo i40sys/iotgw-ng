@@ -268,6 +268,12 @@ importers:
       '@types/pino':
         specifier: ^7.0.5
         version: 7.0.5
+      ajv:
+        specifier: ^8.17.1
+        version: 8.17.1
+      ajv-formats:
+        specifier: ^3.0.1
+        version: 3.0.1(ajv@8.17.1)
       fastify:
         specifier: ^5.3.3
         version: 5.3.3
@@ -335,6 +341,12 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.49.5
         version: 2.49.5
+      ajv:
+        specifier: ^8.17.1
+        version: 8.17.1
+      ajv-formats:
+        specifier: ^3.0.1
+        version: 3.0.1(ajv@8.17.1)
     devDependencies:
       '@eslint/js':
         specifier: ^9.27.0
