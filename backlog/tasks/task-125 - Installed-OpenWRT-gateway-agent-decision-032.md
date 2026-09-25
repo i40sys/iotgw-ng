@@ -1,11 +1,11 @@
 ---
 id: TASK-125
 title: Installed-OpenWRT gateway agent (decision-032)
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-24 06:59'
-updated_date: '2026-09-24 15:43'
+updated_date: '2026-09-25 06:48'
 labels:
   - live-image
   - openwrt
@@ -28,7 +28,7 @@ priority: high
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 All subtasks Done
-- [ ] #2 An installed gateway recovers its VPN management path after a LAN router/DHCP change without reboot, verified in the QEMU CI job and on gw-c3
+- [x] #2 Router/DHCP-change recovery: covered in QEMU CI only; hardware test on gw-c3 dropped as unnecessary (user decision 2026-09-25) — NOT verified on hardware
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -40,4 +40,10 @@ priority: high
 
 **AC#2 still open on hardware:** a LAN router/DHCP change on gw-c3 (covered in CI only).
 **Follow-ups:** task-126 (vpn host-key proof), task-127 (no root password), task-129 (provisioning role breakage). Next release (v0.2.1) ships the fixes in main.
+
+**AC#2 closed without a hardware test (user decision, 2026-09-25):**
+- The gw-c3 LAN router/DHCP-change test is **dropped as unnecessary**: resilience to a LAN router change is not a requirement.
+- The code stays as is. It is covered **only** by the QEMU CI e2e (case 2, "route follows the new router"); on real hardware it is **unverified and may not work**.
+- gw-c3 baseline at close (read-only): agent v0.2.0-6-g78c2f81, up 15 h 48 m, VPN HEALTHY, `network.iotgw_endpoint.gateway=10.2.0.1`, egress LAN, no backoff.
+- **Observed, not investigated:** at 2026-09-25 05:24 the daemon re-applied `iotgw_endpoint` with identical values (bounced `wg0`/`lan`; kept, no regression). A same-value re-apply should not happen.
 <!-- SECTION:NOTES:END -->
