@@ -3,9 +3,11 @@ id: TASK-137
 title: >-
   Console/LuCI log hint: provisioned gateways log to /var/log/messages
   (rsyslog), not logread
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-09-25 18:27'
+updated_date: '2026-09-25 22:12'
 labels:
   - live-image
   - openwrt
@@ -21,5 +23,11 @@ Found during task-132 (2026-09-25): once the provisioning syslog stack installs 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The console hint and README name the right log on provisioned and unprovisioned gateways
+- [x] #1 The console hint and README name the right log on provisioned and unprovisioned gateways
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Done (v0.4.0).** On OpenWRT the console shows `grep iotgw /var/log/messages` when /usr/sbin/rsyslogd exists, else `logread -e iotgw`; README/LuCI/init script name both; the live image shows `journalctl -t iotgw -t iotgw-bootstrap`.
+<!-- SECTION:NOTES:END -->
