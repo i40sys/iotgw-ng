@@ -8,3 +8,7 @@
 65d8b1dde87dca0eb31a1109f205bbb3a07c171f:iotgw-ui/apps/backend/src/utils/redact.ts:generic-api-key:5
 # The task-130 backlog note quoted that same comment (6ba7034); reworded.
 6ba703453667691b46e3569bfcbb0bce2efcc26f:backlog/tasks/task-130 - Provisioning-configuration-one-deployment-JSON-schema-playbook-variable-contract.md:generic-api-key:155
+# decision-033 seal interop vector: a throwaway X25519 test key pair generated for
+# the test (no real device), live-image/internal/seal/testdata/edge-function-vector.json.
+898564875ff046a938201018d9d4108b7458cb83:live-image/internal/seal/testdata/edge-function-vector.json:generic-api-key:3
+898564875ff046a938201018d9d4108b7458cb83:live-image/internal/seal/testdata/edge-function-vector.json:generic-api-key:4
