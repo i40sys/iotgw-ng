@@ -52,6 +52,13 @@ type (
 		out string
 	}
 
+	// refreshDoneMsg is the outcome of `iotgw vpn|ssh refresh`.
+	refreshDoneMsg struct {
+		what string // "vpn" | "ssh"
+		err  error
+		out  string
+	}
+
 	fastTickMsg time.Time
 	slowTickMsg time.Time
 	hostTickMsg time.Time
@@ -148,34 +155,101 @@ func hostTick() tea.Cmd {
 	return tea.Tick(hostInterval, func(t time.Time) tea.Msg { return hostTickMsg(t) })
 }
 
-// switchInternetCmd asks the binary itself (`iotgw internet <mode>`, as root)
-// to change how the Internet is reached. With hold, the dashboard's only
-// state-changing actions, and they run only after the operator confirmed.
-func switchInternetCmd(via string) tea.Cmd {
-	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		defer cancel()
-		res, err := sysexec.RunPrivileged(ctx, 110*time.Second, platform.Self(), "internet", via)
-		return switchDoneMsg{via: via, err: err, out: lastLine(res.Stdout)}
+// actionLine is one output line of a console action, as it was written.
+type actionLine struct {
+	at     time.Time
+	stderr bool
+	text   string
+}
+
+// action is the console action running now (or run last): what was run,
+// its output line by line as it came, and how it ended — so whoever is at
+// the console can follow it and diagnose a failure on the dashboard itself.
+type action struct {
+	title   string
+	cmdline string
+	started time.Time
+	ended   time.Time // zero while running
+	err     error
+	lines   []actionLine
+}
+
+// maxActionLines bounds the kept output of one action.
+const maxActionLines = 500
+
+type (
+	actionStartMsg struct {
+		title, cmdline string
+		ch             <-chan tea.Msg
 	}
+	actionLineMsg actionLine
+	actionEndMsg  struct{ err error }
+)
+
+// streamAction runs `iotgw <args>` as root and streams it to the dashboard:
+// actionStartMsg, one actionLineMsg per output line, actionEndMsg, then the
+// action's own outcome message from finish. The Update loop pulls them one
+// at a time with nextAction.
+func streamAction(title string, timeout time.Duration, args []string, finish func(sysexec.Result, error) tea.Msg) tea.Cmd {
+	return func() tea.Msg {
+		ch := make(chan tea.Msg, 256)
+		go func() {
+			defer close(ch)
+			ctx, cancel := context.WithTimeout(context.Background(), timeout+10*time.Second)
+			defer cancel()
+			res, err := sysexec.RunPrivilegedStream(ctx, timeout, func(stderr bool, line string) {
+				ch <- actionLineMsg{at: time.Now(), stderr: stderr, text: line}
+			}, platform.Self(), args...)
+			ch <- actionEndMsg{err: err}
+			ch <- finish(res, err)
+		}()
+		return actionStartMsg{title: title, cmdline: "iotgw " + strings.Join(args, " "), ch: ch}
+	}
+}
+
+// nextAction waits for the running action's next message.
+func nextAction(ch <-chan tea.Msg) tea.Cmd {
+	return func() tea.Msg {
+		if msg, ok := <-ch; ok {
+			return msg
+		}
+		return nil
+	}
+}
+
+// switchInternetCmd asks the binary itself (`iotgw internet <mode>`, as root)
+// to change how the Internet is reached. With hold and the VPN/SSH refresh,
+// the dashboard's only state-changing actions; they run only after the
+// operator confirmed.
+func switchInternetCmd(via string) tea.Cmd {
+	return streamAction("Internet via "+strings.ToUpper(via), 110*time.Second, []string{"internet", via},
+		func(res sysexec.Result, err error) tea.Msg {
+			return switchDoneMsg{via: via, err: err, out: lastLine(res.Stdout)}
+		})
 }
 
 // holdCmd freezes or resumes the daemon's automatic changes.
 func holdCmd(on bool) tea.Cmd {
-	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		verb := "disable"
-		if on {
-			verb = "enable"
-		}
-		args := []string{"hold", verb}
-		if on {
-			args = append(args, "-reason", "set from the console dashboard")
-		}
-		res, err := sysexec.RunPrivileged(ctx, 25*time.Second, platform.Self(), args...)
-		return holdDoneMsg{on: on, err: err, out: lastLine(res.Stdout)}
+	args, title := []string{"hold", "disable"}, "Resume automatic repair"
+	if on {
+		args, title = []string{"hold", "enable", "-reason", "set from the console dashboard"}, "Hold"
 	}
+	return streamAction(title, 25*time.Second, args, func(res sysexec.Result, err error) tea.Msg {
+		return holdDoneMsg{on: on, err: err, out: lastLine(res.Stdout)}
+	})
+}
+
+// refreshCmd re-requests the VPN configuration or the SSH trust + host
+// certificate (`iotgw vpn|ssh refresh`, as root), with the code derived from
+// the device identity — the same transaction as the CLI and the LuCI page.
+func refreshCmd(what string, force bool) tea.Cmd {
+	args := []string{what, "refresh"}
+	if force {
+		args = append(args, "-force")
+	}
+	return streamAction(refreshTitle[what], 290*time.Second, args, func(res sysexec.Result, err error) tea.Msg {
+		return refreshDoneMsg{what: what, err: err, out: lastLine(res.Stdout)}
+	})
 }
 
 func lastLine(s string) string {

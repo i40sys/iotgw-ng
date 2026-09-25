@@ -48,13 +48,24 @@ type Model struct {
 	// prompt offers the three policies (l/v/a) instead of y/n.
 	confirmVia string // target mode awaiting y/n; "" when no prompt
 	choosing   bool   // OpenWRT policy chooser open
-	switching  bool
+	busy       bool   // an action (switch, VPN/SSH refresh) is running
 	notice     string
 	noticeBad  bool
 
 	// Hold ([h], OpenWRT): confirm → run → notice.
 	confirmHold string // "enable" | "disable" awaiting y/n
+
+	// VPN / SSH refresh ([v] / [s], OpenWRT): confirm → run → notice.
+	confirmRefresh string // "vpn" | "ssh" awaiting y/n (f = force, ssh)
+
+	// action is the console action running now or run last, streamed line
+	// by line from actionCh (see streamAction).
+	action   *action
+	actionCh <-chan tea.Msg
 }
+
+// refreshTitle names a refresh for notices.
+var refreshTitle = map[string]string{"vpn": "VPN refresh", "ssh": "SSH refresh"}
 
 // currentVia is the applied Internet mode ("lan" when unknown).
 func (m *Model) currentVia() string {
@@ -131,8 +142,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			pick := map[string]string{"l": "lan", "v": "vpn", "a": "auto"}[msg.String()]
 			switch {
 			case pick != "":
-				m.choosing, m.switching = false, true
-				m.notice, m.noticeBad = "Setting the Internet policy to "+strings.ToUpper(pick)+"…", false
+				m.choosing, m.busy = false, true
 				cmds = append(cmds, switchInternetCmd(pick))
 			case msg.String() == "esc" || msg.String() == "n" || msg.String() == "q":
 				m.choosing = false
@@ -143,11 +153,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "y", "Y":
 				on := m.confirmHold == "enable"
-				m.confirmHold = ""
-				m.notice, m.noticeBad = map[bool]string{true: "Enabling hold…", false: "Disabling hold…"}[on], false
+				m.confirmHold, m.busy = "", true
 				cmds = append(cmds, holdCmd(on))
 			case "n", "N", "esc", "q":
 				m.confirmHold = ""
+			}
+			break
+		}
+		if m.confirmRefresh != "" {
+			what, force := m.confirmRefresh, false
+			switch msg.String() {
+			case "f", "F":
+				if what != "ssh" {
+					break
+				}
+				force = true
+				fallthrough
+			case "y", "Y":
+				m.confirmRefresh, m.busy = "", true
+				cmds = append(cmds, refreshCmd(what, force))
+			case "n", "N", "esc", "q":
+				m.confirmRefresh = ""
 			}
 			break
 		}
@@ -155,8 +181,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "y", "Y":
 				via := m.confirmVia
-				m.confirmVia, m.switching = "", true
-				m.notice, m.noticeBad = "Switching Internet to "+strings.ToUpper(via)+" — restarting wg0…", false
+				m.confirmVia, m.busy = "", true
 				cmds = append(cmds, switchInternetCmd(via))
 			case "n", "N", "esc", "q":
 				m.confirmVia = ""
@@ -168,21 +193,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "i":
 			if m.owrt {
-				if !m.switching {
+				if !m.busy {
 					m.choosing = true
 					m.vp.GotoTop()
 				}
 				break
 			}
-			if !m.switching && m.vpn != nil && m.vpn.ConfigLoaded {
+			if !m.busy && m.vpn != nil && m.vpn.ConfigLoaded {
 				m.confirmVia = map[string]string{"lan": "vpn", "vpn": "lan"}[m.currentVia()]
 				m.vp.GotoTop()
 			} else if m.vpn == nil || !m.vpn.ConfigLoaded {
+				m.action = nil
 				m.notice, m.noticeBad = "No VPN configuration was retrieved — nothing to switch", true
 			}
 		case "h":
-			if m.owrt {
+			if m.owrt && !m.busy {
 				m.confirmHold = map[bool]string{true: "disable", false: "enable"}[m.holdOn()]
+				m.vp.GotoTop()
+			}
+		case "v", "s":
+			if m.owrt && !m.busy {
+				m.confirmRefresh = map[string]string{"v": "vpn", "s": "ssh"}[msg.String()]
 				m.vp.GotoTop()
 			}
 		case "r":
@@ -275,7 +306,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		for _, k := range []string{kHost, kNet, kInet, kVPN, kReach, kPKI, kInst} {
 			m.updated[k] = sn.UpdatedAt
 		}
+	case actionStartMsg:
+		m.action = &action{title: msg.title, cmdline: msg.cmdline, started: time.Now()}
+		m.actionCh = msg.ch
+		m.notice, m.noticeBad = "", false
+		m.vp.GotoTop()
+		cmds = append(cmds, nextAction(m.actionCh))
+	case actionLineMsg:
+		if a := m.action; a != nil {
+			a.lines = append(a.lines, actionLine(msg))
+			if len(a.lines) > maxActionLines {
+				a.lines = a.lines[len(a.lines)-maxActionLines:]
+			}
+		}
+		cmds = append(cmds, nextAction(m.actionCh))
+	case actionEndMsg:
+		if a := m.action; a != nil {
+			a.ended, a.err = time.Now(), msg.err
+		}
+		cmds = append(cmds, nextAction(m.actionCh))
+
 	case holdDoneMsg:
+		m.busy = false
 		if msg.err != nil {
 			m.notice, m.noticeBad = "Hold change FAILED: "+msg.err.Error(), true
 		} else {
@@ -283,8 +335,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		cmds = append(cmds, m.provCmd())
 
+	case refreshDoneMsg:
+		m.busy = false
+		if msg.err != nil {
+			m.notice, m.noticeBad = refreshTitle[msg.what]+" FAILED: "+msg.err.Error(), true
+		} else {
+			m.notice, m.noticeBad = refreshTitle[msg.what]+": "+msg.out, false
+		}
+		cmds = append(cmds, kickDaemonCmd(), m.provCmd())
+
 	case switchDoneMsg:
-		m.switching = false
+		m.busy = false
 		switch {
 		case msg.err != nil:
 			m.notice, m.noticeBad = "Switch to "+strings.ToUpper(msg.via)+" FAILED: "+msg.err.Error(), true

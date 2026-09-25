@@ -58,8 +58,26 @@ func (m Model) footer() string {
 			keyStyle.Render("[d]") + " Details",
 			keyStyle.Render("[i]") + " Internet policy",
 			keyStyle.Render("[h]") + " " + hold,
-			keyStyle.Render("[PgUp/PgDn]") + " Scroll",
+			keyStyle.Render("[v]") + " VPN refresh",
+			keyStyle.Render("[s]") + " SSH refresh",
 			keyStyle.Render("[q]") + " Shell",
+		}
+		// A serial console is often 80 columns: shorter labels before the
+		// line would wrap (scrolling still works, it just is not listed).
+		if lipgloss.Width(strings.Join(keys, "   ")) > m.width-2 {
+			if m.holdOn() {
+				hold = "Resume"
+			}
+			keys = []string{
+				keyStyle.Render("[r]") + " Refresh",
+				keyStyle.Render("[d]") + " Details",
+				keyStyle.Render("[i]") + " Internet",
+				keyStyle.Render("[h]") + " " + hold,
+				keyStyle.Render("[v]") + " VPN",
+				keyStyle.Render("[s]") + " SSH",
+				keyStyle.Render("[q]") + " Shell",
+			}
+			return footerStyle.Width(m.width).Render(fill(strings.Join(keys, " "), "", m.width-2))
 		}
 	}
 	updated := ""
@@ -93,7 +111,8 @@ func (m Model) body() string {
 	return lipgloss.JoinVertical(lipgloss.Left, append(top, m.dashboard())...)
 }
 
-// switchPanel is the Internet-mode confirmation prompt or the last notice.
+// switchPanel is the pending confirmation prompt (Internet mode, hold,
+// VPN/SSH refresh) or the last notice.
 func (m Model) switchPanel() string {
 	w := m.width
 	switch {
@@ -119,6 +138,21 @@ func (m Model) switchPanel() string {
 		return panel("Resume automatic repair?", state.Pending, w,
 			"The daemon will again fix the Netmaker route and the Internet path on its next check.",
 			"", keyStyle.Render("[y]")+" resume   "+keyStyle.Render("[n]")+" cancel")
+	case m.confirmRefresh == "vpn":
+		return panel("Refresh the VPN configuration?", state.Pending, w,
+			"Re-requests the WireGuard configuration from the vpn API (code derived from",
+			"this device's identity) and applies it; it is kept only if the tunnel comes",
+			"back up, otherwise the previous configuration is restored.",
+			"wg0 restarts (a few seconds without VPN; SSH over the VPN drops).",
+			"", keyStyle.Render("[y]")+" refresh   "+keyStyle.Render("[n]")+" cancel")
+	case m.confirmRefresh == "ssh":
+		return panel("Refresh SSH trust and the host certificate?", state.Pending, w,
+			"Re-requests the User CA and a host certificate from the ssh-ca API (code",
+			"derived from this device's identity), checks them with `sshd -t` and reloads",
+			"sshd; every file is restored if sshd does not serve them. A current",
+			"certificate is kept unless you force it. After a reinstall, first use",
+			"\"Reset SSH enrollment\" on the device page in the iotgw-ng UI.",
+			"", keyStyle.Render("[y]")+" refresh   "+keyStyle.Render("[f]")+" force re-issue   "+keyStyle.Render("[n]")+" cancel")
 	case m.confirmVia == "vpn":
 		return panel("Switch Internet to VPN (full tunnel)?", state.Pending, w,
 			"All traffic and DNS go through wg0; the Internet egresses from the",
@@ -132,9 +166,11 @@ func (m Model) switchPanel() string {
 			"use the local LAN gateway and resolvers.",
 			"wg0 restarts (a few seconds without VPN; SSH over the VPN drops).",
 			"", keyStyle.Render("[y]")+" switch   "+keyStyle.Render("[n]")+" cancel")
+	case m.action != nil:
+		return m.actionPanel()
 	case m.notice != "":
 		st := state.Healthy
-		if m.switching {
+		if m.busy {
 			st = state.Running
 		} else if m.noticeBad {
 			st = state.Failed
@@ -142,6 +178,69 @@ func (m Model) switchPanel() string {
 		return panel("Last action", st, w, m.notice)
 	}
 	return ""
+}
+
+// actionShown is how many of the latest output lines the dashboard shows;
+// Details ([d]) shows them all.
+const actionShown = 12
+
+// actionPanel follows the console action live: the command, how long it has
+// run, its output line by line as the command writes it (stderr marked "!"),
+// and how it ended — enough to diagnose a failure on the console itself.
+func (m Model) actionPanel() string {
+	a := m.action
+	st, verdict := state.Running, "running for "+time.Since(a.started).Round(time.Second).String()
+	if !a.ended.IsZero() {
+		took := a.ended.Sub(a.started).Round(time.Second).String()
+		st, verdict = state.Healthy, "finished in "+took
+		if a.err != nil {
+			st, verdict = state.Failed, "FAILED after "+took
+		}
+	}
+	rows := []string{kv("Command", a.cmdline), kv("Started", a.started.Format("15:04:05")+" — "+verdict)}
+	shown := a.lines
+	if n := len(shown) - actionShown; n > 0 {
+		rows = append(rows, labelStyle.Render(fmt.Sprintf("… %d earlier lines — [d] Details shows the whole output", n)))
+		shown = shown[n:]
+	}
+	for _, l := range shown {
+		rows = append(rows, actionRow(l))
+	}
+	if len(a.lines) == 0 && a.ended.IsZero() {
+		rows = append(rows, labelStyle.Render("(no output yet)"))
+	}
+	if m.notice != "" && !a.ended.IsZero() {
+		rows = append(rows, "", titleStyle.Render("Result: ")+m.notice)
+	}
+	rows = append(rows, labelStyle.Render("Also in the system log: logread -e iotgw"))
+	return panel("Action: "+a.title, st, m.width, rows...)
+}
+
+func actionRow(l actionLine) string {
+	mark := "  "
+	if l.stderr {
+		mark = "! "
+	}
+	return labelStyle.Render(l.at.Format("15:04:05")) + " " + mark + l.text
+}
+
+// actionDetails is the whole output of the last console action.
+func (m Model) actionDetails() string {
+	a := m.action
+	if a == nil {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString(titleStyle.Render("Last console action: "+a.title) + "\n")
+	b.WriteString(kv("Command", a.cmdline) + "\n")
+	if a.err != nil {
+		b.WriteString(kv("Error", a.err.Error()) + "\n")
+	}
+	wrap := lipgloss.NewStyle().Width(max(m.width-2, 40))
+	for _, l := range a.lines {
+		b.WriteString(wrap.Render(actionRow(l)) + "\n")
+	}
+	return b.String() + "\n"
 }
 
 // holdBanner makes hold impossible to miss: what it is, since when, why,
@@ -512,6 +611,7 @@ func (m Model) details() string {
 		logs = "logread -e iotgw"
 	}
 	b.WriteString(labelStyle.Render("Press [d] or [Esc] to return. Full logs: "+logs) + "\n\n")
+	b.WriteString(m.actionDetails())
 	if m.owrt {
 		b.WriteString(m.agentDetails())
 	}
