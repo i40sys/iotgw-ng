@@ -2,7 +2,7 @@ import { deploymentConfigJsonSchema } from "../../../../packages/supabase-contra
 
 // Keys whose VALUE must never reach a log line. A deployment configuration can
 // hold provisioning secrets (task-130: x-secret fields — root password, OAuth2
-// client secrets, EMQX/GLPI/Influx credentials, …), so the whole document is
+// client secrets, EMQX/GLPI/Influx logins, …), so the whole document is
 // dropped, and any schema secret key is masked wherever it appears.
 const REDACTED = "[redacted]";
 

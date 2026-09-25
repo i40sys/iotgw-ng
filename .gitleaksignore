@@ -1,0 +1,6 @@
+# Audited gitleaks false positives, by fingerprint (commit:file:rule:line).
+# Keep this list exact — never ignore a rule or a whole file.
+
+# task-130: generic-api-key matched the prose comment "…, EMQX/GLPI/Influx
+# credentials, …)" in redact.ts (no value, just words). Reworded in a later commit.
+2ec072bc6d3d00cc0ba84b6c7633b19e54898ff6:iotgw-ui/apps/backend/src/utils/redact.ts:generic-api-key:5
