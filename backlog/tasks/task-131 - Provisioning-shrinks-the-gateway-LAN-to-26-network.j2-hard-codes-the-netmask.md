@@ -1,11 +1,11 @@
 ---
 id: TASK-131
 title: 'Provisioning shrinks the gateway LAN to /26: network.j2 hard-codes the netmask'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-25 06:44'
-updated_date: '2026-09-25 06:57'
+updated_date: '2026-09-25 16:58'
 labels:
   - kestra
   - ansible
@@ -33,7 +33,7 @@ priority: high
 <!-- AC:BEGIN -->
 - [x] #1 network.j2 no longer hard-codes the LAN netmask; it comes from the config or the gateway's current value
 - [x] #2 The schema and preflight know the new variable; an invalid netmask/prefix is rejected before the gateway is touched
-- [ ] #3 A provisioning run keeps an existing /24 LAN at /24 (verified on gw-c3, which is restored to /24)
+- [x] #3 A provisioning run keeps an existing /24 LAN at /24 (verified on gw-c3, which is restored to /24)
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -51,4 +51,12 @@ priority: high
 **Finding:** the task-125 "05:24 re-apply" was this provisioning run: `network.j2` does not write `iotgw_endpoint`, so the rewrite drops it and the daemon restores it one check later (expected).
 
 **AC#3 pending:** gw-c3 is still /26 (backup `/root/.iotgw-provisioning-backup/network.20260925T052400` has /24).
+
+**AC#3 verified on gw-c3 (2026-09-25):**
+- gw-c3 reinstalled (install exec 26xPdP1NCnKEtKh0LiNYuO) → LAN /24 from the install.
+- Provisioning exec **16eszXuegu1PHGPYnW5rZV** (tags system, ntp, firewall, ssh_ca; `local_netmask` empty): SUCCESS, `ok=76 changed=31 failed=0`.
+- Run log: `br-lan 10.254.253.1/24 (255.255.255.0, from the gateway); DHCP pool offset 40, 50 addresses`.
+- On the gateway afterwards: `network.lan.netmask='255.255.255.0'`, `br-lan 10.254.253.1/24`, `dhcp.lan` start 40 / limit 50, VPN HEALTHY.
+
+**Observed (not in scope):** `system: Install packages using opkg` installs 186 packages one loop item at a time on a fresh install (~22 min of the 30-min run).
 <!-- SECTION:NOTES:END -->
