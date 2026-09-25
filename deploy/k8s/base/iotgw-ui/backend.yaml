@@ -3,6 +3,7 @@
 # Env wiring (decision-014):
 #   SUPABASE_URL       -> http://kong:8000  (in-cluster Kong Service)
 #   SUPABASE_SERVICE_KEY -> supabase-env / SERVICE_ROLE_KEY
+#   JWT_SECRET         -> supabase-env / JWT_SECRET (operator tokens, decision-034)
 #   KMS_URL            -> http://cosmian-kms:9998  (in-cluster KMS Service)
 #   KESTRA_USER / PASSWORD -> kestra-env / KESTRA_BASIC_AUTH_*
 apiVersion: apps/v1
@@ -41,6 +42,16 @@ spec:
                 secretKeyRef:
                   name: supabase-env
                   key: SERVICE_ROLE_KEY
+            # Operator auth (decision-034): every tRPC procedure verifies the
+            # caller's GoTrue access token (HS256) with the stack's JWT signing
+            # secret. Same supabase-env Secret as SERVICE_ROLE_KEY (bridged into
+            # this namespace by bootstrap.sh make_secrets). Unset -> all tRPC
+            # calls are refused (fail closed).
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-env
+                  key: JWT_SECRET
             - name: KMS_URL
               value: http://cosmian-kms.kms.svc.cluster.local:9998
             # Kestra REST API base for backend-driven flows (connectivity-check,

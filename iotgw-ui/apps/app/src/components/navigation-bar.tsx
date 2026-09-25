@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBars,
@@ -9,6 +9,7 @@ import {
   faMoon,
   faSun,
   faDisplay,
+  faRightFromBracket,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   DropdownMenu,
@@ -29,6 +30,8 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 import { getAppVersion } from "@/utils/version";
+import { signOut, useSession } from "@/lib/auth";
+import { queryClient } from "@/utils/trpc";
 import { NAV_SECTIONS, findActiveSection } from "./navigation/nav-config";
 import { SectionNav } from "./section-nav";
 
@@ -125,6 +128,43 @@ function PreferencesMenu() {
   );
 }
 
+/** The signed-in operator (decision-034) and the sign-out action. */
+function OperatorMenu() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const session = useSession();
+  const email = session?.user.email;
+
+  const handleSignOut = async () => {
+    await signOut();
+    queryClient.clear();
+    await router.navigate({ to: "/login" });
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      {email && (
+        <span
+          className="text-muted-foreground hidden max-w-56 truncate text-sm sm:inline"
+          title={email}
+          data-testid="operator-email"
+        >
+          {email}
+        </span>
+      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={t("auth.signOut")}
+        title={t("auth.signOut")}
+        onClick={() => void handleSignOut()}
+      >
+        <FontAwesomeIcon icon={faRightFromBracket} aria-hidden="true" />
+      </Button>
+    </div>
+  );
+}
+
 export function NavigationBar() {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -170,6 +210,7 @@ export function NavigationBar() {
         </ul>
 
         <div className="ml-auto flex items-center gap-1">
+          <OperatorMenu />
           <PreferencesMenu />
 
           {/* Mobile: whole tree in a sheet. */}

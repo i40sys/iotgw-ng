@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/collect"
+	"github.com/i40sys/iotgw-ng/live-image/internal/platform"
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
 	"github.com/i40sys/iotgw-ng/live-image/internal/version"
 )
@@ -238,7 +239,7 @@ func (m Model) actionPanel() string {
 	if m.notice != "" && !a.ended.IsZero() {
 		rows = append(rows, "", titleStyle.Render("Result: ")+m.notice)
 	}
-	rows = append(rows, labelStyle.Render("Also in the system log: logread -e iotgw"))
+	rows = append(rows, labelStyle.Render("Also in the system log: "+m.logHint()))
 	return panel("Action: "+a.title, st, m.width, rows...)
 }
 
@@ -634,7 +635,7 @@ func (m Model) details() string {
 	b.WriteString(titleStyle.Render("Details — what is not healthy, and why") + "\n")
 	logs := "journalctl -u iotgw-bootstrap"
 	if m.owrt {
-		logs = "logread -e iotgw"
+		logs = m.logHint()
 	}
 	b.WriteString(labelStyle.Render("Press [d] or [Esc] to return. Full logs: "+logs) + "\n\n")
 	b.WriteString(m.actionDetails())
@@ -727,4 +728,13 @@ func worstOf(ss ...state.Status) state.Status {
 
 func checkOf(s state.Status, detail string) collect.Check {
 	return collect.Check{Status: s, Detail: detail}
+}
+
+// logHint is where the system log is (task-137): logread, or
+// /var/log/messages once the provisioning installed rsyslog.
+func (m Model) logHint() string {
+	if m.owrt {
+		return platform.LogHint(platform.OpenWRT)
+	}
+	return platform.LogHint(platform.LiveImage)
 }

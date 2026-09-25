@@ -380,8 +380,8 @@ func (a *Agent) sshEnroll(ctx context.Context, cfg Config, code string, out func
 		return enrollReply{}, fmt.Errorf("host key: %w", err)
 	}
 	req := map[string]string{"device_id": cfg.DeviceID, "action": "enroll", "host_pubkey": hostPub}
-	client := devapi.New(cfg.APIBase, cfg.DeviceID, code)
-	out(fmt.Sprintf("requesting SSH trust + host certificate from %s (action enroll, operator code)", client.Endpoint("ssh-ca")))
+	client := devapi.New(cfg.APIBase, cfg.DeviceID, code, devapi.WithCAFile(cfg.APICA))
+	out(fmt.Sprintf("requesting SSH trust + host certificate from %s (action enroll, operator code; %s)", client.Endpoint("ssh-ca"), client.Trust()))
 	raw, status, err := client.Call(ctx, "ssh-ca", req)
 	if err != nil {
 		var ae *devapi.APIError
@@ -405,8 +405,8 @@ func (a *Agent) sshRenew(ctx context.Context, cfg Config, out func(string)) (enr
 		return enrollReply{}, fmt.Errorf("sign the renewal with the host key: %w", err)
 	}
 	req := map[string]any{"device_id": cfg.DeviceID, "action": "renew", "host_pubkey": hostPub, "ts": ts, "sig": sig}
-	client := devapi.New(cfg.APIBase, cfg.DeviceID, "")
-	out(fmt.Sprintf("requesting a renewed host certificate from %s (action renew, signed by the host key)", client.Endpoint("ssh-ca")))
+	client := devapi.New(cfg.APIBase, cfg.DeviceID, "", devapi.WithCAFile(cfg.APICA))
+	out(fmt.Sprintf("requesting a renewed host certificate from %s (action renew, signed by the host key; %s)", client.Endpoint("ssh-ca"), client.Trust()))
 	raw, status, err := client.CallPlain(ctx, "ssh-ca", req)
 	if err != nil {
 		return enrollReply{}, fmt.Errorf("ssh-ca API (HTTP %d): %w", status, err)

@@ -106,6 +106,7 @@ make_secrets() {
   gen_supabase_anon_secret  # supabase-anon      -> kestra (ssh_ca runner, task-105)
   gen_ops_cert_mint_secret  # ops-cert-mint      -> iotgw-ui (backend) + kestra (runner, task-092)
   gen_device_auth_secret    # device-auth        -> iotgw-ui (backend) + supabase-app (functions, decision-033)
+  gen_device_api_tls_secret # device-api-tls     -> ingress-nginx (default cert, decision-035)
   echo "secrets applied"
 }
 
@@ -195,6 +196,25 @@ gen_device_auth_secret() {
       --from-literal=DEVICE_AUTH_TOKEN="$tok" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
   done
   echo "  device-auth Secret applied to $NS_UI (backend) + $NS_APP (functions, decision-033)"
+}
+
+# The device-API TLS certificate (decision-035): ingress-nginx serves it as its
+# default certificate to gateways calling https://<host IP> (no SNI). Key + cert
+# live in secrets/device-api-tls.enc.yaml (SOPS); the CA certificate is public
+# (live-image/overlay/etc/iotgw/api-ca.pem) and pinned by the gateways.
+gen_device_api_tls_secret() {
+  local d
+  d="$(mktemp -d)"
+  if ! sops -d --extract '["tls_crt"]' secrets/device-api-tls.enc.yaml > "$d/tls.crt" 2>/dev/null \
+     || ! sops -d --extract '["tls_key"]' secrets/device-api-tls.enc.yaml > "$d/tls.key" 2>/dev/null; then
+    rm -rf "$d"
+    echo "  (skip device-api-tls Secret: secrets/device-api-tls.enc.yaml not decryptable)"
+    return 0
+  fi
+  kubectl create secret tls device-api-tls -n ingress-nginx \
+    --cert="$d/tls.crt" --key="$d/tls.key" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+  rm -rf "$d"
+  echo "  device-api-tls Secret applied to ingress-nginx (default certificate, decision-035)"
 }
 
 gen_ops_cert_mint_secret() {
@@ -316,9 +336,20 @@ build_iotgw_ui() {
   docker build -t iotgw-ui-backend:local \
     -f iotgw-ui/apps/backend/.docker/Dockerfile \
     iotgw-ui/
-  echo "==> building iotgw-ui-frontend:local (VITE_API_URL=http://iotgw-ui-backend.wsl.ymbihq.local)"
+  # Operator login (decision-034): the SPA signs in against Supabase Auth through
+  # Kong's host port 8000 (NodePort 30800) with the public anon key, both baked at
+  # build time. wsl.ymbihq.local:8000, not the api.wsl.ymbihq.local ingress vhost:
+  # the operator's (Windows) browser resolves wsl.ymbihq.local but has no record
+  # for api.*. The anon key comes from the SOPS store (supabase ANON_KEY).
+  local anon
+  anon="$(tools/secrets/secrets.sh cat supabase 2>/dev/null \
+         | grep -E '^ANON_KEY=' | head -1 | cut -d= -f2-)" || true
+  [ -n "$anon" ] || echo "  WARN: ANON_KEY not found in SOPS store — the SPA login will be disabled"
+  echo "==> building iotgw-ui-frontend:local (VITE_API_URL=http://iotgw-ui-backend.wsl.ymbihq.local, VITE_SUPABASE_URL=http://wsl.ymbihq.local:8000)"
   docker build -t iotgw-ui-frontend:local \
     --build-arg VITE_API_URL=http://iotgw-ui-backend.wsl.ymbihq.local \
+    --build-arg VITE_SUPABASE_URL=http://wsl.ymbihq.local:8000 \
+    --build-arg VITE_SUPABASE_ANON_KEY="$anon" \
     -f iotgw-ui/apps/app/.docker/Dockerfile \
     iotgw-ui/
   echo "==> loading iotgw-ui-backend:local and iotgw-ui-frontend:local into kind cluster '$CLUSTER'"

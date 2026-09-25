@@ -85,23 +85,26 @@ pki() { # <METHOD> <path> [json-body] → stdout body; nonzero on HTTP >=400
   fi
 }
 
-# ── lab device ids + current TOTP (edge-fn auth; no new device created) ──────
+# ── lab device ids + a one-time code (edge-fn auth; no new device created) ──
+# decision-033: codes come from a KMS-held seed that only the iotgw-ui backend
+# reads; ask it IN-CLUSTER (like the Kestra runner does) for the current code.
 DEVLINE="$(kubectl -n supabase-db exec supabase-db-0 -c patroni -- psql -U postgres -d postgres -At -q -P pager=off -F' ' -c \
-  "select d.id, n.id, dom.id, d.totp_counter, left(n.id::text,8) from devices d join networks n on d.network_id=n.id join domains dom on n.domain_id=dom.id where d.name='$DEVICE_NAME' and dom.pki_zone='$ZONE' limit 1;" 2>/dev/null \
+  "select d.id, left(n.id::text,8) from devices d join networks n on d.network_id=n.id join domains dom on n.domain_id=dom.id where d.name='$DEVICE_NAME' and dom.pki_zone='$ZONE' limit 1;" 2>/dev/null \
   | grep -Ev 'Pager usage|^$' | tail -1)"
-read -r DEV_UUID NET_ID DOM_ID COUNTER NET_PREFIX <<<"$DEVLINE"
+read -r DEV_UUID NET_PREFIX <<<"$DEVLINE"
 if [ -z "${DEV_UUID:-}" ]; then fail "ssh-ca smoke: lab device $DEVICE_NAME @ $ZONE not found in DB"; exit "$SMOKE_RC"; fi
 DEVICE_ID="${DEVICE_NAME}@${NET_PREFIX}"
-TOTP="$(python3 - "$DOM_ID" "$NET_ID" "$DEV_UUID" "$COUNTER" <<'PY'
-import hmac, hashlib, struct, time, sys
-dom, net, dev, ctr = sys.argv[1:5]
-secret = f"{dom}-{net}-{dev}-{ctr}".encode()
-h = hmac.new(secret, struct.pack(">Q", int(time.time()) // 600), hashlib.sha1).digest()
-o = h[-1] & 0x0f
-b = ((h[o] & 0x7f) << 24) | ((h[o+1] & 0xff) << 16) | ((h[o+2] & 0xff) << 8) | (h[o+3] & 0xff)
-print(str(b % 1000000).zfill(6))
-PY
-)"
+enroll_code() {
+  kubectl -n iotgw-ui exec deploy/iotgw-ui-backend -- node -e '
+    fetch("http://127.0.0.1:4444/internal/devices/enroll-code", {method: "POST",
+      headers: {"Authorization": "Bearer " + process.env.OPS_CERT_MINT_TOKEN, "Content-Type": "application/json"},
+      body: JSON.stringify({device_uuid: process.argv[1]})})
+    .then(r => r.json()).then(j => { if (!j.code) { process.exit(2) } process.stdout.write(j.code) })
+    .catch(() => process.exit(3))' "$DEV_UUID" 2>/dev/null
+}
+if ! TOTP="$(enroll_code)" || [ -z "$TOTP" ]; then
+  fail "ssh-ca smoke: the backend did not issue a one-time code (enroll-code endpoint)"; exit "$SMOKE_RC"
+fi
 
 # ── gateway container ───────────────────────────────────────────────────────
 docker rm -f "$CTR" >/dev/null 2>&1 || true
@@ -152,33 +155,38 @@ print("HOST_ID=" + shlex.quote(str(d.get("host_id", ""))))
 PY
 )"
 
-# ── [1b/4] re-enroll requires proof-of-continuity (AC#4, task-075) ───────────
-# The enroll above recorded ssh_host_pubkey, so a re-enroll must now prove
-# possession of the existing host key: without a continuity_sig → 401; with a
-# valid SSHSIG (namespace iotgw-reenroll) signed by that key → accepted.
+# ── [1b/4] an enrolled device renews with its HOST KEY, not a code ──────────
+# decision-033 §5: a second `enroll` is refused (409 — renewal is not an enroll),
+# `renew` signed by the enrolled host key (SSHSIG, namespace iotgw-renew, over
+# "<device_id>\n<host_pubkey>\n<ts>") is accepted without any code, and replaying
+# the same signed request is refused.
 NORM_PUB="$(printf '%s' "$HOST_PUB" | awk '{print $1" "$2}')"
+TOTP2="$(enroll_code || true)"
 REQ_RE="$(python3 -c 'import json,sys;print(json.dumps({"device_id":sys.argv[1],"action":"enroll","host_pubkey":sys.argv[2]}))' "$DEVICE_ID" "$HOST_PUB")"
-CODE_NP="$(printf '%s' "$REQ_RE" \
-  | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass "pass:$TOTP" \
+CODE_RE="$(printf '%s' "$REQ_RE" \
+  | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass "pass:${TOTP2:-000000}" \
   | curl -s -o /dev/null -w '%{http_code}' -m 30 -X POST "$ENC_URL" -H "Authorization: Bearer $ANON" \
       -H 'Content-Type: application/octet-stream' --data-binary @- 2>/dev/null)"
-if [ "$CODE_NP" = "401" ]; then
-  pass "re-enroll WITHOUT proof-of-continuity is rejected (HTTP 401)"
+if [ "$CODE_RE" = "409" ]; then
+  pass "a second enroll of an enrolled device is refused (HTTP 409)"
 else
-  fail "re-enroll without proof was NOT rejected (HTTP $CODE_NP; expected 401)"
+  fail "a second enroll was NOT refused with 409 (HTTP $CODE_RE)"
 fi
-docker exec "$CTR" sh -c "printf '%s\n%s\n%s' '$DEVICE_ID' '$NORM_PUB' '$TOTP' > /tmp/reench && ssh-keygen -Y sign -f /etc/ssh/ssh_host_ecdsa_key -n iotgw-reenroll /tmp/reench >/dev/null 2>&1"
-CONT_SIG="$(docker exec "$CTR" cat /tmp/reench.sig)"
-REQ_RP="$(python3 -c 'import json,sys;print(json.dumps({"device_id":sys.argv[1],"action":"enroll","host_pubkey":sys.argv[2],"continuity_sig":sys.argv[3]}))' "$DEVICE_ID" "$HOST_PUB" "$CONT_SIG")"
-if REENR="$(printf '%s' "$REQ_RP" \
-  | openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass "pass:$TOTP" \
-  | curl -fsS -m 30 -X POST "$ENC_URL" -H "Authorization: Bearer $ANON" \
-      -H 'Content-Type: application/octet-stream' --data-binary @- \
-  | openssl enc -d -aes-256-cbc -pbkdf2 -iter 300000 -pass "pass:$TOTP" 2>/dev/null)" \
-  && printf '%s' "$REENR" | python3 -c 'import sys,json;assert json.load(sys.stdin).get("host_cert")' 2>/dev/null; then
-  pass "re-enroll WITH valid proof-of-continuity is accepted (fresh host cert)"
+TS="$(date +%s)"
+docker exec "$CTR" sh -c "printf '%s\n%s\n%s' '$DEVICE_ID' '$NORM_PUB' '$TS' > /tmp/renew && ssh-keygen -Y sign -f /etc/ssh/ssh_host_ecdsa_key -n iotgw-renew /tmp/renew >/dev/null 2>&1"
+RENEW_SIG="$(docker exec "$CTR" cat /tmp/renew.sig)"
+REQ_RN="$(python3 -c 'import json,sys;print(json.dumps({"device_id":sys.argv[1],"action":"renew","host_pubkey":sys.argv[2],"ts":int(sys.argv[3]),"sig":sys.argv[4]}))' "$DEVICE_ID" "$NORM_PUB" "$TS" "$RENEW_SIG")"
+if RENEW="$(curl -fsS -m 30 -X POST "$ENC_URL" -H "Authorization: Bearer $ANON" -H 'Content-Type: application/json' --data "$REQ_RN")" \
+  && printf '%s' "$RENEW" | python3 -c 'import sys,json;assert json.load(sys.stdin).get("host_cert")' 2>/dev/null; then
+  pass "renew signed by the enrolled host key is accepted without a code (fresh host cert)"
 else
-  fail "re-enroll with valid proof was NOT accepted"
+  fail "renew with a valid host-key signature was NOT accepted"
+fi
+CODE_RP="$(curl -s -o /dev/null -w '%{http_code}' -m 30 -X POST "$ENC_URL" -H "Authorization: Bearer $ANON" -H 'Content-Type: application/json' --data "$REQ_RN")"
+if [ "$CODE_RP" = "401" ]; then
+  pass "replaying the same signed renew is refused (HTTP 401)"
+else
+  fail "a replayed renew was NOT refused (HTTP $CODE_RP; expected 401)"
 fi
 
 # ── install trust material + sshd drop-in, then start sshd with a file log ───

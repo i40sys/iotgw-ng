@@ -12,10 +12,22 @@
 // by an SSHSIG of the enrolled host key.
 //
 //	fakeapi genkey                      print "<private> <public>" (WireGuard)
-//	fakeapi serve -listen 127.0.0.1:18080 -dir DIR
+//	fakeapi gentls -dir DIR -hosts H,…  throwaway device-API CA + server cert
+//	                                    (DIR/api-ca.pem, api.pem, api.key)
+//	fakeapi pipe HOST:PORT              relay stdio to HOST:PORT (a QEMU guestfwd cmd)
+//	fakeapi serve -listen 127.0.0.1:18080 -dir DIR [-tls-listen ADDR] [-netmaker-hook CMD]
 //
-// DIR holds the scenario: gw.key (gateway WireGuard private key), hub.pub,
-// host_ca / user_ca.pub (ssh-keygen CAs) and network_id.
+// DIR holds the scenario: gw.key (the gateway's install-time WireGuard
+// private key), hub.pub, host_ca / user_ca.pub (ssh-keygen CAs) and
+// network_id. -tls-listen also serves the API over HTTPS with DIR/api.pem
+// (decision-035 §1).
+//
+// Gateway-held WireGuard keys (decision-035 §2): a vpn request with
+// "wg_public_key" gets a config WITHOUT a PrivateKey line; when the key
+// differs from the device's current one, fakeapi "updates Netmaker" by
+// running -netmaker-hook (sh -c, env NEW_PUBLIC_KEY / OLD_PUBLIC_KEY) —
+// the QEMU test moves the hub's WireGuard peer — and the device's key becomes
+// gateway-held (a later keyless request is refused with 409).
 //
 // Test-only endpoints (the operator's view of the UI):
 //
@@ -27,6 +39,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/ecdh"
 	"crypto/hmac"
 	"crypto/rand"
@@ -38,6 +51,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -48,6 +62,8 @@ import (
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/envelope"
 	"github.com/i40sys/iotgw-ng/live-image/internal/seal"
+	"github.com/i40sys/iotgw-ng/live-image/internal/testpki"
+	"github.com/i40sys/iotgw-ng/live-image/internal/wgkey"
 )
 
 const (
@@ -66,16 +82,71 @@ func main() {
 		fmt.Println(base64.StdEncoding.EncodeToString(k.Bytes()), base64.StdEncoding.EncodeToString(k.PublicKey().Bytes()))
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "gentls" {
+		fs := flag.NewFlagSet("gentls", flag.ExitOnError)
+		dir := fs.String("dir", ".", "output directory")
+		hosts := fs.String("hosts", "127.0.0.1", "comma-separated IPs / DNS names for the server certificate")
+		_ = fs.Parse(os.Args[2:])
+		if err := genTLS(*dir, strings.Split(*hosts, ",")); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+	if len(os.Args) == 3 && os.Args[1] == "pipe" {
+		pipe(os.Args[2])
+		return
+	}
 	if len(os.Args) < 2 || os.Args[1] != "serve" {
-		log.Fatal("usage: fakeapi genkey | fakeapi serve -listen ADDR -dir DIR")
+		log.Fatal("usage: fakeapi genkey | gentls -dir DIR -hosts H,… | pipe HOST:PORT | serve -listen ADDR -dir DIR [-tls-listen ADDR] [-netmaker-hook CMD]")
 	}
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 	listen := fs.String("listen", "127.0.0.1:18080", "listen address")
+	tlsListen := fs.String("tls-listen", "", "also serve HTTPS here with DIR/api.pem + DIR/api.key")
+	hook := fs.String("netmaker-hook", "", "shell command run when a device's WireGuard public key changes")
 	dir := fs.String("dir", ".", "scenario directory")
 	_ = fs.Parse(os.Args[2:])
 	s := newServer(*dir)
+	s.hook = *hook
+	if *tlsListen != "" {
+		go func() {
+			log.Printf("fakeapi listening on https://%s", *tlsListen)
+			log.Fatal(http.ListenAndServeTLS(*tlsListen, filepath.Join(*dir, "api.pem"), filepath.Join(*dir, "api.key"), s.mux()))
+		}()
+	}
 	log.Printf("fakeapi listening on %s (scenario %s)", *listen, *dir)
 	log.Fatal(http.ListenAndServe(*listen, s.mux()))
+}
+
+// genTLS writes a throwaway CA and a server certificate for hosts.
+func genTLS(dir string, hosts []string) error {
+	b, err := testpki.New(hosts...)
+	if err != nil {
+		return err
+	}
+	for name, v := range map[string][]byte{"api-ca.pem": b.CAPEM, "api.pem": b.CertPEM, "api.key": b.KeyPEM} {
+		if err := os.WriteFile(filepath.Join(dir, name), v, 0o600); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// pipe relays stdin/stdout to a TCP address: QEMU's guestfwd runs one per
+// guest connection (`guestfwd=tcp:IP:443-cmd:fakeapi pipe 127.0.0.1:PORT`).
+func pipe(addr string) {
+	c, err := net.Dial("tcp", addr)
+	if err != nil {
+		os.Exit(1)
+	}
+	done := make(chan struct{}, 2)
+	go func() {
+		_, _ = io.Copy(c, bufio.NewReader(os.Stdin))
+		c.(*net.TCPConn).CloseWrite()
+		done <- struct{}{}
+	}()
+	go func() { _, _ = io.Copy(os.Stdout, c); done <- struct{}{} }()
+	<-done
+	<-done
 }
 
 // device is the server-side record of one device.
@@ -87,6 +158,8 @@ type device struct {
 	lockedUntil time.Time
 	hostPub     string // enrolled host key ("type base64"); "" = not enrolled
 	lastRenewTS int64
+	wgPub       string // the Netmaker client's WireGuard public key
+	wgHeld      bool   // the private key is gateway-held (server stores none)
 }
 
 type server struct {
@@ -97,6 +170,7 @@ type server struct {
 	validity string // long | short (short = inside the gateway's renewal margin)
 	devices  map[string]*device
 	now      func() time.Time
+	hook     string // -netmaker-hook
 }
 
 func newServer(dir string) *server {
@@ -126,6 +200,7 @@ func (s *server) dev(id string) *device {
 	d := s.devices[id]
 	if d == nil {
 		d = &device{}
+		d.wgPub, _ = wgkey.Public(s.read("gw.key"))
 		s.rotate(d)
 		s.devices[id] = d
 	}
@@ -183,7 +258,9 @@ func (s *server) authenticate(w http.ResponseWriter, deviceID, purpose string, b
 	for _, st := range []int64{now - 1, now, now + 1} {
 		code := codeAt(d.seed, st)
 		plain, err := envelope.Open(body, code)
-		if err != nil {
+		if err != nil || !json.Valid(plain) {
+			// A wrong code still passes the CBC padding check ~1/256 of the
+			// time: only a JSON plaintext proves the right code.
 			continue
 		}
 		if usedStep(d, purpose) >= st {
@@ -275,11 +352,45 @@ func (s *server) vpn(w http.ResponseWriter, r *http.Request) {
 		// A syntactically valid key nobody holds: the tunnel cannot come up.
 		peer = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 	}
+	keyLine := "PrivateKey = " + s.read("gw.key")
+	if pub, sent := req["wg_public_key"]; sent {
+		if !wgkey.ValidPublic(pub) {
+			jsonErr(w, 400, "wg_public_key must be a base64 32-byte key")
+			return
+		}
+		s.mu.Lock()
+		d := s.dev(deviceID)
+		old := d.wgPub
+		s.mu.Unlock()
+		if pub != old {
+			if err := s.runHook(pub, old); err != nil {
+				log.Printf("vpn: Netmaker update FAILED: %v", err)
+				jsonErr(w, 502, "Netmaker update failed")
+				return
+			}
+			log.Printf("vpn: device %s: Netmaker client moved to the gateway's new public key %s", deviceID, pub)
+		} else {
+			log.Printf("vpn: device %s: gateway public key unchanged (%s), Netmaker untouched", deviceID, pub)
+		}
+		s.mu.Lock()
+		d.wgPub, d.wgHeld = pub, true
+		s.mu.Unlock()
+		keyLine = "# PrivateKey: held by the gateway"
+		log.Printf("vpn: device %s: PrivateKey omitted (gateway-held)", deviceID)
+	} else {
+		s.mu.Lock()
+		held := s.dev(deviceID).wgHeld
+		s.mu.Unlock()
+		if held {
+			jsonErr(w, 409, "this device's WireGuard key is held by the gateway; update the gateway agent")
+			return
+		}
+	}
 	conf := fmt.Sprintf(`# WireGuard VPN Configuration File (fakeapi)
 # Network ID: %s
 # Network: 10.99.0.0/24
 [Interface]
-PrivateKey = %s
+%s
 Address = 10.99.0.2/32
 
 [Peer]
@@ -287,7 +398,7 @@ PublicKey = %s
 Endpoint = 203.0.113.10:51820
 AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 20
-`, s.read("network_id"), s.read("gw.key"), peer)
+`, s.read("network_id"), keyLine, peer)
 	if rk := req["reply_key"]; rk != "" {
 		out, err := seal.Seal(rk, deviceID, []byte(conf))
 		if err != nil {
@@ -307,6 +418,19 @@ PersistentKeepalive = 20
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
 	_, _ = w.Write(sealed)
+}
+
+// runHook "updates Netmaker": the ext client's publickey becomes pub.
+func (s *server) runHook(pub, old string) error {
+	if s.hook == "" {
+		return nil
+	}
+	cmd := exec.Command("sh", "-c", s.hook)
+	cmd.Env = append(os.Environ(), "NEW_PUBLIC_KEY="+pub, "OLD_PUBLIC_KEY="+old)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("%v: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
 }
 
 func normPub(pub string) (string, bool) {

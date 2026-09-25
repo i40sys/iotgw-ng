@@ -87,9 +87,9 @@ output to the journal only, never to the console).
 
 | # | Step id | Title | What it does | Fails when |
 |---|---|---|---|---|
-| 1 | `identity` | Device identity | Reads `device_id` / `otp` / `iotgw_api` / `iotgw_internet` from `/proc/cmdline` and validates them; adds the hostname to `/etc/hosts` | No `device_id`, bad format (`<name>@<8 hex>`), code not 6 digits, no API URL (neither `iotgw_api=` nor a build-time `API_BASE`), bad URL |
+| 1 | `identity` | Device identity | Reads `device_id` / `otp` / `iotgw_api` / `iotgw_internet` from `/proc/cmdline` and validates them; upgrades an `http://` API URL to `https://` (pinned CA, see [TLS](#tls-to-the-device-api-pinned-ca)) and records the **effective** URL as `identity.api_base`; adds the hostname to `/etc/hosts` | No `device_id`, bad format (`<name>@<8 hex>`), code not 6 digits, no API URL (neither `iotgw_api=` nor a build-time `API_BASE`), bad URL |
 | 2 | `network` | Physical network | Retries a TCP connect to the API host for up to 90 s. It does **not** require a default route, because the API may be on-link | API unreachable after 90 s |
-| 3 | `vpn-fetch` | VPN config fetch | Generates a one-off X25519 key, seals `{device_id, gateway, interface, reply_key}` with the code and POSTs it to the **vpn** API; opens the reply sealed to that key (decision-033 §4; a legacy code-encrypted reply is still accepted). Validates it as a WireGuard config and saves it verbatim as `wg0.server.conf`. Reads the `# Network:` header | Transport error, non-2xx (the HTTP code is recorded), reply cannot be opened, invalid config |
+| 3 | `vpn-fetch` | VPN config fetch | Uses this boot's WireGuard key pair (generated on the first fetch of a boot, kept 0600 in `/run/iotgw/wg0.key`; `iotgw vpn refresh -rotate-key` makes a new one — decision-035 §2). Generates a one-off X25519 reply key, seals `{device_id, gateway, interface, wg_public_key, reply_key}` with the code and POSTs it to the **vpn** API; opens the reply sealed to that key (decision-033 §4; a legacy code-encrypted reply is still accepted). The reply has no `PrivateKey` line: the bootstrap inserts its own key (a server that still sends one is obeyed, as before). Validates it as a WireGuard config and saves it as `wg0.server.conf`. Reads the `# Network:` header | Transport error, non-2xx (the HTTP code is recorded), reply cannot be opened, invalid config |
 | 4 | `vpn-apply` | VPN configuration | Renders `wg0.conf` for the Internet mode, runs `wg-quick up wg0`, sets DNS, waits up to 25 s for a WireGuard handshake | `wg-quick` fails (FAILED); no handshake (WARNING) |
 | 5 | `pki-fetch` | SSH PKI fetch | Ensures an ECDSA host key exists and POSTs `{action: live-enroll, host_pubkey}` to the **ssh-ca** API | Non-2xx, e.g. 401 wrong/expired/already-used code, 429 too many wrong codes, 409 domain has no pki zone, 502 pki-manager (no fleet token) |
 | 6 | `user-ca` | User CA install | Writes the domain's User CA, `auth_principals/root` (`iotgw-admin`, `iotgw-ops`), the revoked-keys file and the `60-iotgw-ssh-ca.conf` drop-in | Not a valid public key |
@@ -306,6 +306,39 @@ envelope** (decision-033):
 | VPN | `vpn` | **only** the WireGuard config, with a `# Network: <cidr>` header |
 | SSH PKI | `ssh-ca` with `action: live-enroll` | zone, domain, User CA, Host CA, `@cert-authority` lines, principals, **and a 12 h host certificate** for the live image's per-boot key under `live-<name>-<id8>.<network>.<domain>.iotgw` |
 
+### TLS to the device API (pinned CA)
+
+decision-035 §1: the device API is served over HTTPS by the kind ingress with a
+certificate from a dedicated **device-API CA**, whose certificate (public) is
+`/etc/iotgw/api-ca.pem` — in the live overlay and in the OpenWRT package
+(`overlay/etc/iotgw/api-ca.pem`). The client (`internal/devapi`):
+
+| API URL | `/etc/iotgw/api-ca.pem` (OpenWRT: uci `iotgw.main.api_ca`) | Effect |
+|---|---|---|
+| `https://…` | exists | trusts **only** that CA (pinned) |
+| `https://…` | missing | system CA roots |
+| `http://host:port/path` | exists | **upgraded** to `https://host/path` (default port 443 — the `:8000` is Kong's plain-HTTP NodePort) and pinned; never falls back to HTTP — a failure names both URLs |
+| `http://…` | missing | plain HTTP, as before |
+
+The upgrade exists because the iPXE menu still passes
+`iotgw_api=http://10.2.0.47:8000`. The live image records the effective
+(https) URL in `bootstrap.json` → `identity.api_base`, which the install flow
+copies into the installed gateway's `/etc/config/iotgw`. A CA file that exists
+but holds no certificate is an error (fail closed). The build-time
+`DefaultAPIBase` (`API_BASE`) stays overridable; the same rules apply to it.
+
+### WireGuard key held by the gateway
+
+decision-035 §2: the gateway generates its WireGuard key pair and sends only
+`wg_public_key` (inside the code-sealed request); the vpn function moves the
+Netmaker client to that key when it differs and returns the config **without**
+a `PrivateKey` line (`# PrivateKey: held by the gateway`); the gateway inserts
+its own key before applying. The live image makes one key per boot; an
+installed gateway **reuses** `network.wg0.private_key`, so a refresh normally
+changes nothing on Netmaker and the transactional rollback (which restores
+that same key) stays valid. `iotgw vpn refresh -otp CODE -rotate-key` makes a
+new key explicitly. The private key is never logged, printed or sent.
+
 These are deliberately **two independent APIs** (the combined
 `vpn?with_ssh_ca=true` was removed). `live-enroll` **never touches the device's
 permanent enrollment fields**, so the installed OpenWRT system still performs
@@ -320,8 +353,9 @@ its own real enrollment later.
 | `/run/iotgw/bootstrap.json` | bootstrap | the state document |
 | `/run/iotgw/resolv.conf.lan` | bootstrap | LAN resolvers captured at boot (for LAN mode) |
 | `/run/iotgw/host-ca.pub` | bootstrap | Host CA, used for fingerprints |
-| `/etc/wireguard/wg0.server.conf` | bootstrap | the vpn API reply, verbatim (0600) |
-| `/etc/wireguard/wg0.conf` | bootstrap | rendered for the Internet mode (0600) |
+| `/run/iotgw/wg0.key` | bootstrap | this boot's WireGuard private key (0600; never logged or sent) |
+| `/etc/wireguard/wg0.server.conf` | bootstrap | the vpn API reply, completed with this boot's `PrivateKey` (0600) |
+| `/etc/wireguard/wg0.conf` | bootstrap | rendered for the Internet mode (0600); keeps the `PrivateKey = …` line the install flow's `setup_vpn.sh` reads |
 | `/etc/resolv.conf` | bootstrap | per Internet mode |
 | `/etc/hosts` | bootstrap | adds `127.0.1.1 <hostname>` so `sudo` does not stall on DNS |
 | `/etc/ssh/ssh-user-ca.pub`, `/etc/ssh/auth_principals/root`, `/etc/ssh/revoked_keys` | bootstrap | User CA trust |
@@ -399,7 +433,7 @@ writes `/etc/config/iotgw` (device identity from the flow + the live image's
 | `iotgw status` on tty1 + serial | the live image's panels, with **Installed** (installed / provisioned / SSH certificate / VPN / Internet / active uplink) and **Self-healing agent** instead of Provisioning; `[i]` chooses the policy, `[h]` toggles hold, `[v]` asks for the 6-digit one-time code (inline: digits, Backspace, Enter runs, Esc cancels) and runs a VPN refresh, `[s]` renews the SSH certificate with the host key after a `y`/`f` (force) confirmation — or, on a gateway not enrolled yet, asks for the code and enrolls; `[r]` refreshes and fully repaints. The code never reaches a log: the command line shown is `iotgw vpn refresh -otp ******`. Every action asks first and is then **followed live** in an *Action* panel: the command, elapsed time, each output line as it is written (timestamped, stderr marked `!`), and the result — so a failure can be diagnosed at the console; `[d]` Details keeps the whole output. The launcher waits for the boot to settle and keeps kernel messages off the console while the dashboard owns it; the screen is also fully repainted every 60 s |
 | `iotgw internet lan\|vpn\|auto` | persistent policy in `/etc/config/iotgw`. `auto` (default) = LAN preferred, automatic fallback to VPN; `lan`/`vpn` pin the path (applied at once) |
 | `iotgw hold enable [-reason …]\|disable\|status` | freeze automatic changes; the daemon keeps monitoring and records what it would have done. A banner on the dashboard says so |
-| `iotgw vpn refresh -otp CODE` | re-request the WireGuard config from `vpn` (reply sealed to a one-off key), apply it through UCI, keep it only if the tunnel comes up. The code is **required** |
+| `iotgw vpn refresh -otp CODE [-rotate-key]` | re-request the WireGuard config from `vpn` (reply sealed to a one-off key), apply it through UCI, keep it only if the tunnel comes up. The code is **required**. Sends only the public key of the gateway's own `network.wg0.private_key` and inserts that key into the reply (decision-035); `-rotate-key` generates a new key pair |
 | `iotgw ssh refresh [-otp CODE] [-force]` | **enrolled** (host certificate installed): `renew` — plain JSON signed by the host key (SSHSIG, namespace `iotgw-renew`), **no code**; skipped while the certificate is current unless `-force`. **Not enrolled**: `enroll` with the operator's code (required). Then `sshd -t`, reload (restart fallback), verify sshd serves them — or restore every file. A 409 means the server already has a host key for the device (a reinstall): use **Reset SSH enrollment** in the UI first |
 | SSH self-renewal (daemon) | when the host certificate nears expiry (< 30 days) the daemon renews it by itself with the host key (at most once per hour, suspended by hold). It **never** enrolls (no code) and never calls `vpn` |
 
@@ -428,7 +462,7 @@ browser ──JSON-RPC──► uhttpd /ubus ──► rpcd ──exec──► 
 | `status` | the daemon's snapshot + recent manual jobs |
 | `refresh` | SIGUSR1 to the daemon: a full status round now |
 | `hold {enable, reason}` | hold on/off (immediate) |
-| `set_policy {policy}`, `vpn_refresh {otp}` (otp required), `ssh_refresh {otp, force}` (otp optional) | start a **background job** (they can outlast rpcd's 30 s exec timeout); returns a job id |
+| `set_policy {policy}`, `vpn_refresh {otp, rotate_key}` (otp required), `ssh_refresh {otp, force}` (otp optional) | start a **background job** (they can outlast rpcd's 30 s exec timeout); returns a job id |
 | `job {id}` | the job's output and exit code (the page polls it) |
 
 Files: `/usr/share/luci/menu.d/luci-app-iotgw.json` (menu entry),
@@ -468,14 +502,21 @@ Until a gateway is provisioned, anyone on its LAN can log in to LuCI as root,
 so provision right after installing.
 
 Files: `/etc/config/iotgw` (config, 0600), `/var/run/iotgw/agent.json`
-(daemon state, history), `/etc/iotgw/wg0.server.conf` (the vpn reply, 0600).
-Logs: `logread -e iotgw`.
+(daemon state, history), `/etc/iotgw/wg0.server.conf` (the vpn reply completed
+with the gateway's own key, 0600), `/etc/iotgw/api-ca.pem` (the pinned
+device-API CA, from the package; uci `iotgw.main.api_ca` overrides the path).
+Logs: `logread -e iotgw` (or `/var/log/messages` once provisioning installed
+rsyslog — the dashboard detects `/usr/sbin/rsyslogd` and shows the right one).
 
 **End-to-end test**: `just e2e` boots two OpenWRT 23.05 VMs (a LAN router +
 WireGuard hub whose endpoint is off-LAN, and a gateway installed with the
 gw-c3 on-link route) and checks route repair, router change, LAN→VPN fallback
 and return, hold, policy across reboot, vpn refresh (code required and single
-use, sealed reply, rollback), ssh refresh (enroll with a code, renew by host
+use, sealed reply, rollback; over HTTPS with a pinned throwaway test CA after
+the http→https upgrade, and refused with another CA; the gateway keeps its
+WireGuard key across a refresh, Netmaker — the hub's peer, via
+`fakeapi -netmaker-hook` — follows a changed key, `-rotate-key` makes a new
+one, and no private key reaches the log or the server), ssh refresh (enroll with a code, renew by host
 key, 409 after a "reinstall", daemon self-renewal), LuCI/rpcd, and the
 console dashboard. The fake API (`test/fakeapi`) holds its own seed and
 exposes the current code at `/test/code` — the test's stand-in for the UI. It uses KVM when `/dev/kvm` is writable, TCG otherwise.
@@ -495,7 +536,7 @@ The image gets **binaries only**, no Go toolchain.
 | `just check` | gofmt check, `go vet`, unit + component tests |
 | `just build [arch]` | the static `CGO_ENABLED=0` `iotgw` binary for `linux/<arch>` (default `amd64`) into `dist/<arch>/` |
 | `just overlay [arch]` | live-image rootfs overlay `dist/iotgw-live-overlay-linux-<arch>.tar.gz`: `iotgw` + its two symlinks, `overlay/`, `/etc/iotgw-live-release` |
-| `just openwrt [arch]` | installed-OpenWRT package `dist/iotgw-openwrt-linux-<arch>.tar.gz`: `/usr/sbin/iotgw`, `/etc/init.d/iotgw`, `/usr/libexec/iotgw-console` |
+| `just openwrt [arch]` | installed-OpenWRT package `dist/iotgw-openwrt-linux-<arch>.tar.gz`: `/usr/sbin/iotgw`, `/etc/init.d/iotgw`, `/usr/libexec/iotgw-console`, the LuCI page, `/etc/iotgw/api-ca.pem` |
 | `just dist` | `check`, then binaries, overlays and OpenWRT packages for **amd64 and arm64**, `remove.list`, `SHA256SUMS`. This is what CI publishes |
 | `just e2e` | the QEMU end-to-end test of the OpenWRT agent (`test/qemu/run.sh`) |
 | `just version` | the version the build stamps (`git describe`, `-dirty` only for changes under `live-image/`) |

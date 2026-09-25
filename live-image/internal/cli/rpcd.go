@@ -38,7 +38,7 @@ var rpcdMethods = map[string]map[string]any{
 	"refresh":     {},
 	"set_policy":  {"policy": "str"},
 	"hold":        {"enable": true, "reason": "str"},
-	"vpn_refresh": {"otp": "str"},
+	"vpn_refresh": {"otp": "str", "rotate_key": true},
 	"ssh_refresh": {"otp": "str", "force": true},
 	"job":         {"id": "str"},
 }
@@ -149,6 +149,9 @@ func rpcdCall(method string, in map[string]any) (map[string]any, error) {
 				return nil, errors.New("the one-time code must be 6 digits")
 			}
 			args = append(args, "-otp", otp)
+		}
+		if method == "vpn_refresh" && boolean(in, "rotate_key") {
+			args = append(args, "-rotate-key")
 		}
 		if method == "ssh_refresh" && boolean(in, "force") {
 			args = append(args, "-force")

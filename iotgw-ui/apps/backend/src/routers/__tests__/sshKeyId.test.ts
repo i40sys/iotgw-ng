@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { TRPCError } from "@trpc/server";
 import { appRouter } from "../router";
+import { TEST_OPERATOR } from "./operator-ctx";
 import { ensureDeviceSshKey } from "../../services/kms";
 import { ensureDeviceSeed } from "../../services/device-code";
 
@@ -127,6 +128,7 @@ const createCaller = (supabase: any) => {
     req: {} as any,
     res: {} as any,
     user: { name: "test" },
+    auth: { ok: true, operator: TEST_OPERATOR },
   });
 };
 

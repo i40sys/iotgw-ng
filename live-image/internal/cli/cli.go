@@ -38,7 +38,9 @@ usage: iotgw <command> [options]
   status                         console dashboard (what iotgw-status runs)
   daemon                         self-healing agent (installed OpenWRT, runs from /etc/init.d/iotgw)
   vpn status                     WireGuard/Netmaker state
-  vpn refresh -otp CODE          re-request the VPN configuration and apply it safely
+  vpn refresh -otp CODE [-rotate-key]
+                                 re-request the VPN configuration and apply it safely
+                                 (keeps the gateway's WireGuard key; -rotate-key makes a new one)
   ssh status                     SSH PKI state (User CA, host certificate, sshd)
   ssh refresh [-otp CODE] [-force]
                                  re-request SSH trust + host certificate, reload sshd safely
@@ -207,7 +209,7 @@ func daemonCmd(args []string) int {
 
 func vpnCmd(args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: iotgw vpn status | vpn refresh -otp CODE")
+		fmt.Fprintln(os.Stderr, "usage: iotgw vpn status | vpn refresh -otp CODE [-rotate-key]")
 		return 2
 	}
 	switch args[0] {
@@ -216,18 +218,19 @@ func vpnCmd(args []string) int {
 	case "refresh":
 		fs := flag.NewFlagSet("vpn refresh", flag.ExitOnError)
 		otp := fs.String("otp", "", "one-time code from the device page in the iotgw-ng UI (required)")
+		rotate := fs.Bool("rotate-key", false, "generate a new WireGuard key pair (the server updates Netmaker with the new public key)")
 		_ = fs.Parse(args[1:])
 		if !requireRoot("vpn refresh") {
 			return 1
 		}
 		ctx, cancel := signalContext(5 * time.Minute)
 		defer cancel()
-		if err := gatewayFor(platform.Detect(), syslogger("iotgw", false)).VPNRefresh(ctx, *otp, printer("vpn refresh: ")); err != nil {
+		if err := gatewayFor(platform.Detect(), syslogger("iotgw", false)).VPNRefresh(ctx, *otp, *rotate, printer("vpn refresh: ")); err != nil {
 			return fail(err)
 		}
 		return 0
 	}
-	fmt.Fprintln(os.Stderr, "usage: iotgw vpn status | vpn refresh -otp CODE")
+	fmt.Fprintln(os.Stderr, "usage: iotgw vpn status | vpn refresh -otp CODE [-rotate-key]")
 	return 2
 }
 

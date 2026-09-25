@@ -13,6 +13,7 @@ import {
 } from "https://deno.land/std@0.177.1/testing/asserts.ts";
 import {
   authenticateDevice,
+  decryptDeviceRequest,
   bytesToBase64,
   base64ToBytes,
   encryptPayload,
@@ -375,4 +376,36 @@ Deno.test("encryptPayload/decryptPayload - round trip", async () => {
   const encrypted = await encryptPayload(plaintext, password);
   const decrypted = await decryptPayload(encrypted, password);
   assertEquals(decrypted, plaintext);
+});
+
+Deno.test("a wrong code whose padding happens to be valid is NOT accepted", async () => {
+  // Find a wrong code that decrypts WITHOUT a padding error (≈1 in 256), then
+  // offer it as the only candidate: it must be rejected, not "authenticated".
+  const body = await encryptPayload(JSON.stringify({ device_id: "x@12345678" }), "111111");
+  let wrong = "";
+  for (let i = 0; i < 5000 && !wrong; i++) {
+    const c = String(200000 + i);
+    try {
+      await decryptPayload(body, c);
+      wrong = c;
+    } catch { /* padding error — keep looking */ }
+  }
+  if (!wrong) throw new Error("no padding-valid wrong code found in 5000 tries");
+  const originalFetch = globalThis.fetch;
+  let failures = 0;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/internal/device-auth/candidates")) {
+      return new Response(JSON.stringify({ seed_id: "s", locked_until: null, candidates: [{ step: 1, code: wrong }] }), { status: 200 });
+    }
+    if (url.includes("record_device_otp_failure")) { failures++; return new Response("null", { status: 200 }); }
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  try {
+    const r = await decryptDeviceRequest(body, "00000000-0000-0000-0000-000000000000");
+    if (!(r instanceof Response) || r.status !== 401) throw new Error("wrong code was accepted");
+    if (failures !== 1) throw new Error("failure not recorded");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

@@ -16,6 +16,8 @@ import (
 	"github.com/i40sys/iotgw-ng/live-image/internal/netinfo"
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
 	"github.com/i40sys/iotgw-ng/live-image/internal/sysexec"
+	"github.com/i40sys/iotgw-ng/live-image/internal/wgconf"
+	"github.com/i40sys/iotgw-ng/live-image/internal/wgkey"
 )
 
 // Paths written by the bootstrap. The sshd drop-ins are created at runtime
@@ -33,6 +35,12 @@ const (
 	userCADropIn    = "/etc/ssh/sshd_config.d/60-iotgw-ssh-ca.conf"
 	hostCertDropIn  = "/etc/ssh/sshd_config.d/61-iotgw-live-host-cert.conf"
 )
+
+// wgKeyPath holds this boot's WireGuard private key (tmpfs, 0600): the live
+// image generates one per boot and reuses it for a refresh within the boot
+// (decision-035 §2). The key also ends up in wg0.server.conf and wg0.conf
+// (0600), where the install flow's setup_vpn.sh reads it. A var for tests.
+var wgKeyPath = state.Dir + "/wg0.key"
 
 // ensureHostsEntry maps the machine's own hostname in /etc/hosts. Without it
 // every sudo (and anything else resolving the local name) waits for DNS —
@@ -95,7 +103,13 @@ func (r *Runner) vpnFetch(ctx context.Context, netOK bool) (string, bool) {
 		return "", false
 	}
 	r.begin(state.StepVPNFetch)
-	body := map[string]string{"device_id": r.st.Identity.DeviceID}
+	priv, pub, err := liveWGKey(r.RotateKey)
+	if err != nil {
+		r.end(state.StepVPNFetch, state.Failed, "no WireGuard key", err)
+		return "", false
+	}
+	log.Printf("[%s] WireGuard public key %s (the private key stays on this machine)", state.StepVPNFetch, pub)
+	body := map[string]string{"device_id": r.st.Identity.DeviceID, "wg_public_key": pub}
 	if def, _ := netinfo.DefaultRoute(); def != nil {
 		body["interface"] = def.Iface
 		if def.Gateway != nil {
@@ -122,7 +136,14 @@ func (r *Runner) vpnFetch(ctx context.Context, netOK bool) (string, bool) {
 	if !reply.Sealed {
 		log.Printf("[%s] warning: deprecated code-encrypted vpn reply (server predates sealed replies)", state.StepVPNFetch)
 	}
-	conf := string(reply.Config)
+	conf, inserted, err := wgconf.WithPrivateKey(string(reply.Config), priv)
+	if err != nil {
+		r.end(state.StepVPNFetch, state.Failed, "VPN configuration is invalid", err)
+		return "", false
+	}
+	if !inserted {
+		log.Printf("[%s] warning: the server sent a private key (it predates gateway-held keys) — using it", state.StepVPNFetch)
+	}
 	sum, err := parseWGConf(conf)
 	if err != nil {
 		r.end(state.StepVPNFetch, state.Failed, "VPN configuration is invalid", err)
@@ -148,6 +169,29 @@ func (r *Runner) vpnFetch(ctx context.Context, netOK bool) (string, bool) {
 	}
 	r.end(state.StepVPNFetch, state.Healthy, "configuration received for "+strings.Join(sum.Addresses, ", "), nil)
 	return conf, true
+}
+
+// liveWGKey returns this boot's WireGuard key pair, generating (and keeping
+// in wgKeyPath) a new one on the first call of a boot or when rotate is set.
+func liveWGKey(rotate bool) (priv, pub string, err error) {
+	if !rotate {
+		if b, err := os.ReadFile(wgKeyPath); err == nil {
+			if pub, err := wgkey.Public(string(b)); err == nil {
+				return strings.TrimSpace(string(b)), pub, nil
+			}
+		}
+	}
+	priv, pub, err = wgkey.Generate()
+	if err != nil {
+		return "", "", err
+	}
+	if err := os.MkdirAll(filepath.Dir(wgKeyPath), 0o755); err != nil {
+		return "", "", err
+	}
+	if err := writeFile(wgKeyPath, priv, 0o600); err != nil {
+		return "", "", err
+	}
+	return priv, pub, nil
 }
 
 func (r *Runner) vpnApply(ctx context.Context, _ string) {

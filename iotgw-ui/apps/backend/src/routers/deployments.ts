@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { logger } from "../logger";
+import { auditLog } from "../auth/audit";
 import { TRPCError } from "@trpc/server";
 import { createQueryProcedure } from "../utils/query-helper";
 import { createMutationProcedure } from "../utils/mutation-helper";
@@ -720,6 +721,12 @@ export const deploymentsRouter = {
     }),
     async ({ ctx, input }) => {
       const { supabase } = ctx;
+
+      auditLog(ctx.operator, "execute_kestra_deployment", {
+        deviceId: input.device_id,
+        deploymentId: input.deployment_id,
+        flowType: input.flow_type,
+      });
 
       try {
         logger.info(

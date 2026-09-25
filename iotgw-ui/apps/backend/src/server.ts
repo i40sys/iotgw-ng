@@ -10,6 +10,7 @@ import cors from "@fastify/cors";
 import envToLogger from "./logger";
 import { issueOpsUserCert, isPkiConfigured } from "./services/pki";
 import { registerDeviceCodeRoutes } from "./internal/device-code-routes";
+import { registerInternalIngressGuard } from "./internal/ingress-guard";
 
 const environment = (process.env.NODE_ENV ?? "development") as
   | "development"
@@ -22,6 +23,10 @@ const server = fastify({
 });
 
 void server.register(cors);
+
+// decision-034: /internal/* is in-cluster only — refuse anything that came
+// through the ingress (X-Forwarded-For) before the route's bearer check.
+registerInternalIngressGuard(server);
 
 server.register(fastifyTRPCPlugin, {
   trpcOptions: {

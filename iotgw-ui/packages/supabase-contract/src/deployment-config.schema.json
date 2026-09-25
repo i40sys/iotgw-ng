@@ -1047,14 +1047,6 @@
       "x-step": "backend",
       "x-injected": true
     },
-    "totp_counter": {
-      "type": "integer",
-      "title": "totp_counter",
-      "description": "INJECTED BY THE BACKEND at execution time (executeKestraDeployment) — never stored in or edited through the deployment configuration. Device TOTP counter (ssh_ca enrollment).",
-      "readOnly": true,
-      "x-step": "backend",
-      "x-injected": true
-    },
     "pki_zone": {
       "type": "string",
       "title": "pki_zone",

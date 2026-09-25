@@ -16,6 +16,12 @@
  * vhost from the host shell; `node:http` honours it. Default target is the
  * Ingress on 127.0.0.1:80 with the backend's Ingress hostname — the exact path
  * a browser uses (verified working against the running cluster).
+ *
+ * Auth (decision-034): every procedure needs an operator. The client signs in
+ * once against GoTrue through the Kong ingress vhost (E2E_SUPABASE_HOST,
+ * default api.wsl.ymbihq.local) with E2E_OPERATOR_EMAIL / E2E_OPERATOR_PASSWORD
+ * and the anon key E2E_SUPABASE_ANON_KEY (`just e2e` exports all three from
+ * SOPS), then sends the access token as a Bearer on every call.
  */
 import http from "node:http";
 import https from "node:https";
@@ -24,19 +30,94 @@ const ADDR = process.env.E2E_INGRESS_ADDR ?? "127.0.0.1";
 const PORT = Number(process.env.E2E_INGRESS_PORT ?? "80");
 const HOST = process.env.E2E_BACKEND_HOST ?? "iotgw-ui-backend.wsl.ymbihq.local";
 const TLS = process.env.E2E_INGRESS_TLS === "1";
+const SUPABASE_HOST = process.env.E2E_SUPABASE_HOST ?? "api.wsl.ymbihq.local";
 
-export const e2eTarget = { ADDR, PORT, HOST, TLS } as const;
+export const e2eTarget = { ADDR, PORT, HOST, TLS, SUPABASE_HOST } as const;
+
+export interface RawResponse {
+  status: number;
+  body: string;
+}
+
+/** One HTTP request to the ingress, by vhost. Never throws on a status code. */
+export function rawRequest(opts: {
+  host: string;
+  method: "GET" | "POST";
+  path: string;
+  body?: string;
+  headers?: Record<string, string>;
+}): Promise<RawResponse> {
+  return new Promise((resolve, reject) => {
+    const lib = TLS ? https : http;
+    const req = lib.request(
+      {
+        host: ADDR,
+        port: PORT,
+        path: opts.path,
+        method: opts.method,
+        rejectUnauthorized: false,
+        headers: {
+          Host: opts.host,
+          "content-type": "application/json",
+          ...(opts.body
+            ? { "content-length": Buffer.byteLength(opts.body) }
+            : {}),
+          ...opts.headers,
+        },
+      },
+      (res) => {
+        let raw = "";
+        res.on("data", (c) => (raw += c));
+        res.on("end", () => resolve({ status: res.statusCode ?? 0, body: raw }));
+      },
+    );
+    req.on("error", reject);
+    if (opts.body) req.write(opts.body);
+    req.end();
+  });
+}
+
+/** Sign in to GoTrue (password grant) and return the access token. */
+export async function signInOperator(
+  email = process.env.E2E_OPERATOR_EMAIL,
+  password = process.env.E2E_OPERATOR_PASSWORD,
+): Promise<string> {
+  const anonKey = process.env.E2E_SUPABASE_ANON_KEY;
+  if (!email || !password || !anonKey) {
+    throw new Error(
+      "E2E_OPERATOR_EMAIL / E2E_OPERATOR_PASSWORD / E2E_SUPABASE_ANON_KEY are not set — run via `just e2e`",
+    );
+  }
+  const res = await rawRequest({
+    host: SUPABASE_HOST,
+    method: "POST",
+    path: "/auth/v1/token?grant_type=password",
+    body: JSON.stringify({ email, password }),
+    headers: { apikey: anonKey },
+  });
+  if (res.status !== 200) {
+    throw new Error(`operator sign-in failed: HTTP ${res.status}`);
+  }
+  return (JSON.parse(res.body) as { access_token: string }).access_token;
+}
+
+let tokenPromise: Promise<string> | undefined;
+function operatorToken(): Promise<string> {
+  tokenPromise ??= signInOperator();
+  return tokenPromise;
+}
 
 type BatchEntry = {
   result?: { data: unknown };
   error?: { message: string };
 };
 
-function call(
+async function call(
   method: "GET" | "POST",
   path: string,
   body?: string,
 ): Promise<unknown> {
+  const token = await operatorToken();
   return new Promise((resolve, reject) => {
     const lib = TLS ? https : http;
     const req = lib.request(
@@ -48,6 +129,7 @@ function call(
         rejectUnauthorized: false,
         headers: {
           Host: HOST,
+          authorization: `Bearer ${token}`,
           "content-type": "application/json",
           ...(body ? { "content-length": Buffer.byteLength(body) } : {}),
         },

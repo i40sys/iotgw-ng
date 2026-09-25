@@ -9,11 +9,15 @@ import { defineConfig, devices } from "@playwright/test";
  * (--host-resolver-rules). The browser then sends the correct Host header and
  * the SPA's baked VITE_API_URL (http://iotgw-ui-backend.wsl.ymbihq.local)
  * resolves the same way. Override the IP/hosts via E2E_* when running
- * elsewhere.
+ * elsewhere. The SPA's operator login (decision-034) calls Supabase Auth at
+ * its baked VITE_SUPABASE_URL (kind: http://wsl.ymbihq.local:8000, which
+ * resolves natively); api.wsl.ymbihq.local is mapped too for SPAs built to use
+ * the Kong ingress vhost.
  */
 const APP_HOST = process.env.E2E_APP_HOST ?? "iotgw-ui.wsl.ymbihq.local";
 const BACKEND_HOST =
   process.env.E2E_BACKEND_HOST ?? "iotgw-ui-backend.wsl.ymbihq.local";
+const SUPABASE_HOST = process.env.E2E_SUPABASE_HOST ?? "api.wsl.ymbihq.local";
 const INGRESS_IP = process.env.E2E_INGRESS_ADDR ?? "127.0.0.1";
 
 export default defineConfig({
@@ -28,7 +32,7 @@ export default defineConfig({
     trace: "on-first-retry",
     launchOptions: {
       args: [
-        `--host-resolver-rules=MAP ${APP_HOST} ${INGRESS_IP}, MAP ${BACKEND_HOST} ${INGRESS_IP}`,
+        `--host-resolver-rules=MAP ${APP_HOST} ${INGRESS_IP}, MAP ${BACKEND_HOST} ${INGRESS_IP}, MAP ${SUPABASE_HOST} ${INGRESS_IP}`,
       ],
     },
   },

@@ -275,7 +275,6 @@ export type Database = {
           ssh_host_pubkey: string | null
           ssh_key_id: string | null
           ssh_renew_last_ts: number | null
-          totp_counter: number
           totp_failures: number
           totp_locked_until: string | null
           totp_seed_id: string | null
@@ -300,7 +299,6 @@ export type Database = {
           ssh_host_pubkey?: string | null
           ssh_key_id?: string | null
           ssh_renew_last_ts?: number | null
-          totp_counter?: number
           totp_failures?: number
           totp_locked_until?: string | null
           totp_seed_id?: string | null
@@ -325,7 +323,6 @@ export type Database = {
           ssh_host_pubkey?: string | null
           ssh_key_id?: string | null
           ssh_renew_last_ts?: number | null
-          totp_counter?: number
           totp_failures?: number
           totp_locked_until?: string | null
           totp_seed_id?: string | null

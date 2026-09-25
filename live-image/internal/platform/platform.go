@@ -120,3 +120,21 @@ func Self() string {
 	}
 	return "iotgw"
 }
+
+// RsyslogdPath is rsyslog's daemon: the provisioning installs rsyslog on the
+// gateway, after which the system log is /var/log/messages rather than the
+// logread ring buffer (task-137). A var for tests.
+var RsyslogdPath = "/usr/sbin/rsyslogd"
+
+// LogHint is the command that shows the tool's system log on this platform:
+// journalctl on the live image; on OpenWRT logread, or /var/log/messages
+// once rsyslog is installed.
+func LogHint(k Kind) string {
+	if k != OpenWRT {
+		return "journalctl -t iotgw -t iotgw-bootstrap"
+	}
+	if _, err := os.Stat(RsyslogdPath); err == nil {
+		return "grep iotgw /var/log/messages"
+	}
+	return "logread -e iotgw"
+}

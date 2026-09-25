@@ -30,6 +30,14 @@
 # and the daemon renews an expiring certificate by itself; the dashboard runs
 # on the serial console; LuCI/rpcd require the code for a VPN refresh.
 #
+# decision-035: the gateway reaches the API over HTTPS with a PINNED CA (a
+# throwaway test CA; api_base is Kong-style http://10.0.2.100:8000 and is
+# upgraded to https://10.0.2.100 because the CA file exists — the hub's QEMU
+# guestfwd relays 10.0.2.100:443 to fakeapi's TLS port), and it holds its
+# WireGuard key: a refresh keeps it (the reply has no PrivateKey), a gateway
+# whose key changed gets Netmaker (the hub's peer) moved to it, and
+# -rotate-key makes a new one. The private key is never logged or printed.
+#
 # usage: live-image/test/qemu/run.sh          (WORK=dir to keep artifacts)
 set -euo pipefail
 
@@ -38,7 +46,8 @@ MOD="$(cd "$HERE/../.." && pwd)" # live-image/
 WORK="${WORK:-$HERE/.work}"
 OWRT_VER="${OWRT_VER:-23.05.4}"
 IMG_URL="https://downloads.openwrt.org/releases/${OWRT_VER}/targets/x86/64/openwrt-${OWRT_VER}-x86-64-generic-ext4-combined.img.gz"
-HUB_SSH=12221 GW_SSH=12222 GW_SSHD=12223 GW_HTTP=12224 SITE_PORT=12230 API_PORT=18080
+HUB_SSH=12221 GW_SSH=12222 GW_SSHD=12223 GW_HTTP=12224 SITE_PORT=12230 API_PORT=18080 API_TLS_PORT=18443
+API_IP=10.0.2.100 # the device API as the gateway sees it (hub guestfwd -> fakeapi TLS)
 INTERVAL=15 # daemon check interval in the test (seconds)
 
 mkdir -p "$WORK"
@@ -85,6 +94,8 @@ NETWORK_ID=12345678-0000-4000-8000-000000000002
 DEVICE_UUID=aaaaaaaa-0000-4000-8000-000000000003
 DEVICE_ID="gw-qemu@${NETWORK_ID:0:8}"
 echo $NETWORK_ID >scn/network_id
+# throwaway device-API CA + server certificate (never the committed CA's key)
+./fakeapi gentls -dir scn -hosts "$API_IP,127.0.0.1"
 
 # ── images ───────────────────────────────────────────────────────────────────
 log "OpenWRT $OWRT_VER images"
@@ -172,7 +183,9 @@ config iotgw 'main'
 	# the test makes many changes quickly; production keeps 3 per 15 min
 	option max_changes '50'
 	option wg_iface 'wg0'
-	option api_base 'http://10.0.2.2:$API_PORT'
+	# Kong-style plain-HTTP URL: upgraded to https://$API_IP (pinned CA)
+	option api_base 'http://$API_IP:8000'
+	option api_ca '/etc/iotgw/test-api-ca.pem'
 	option device_id '$DEVICE_ID'
 	# legacy identity keys (decision-009 installs): parsed, never used for codes
 	option device_uuid '$DEVICE_UUID'
@@ -189,6 +202,10 @@ gw_extra() { # what tasks/iotgw_agent.yaml puts into the rootfs
   put "$fs" "$MOD/openwrt/overlay/etc/init.d/iotgw" /etc/init.d/iotgw 755
   put "$fs" "$MOD/openwrt/overlay/usr/libexec/iotgw-console" /usr/libexec/iotgw-console 755
   put "$fs" iotgw.config /etc/config/iotgw 600
+  debugfs -w -R "mkdir /etc/iotgw" "$fs" >/dev/null 2>&1 || true
+  # the package's (production) CA, and the test CA uci api_ca points at
+  put "$fs" "$MOD/overlay/etc/iotgw/api-ca.pem" /etc/iotgw/api-ca.pem 644
+  put "$fs" scn/api-ca.pem /etc/iotgw/test-api-ca.pem 644
   debugfs -R "cat /etc/inittab" "$fs" 2>/dev/null |
     sed -E 's#^(tty1|ttyS0)::askfirst:/usr/libexec/login.sh$#\1::respawn:/usr/libexec/iotgw-console#' >inittab.gw
   put "$fs" inittab.gw /etc/inittab 644
@@ -229,7 +246,7 @@ until_ok() {
 log "boot hub + gw"
 boot hub \
   -netdev "socket,id=site,listen=127.0.0.1:$SITE_PORT" -device virtio-net-pci,netdev=site,mac=52:54:00:10:00:01 \
-  -netdev user,id=wan -device virtio-net-pci,netdev=wan,mac=52:54:00:10:00:02 \
+  -netdev "user,id=wan,guestfwd=tcp:$API_IP:443-cmd:$WORK/fakeapi pipe 127.0.0.1:$API_TLS_PORT" -device virtio-net-pci,netdev=wan,mac=52:54:00:10:00:02 \
   -netdev "user,id=mgmt,net=10.10.1.0/24,restrict=on,hostfwd=tcp:127.0.0.1:$HUB_SSH-10.10.1.15:2222" -device virtio-net-pci,netdev=mgmt,mac=52:54:00:10:00:03
 sleep 3
 boot_gw() {
@@ -297,7 +314,16 @@ uci commit network
 # a restart (not reload) so netifd picks up the just-installed wireguard proto
 /etc/init.d/network restart"
 
-"./fakeapi" serve -listen "127.0.0.1:$API_PORT" -dir scn >fakeapi.log 2>&1 &
+# The "Netmaker update" of a gateway-held key (fakeapi -netmaker-hook, env
+# NEW_PUBLIC_KEY / OLD_PUBLIC_KEY): move the hub's WireGuard peer to it.
+{
+  echo '#!/bin/sh'
+  echo 'set -e'
+  printf '%s ' "${SSH[@]}"
+  echo "-p $HUB_SSH root@127.0.0.1 \"set -e; [ -z '\$OLD_PUBLIC_KEY' ] || wg set wg0 peer '\$OLD_PUBLIC_KEY' remove; wg set wg0 peer '\$NEW_PUBLIC_KEY' allowed-ips 10.99.0.2/32; uci set network.gwpeer.public_key='\$NEW_PUBLIC_KEY'; uci commit network\""
+} >hubpeer.sh
+chmod +x hubpeer.sh
+"./fakeapi" serve -listen "127.0.0.1:$API_PORT" -tls-listen "127.0.0.1:$API_TLS_PORT" -netmaker-hook "$WORK/hubpeer.sh" -dir scn >fakeapi.log 2>&1 &
 PIDS+=($!)
 
 API="http://127.0.0.1:$API_PORT"
@@ -385,25 +411,54 @@ dash_serial() { grep -q "iotgw gateway console" gw.serial.log; }
 until_ok "dashboard running on the console (task-125.04)" 150 dash_running
 until_ok "dashboard drawn on the serial console" 60 dash_serial
 
-log "6. vpn refresh (task-125.07)"
-read -r BAD_KEY _ < <(./fakeapi genkey)
+log "6. vpn refresh (task-125.07, decision-035)"
+wgkey() { gw "uci -q get network.wg0.private_key"; }
+out=$(gw "iotgw vpn refresh -otp $(otp vpn)" 2>&1) && ok "vpn refresh with the operator code (pinned HTTPS)" || ko "vpn refresh: $out"
+if grep -q "https://$API_IP/functions/v1/vpn" <<<"$out" && grep -q "CA pinned to /etc/iotgw/test-api-ca.pem; upgraded from http://$API_IP:8000" <<<"$out"; then
+  ok "http api_base upgraded to https with the pinned CA"
+else ko "no https upgrade / pinned CA: $out"; fi
+if grep -q "reply SEALED to reply_key" fakeapi.log; then ok "the VPN reply is sealed to the request's key"; else ko "the VPN reply was not sealed"; fi
+if grep -q "PrivateKey omitted" fakeapi.log && grep -q "gateway public key unchanged" fakeapi.log; then ok "reply without PrivateKey; Netmaker untouched (same key)"; else ko "server side of the gateway-held key"; fi
+if [ "$(wgkey)" = "$GW_KEY" ]; then ok "the gateway keeps its WireGuard key across a refresh"; else ko "the gateway key changed on a plain refresh"; fi
+if gw "grep -qxF 'PrivateKey = $GW_KEY' /etc/iotgw/wg0.server.conf"; then ok "the saved config is completed with the gateway's own key"; else ko "wg0.server.conf lacks the gateway's key"; fi
+until_ok "tunnel up after vpn refresh" 60 tunnel_up
+# a CA that did not issue the server certificate: refused, no fallback to http
+gw "uci set iotgw.main.api_ca=/etc/iotgw/api-ca.pem && uci commit iotgw"
+CODE=$(otp vpn)
+out=$(gw "iotgw vpn refresh -otp $CODE" 2>&1 || true)
+gw "uci set iotgw.main.api_ca=/etc/iotgw/test-api-ca.pem && uci commit iotgw"
+if grep -q "not issued by the trusted CA" <<<"$out" && grep -q "configured http://$API_IP:8000, upgraded to https://$API_IP" <<<"$out"; then
+  ok "a server certificate from another CA is refused (fails closed, names both URLs)"
+else ko "wrong CA not refused: $out"; fi
+if gw "iotgw vpn refresh -otp $CODE" >/dev/null 2>&1; then ok "the code was not spent by the refused TLS attempt"; else ko "code spent by a refused TLS attempt"; fi
+read -r BAD_KEY BAD_PUB < <(./fakeapi genkey)
 gw "uci set network.wg0.private_key='$BAD_KEY' && uci commit network && ubus call network reload"
 sleep 15
-if tunnel_up; then ko "tunnel should be down with a wrong key"; else ok "tunnel down with a wrong key"; fi
+if tunnel_up; then ko "tunnel should be down with a key Netmaker does not know"; else ok "tunnel down with a key Netmaker does not know"; fi
 # (exits 1 by design; capture first — with pipefail a pipe would report that)
 out=$(gw "iotgw vpn refresh" 2>&1 || true)
 if grep -q "one-time code" <<<"$out"; then ok "vpn refresh without a code is refused (nothing derives one)"; else ko "vpn refresh without a code: $out"; fi
 CODE=$(otp vpn)
 if gw "iotgw vpn refresh -otp $CODE"; then ok "vpn refresh with the operator code"; else ko "vpn refresh"; fi
-if grep -q "reply SEALED to reply_key" fakeapi.log; then ok "the VPN reply is sealed to the request's key"; else ko "the VPN reply was not sealed"; fi
+if grep -q "moved to the gateway's new public key $BAD_PUB" fakeapi.log; then ok "Netmaker moved to the gateway's key"; else ko "Netmaker not updated with the gateway's key"; fi
+if [ "$(wgkey)" = "$BAD_KEY" ]; then ok "the gateway kept its own key (not the server's)"; else ko "the gateway key was replaced"; fi
 until_ok "tunnel up after vpn refresh" 60 tunnel_up
 out=$(gw "iotgw vpn refresh -otp $CODE" 2>&1 || true)
 if grep -q "already used" <<<"$out"; then ok "a used code is refused (single use)"; else ko "code replay not refused: $out"; fi
+out=$(gw "iotgw vpn refresh -otp $(otp vpn) -rotate-key" 2>&1) || true
+NEW_KEY=$(wgkey)
+if [ -n "$NEW_KEY" ] && [ "$NEW_KEY" != "$BAD_KEY" ] && grep -q "rotating the WireGuard key" <<<"$out"; then ok "-rotate-key makes a new gateway key"; else ko "-rotate-key: $out"; fi
+if grep -qF "$NEW_KEY" <<<"$out"; then ko "the private key was printed"; else ok "the private key is not printed"; fi
+until_ok "tunnel up with the rotated key" 90 tunnel_up
+syslog=$(gw "logread" 2>&1 || true)
+if grep -qF -e "$GW_KEY" -e "$BAD_KEY" -e "$NEW_KEY" <<<"$syslog"; then ko "a private key reached the system log"; else ok "no private key in the system log"; fi
+if grep -qF -e "$GW_KEY" -e "$BAD_KEY" -e "$NEW_KEY" fakeapi.log; then ko "a private key reached the server"; else ok "no private key reached the server"; fi
 curl -fsS -X POST "$API/control?vpn=bad-peer" >/dev/null
 out=$(gw "iotgw vpn refresh -otp $(otp vpn)" 2>&1 || true)
 if grep -q "rolled back" <<<"$out"; then ok "bad config rolled back"; else ko "bad config not rolled back: $out"; fi
 curl -fsS -X POST "$API/control?vpn=good" >/dev/null
 if [ "$(gw 'uci -q get network.wgserver.public_key')" = "$HUB_PUB" ]; then ok "peer restored"; else ko "peer not restored"; fi
+if [ "$(wgkey)" = "$NEW_KEY" ]; then ok "the rollback keeps the gateway's key"; else ko "the rollback changed the gateway key"; fi
 until_ok "tunnel still up after the rollback" 90 tunnel_up
 
 log "7. ssh refresh (task-125.08, decision-033)"
@@ -440,6 +495,7 @@ log "8. LuCI page + rpcd plugin: the web backend is the daemon's snapshot"
 # Install the whole OpenWRT package the way the playbook does (extract it).
 PKG=$(mktemp -d)
 mkdir -p "$PKG/usr/sbin" && cp "$WORK/iotgw" "$PKG/usr/sbin/" && cp -a "$MOD/openwrt/overlay/." "$PKG/"
+install -D -m 0644 "$MOD/overlay/etc/iotgw/api-ca.pem" "$PKG/etc/iotgw/api-ca.pem" # as `just openwrt`
 tar --owner=0 --group=0 -C "$PKG" -czf "$WORK/iotgw-openwrt.tar.gz" . && rm -rf "$PKG"
 gw "tar xzf - -C / && /etc/init.d/rpcd restart && rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache" <"$WORK/iotgw-openwrt.tar.gz"
 sleep 3

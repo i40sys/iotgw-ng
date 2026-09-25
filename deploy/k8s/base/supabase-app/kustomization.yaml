@@ -19,3 +19,4 @@ resources:
   - kong.yaml
   - functions.yaml
   - ingress-kong.yaml
+  - ingress-device-api.yaml

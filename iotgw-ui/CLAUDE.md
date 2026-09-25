@@ -15,6 +15,8 @@ supabase/          → PostgreSQL migrations, seed data, RPC functions
 
 **Data flow:** Frontend → tRPC (httpBatchLink) → Backend → Supabase (service role, bypasses RLS)
 
+**Auth (decision-034):** every tRPC procedure requires an **operator** — a Supabase Auth (GoTrue) user with `app_metadata.iotgw_role` ∈ {operator, admin}. The SPA signs in at `/login` (supabase-js) and sends the access token as a Bearer (WS: `connectionParams.token`); the backend verifies it (`src/auth/operator.ts`) and exposes `ctx.operator`. Sign-up is disabled — create operators with `just operator-create <email> [role]`. `/internal/*` is refused when it comes through the ingress (X-Forwarded-For).
+
 **External integration:** Kestra workflow orchestration for device operations (SSH keys, connectivity checks).
 
 ## Commands
@@ -76,12 +78,14 @@ react-i18next with `en.json` / `es.json` in `src/i18n/locales/`. Use `useTransla
 |---|---|---|
 | `SUPABASE_URL` | Backend | Supabase instance URL |
 | `SUPABASE_SERVICE_KEY` | Backend | Service role key (bypasses RLS) |
+| `JWT_SECRET` | Backend | Verifies operators' GoTrue access tokens (decision-034); unset → every tRPC call is refused |
 | `VITE_API_URL` | Frontend | Backend URL (default: `http://localhost:4444/`) |
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Frontend (build time) | Operator login against Supabase Auth (decision-034) |
 | `DATABASE_URL` | Scripts | For Supabase type generation |
 
 ## Domain Entities
 
-- **Devices**: IP, MAC, network, domain, TOTP counter, SSH key tracking, status (online/offline/maintenance/unknown)
+- **Devices**: IP, MAC, network, domain, one-time-code seed (KMS, decision-033), SSH key tracking, status (online/offline/maintenance/unknown)
 - **Networks**: CIDR, VLAN, associated domain
 - **Domains**: Logical grouping for networks
 - **Deployments**: Multi-step config deployment with job tracking via Kestra

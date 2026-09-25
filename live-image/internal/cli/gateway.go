@@ -21,7 +21,8 @@ type Gateway interface {
 	// Internet sets how the Internet is reached (lan | vpn | auto).
 	Internet(ctx context.Context, mode string, out func(string)) error
 	// VPNRefresh re-requests the WireGuard configuration and applies it.
-	VPNRefresh(ctx context.Context, otp string, out func(string)) error
+	// The gateway keeps its WireGuard key unless rotateKey (decision-035 §2).
+	VPNRefresh(ctx context.Context, otp string, rotateKey bool, out func(string)) error
 	// SSHRefresh re-requests the SSH trust / host certificate and reloads sshd.
 	SSHRefresh(ctx context.Context, otp string, force bool, out func(string)) error
 }
@@ -46,8 +47,8 @@ func (g openwrtGateway) Internet(ctx context.Context, mode string, out func(stri
 	return g.a.SetInternet(ctx, p, out)
 }
 
-func (g openwrtGateway) VPNRefresh(ctx context.Context, otp string, out func(string)) error {
-	return g.a.VPNRefresh(ctx, otp, out)
+func (g openwrtGateway) VPNRefresh(ctx context.Context, otp string, rotateKey bool, out func(string)) error {
+	return g.a.VPNRefresh(ctx, otp, rotateKey, out)
 }
 
 func (g openwrtGateway) SSHRefresh(ctx context.Context, otp string, force bool, out func(string)) error {
@@ -66,9 +67,10 @@ func (g liveGateway) Internet(ctx context.Context, mode string, out func(string)
 	return bootstrap.SetInternetVia(ctx, g.statePath, via)
 }
 
-func (g liveGateway) VPNRefresh(ctx context.Context, otp string, out func(string)) error {
+func (g liveGateway) VPNRefresh(ctx context.Context, otp string, rotateKey bool, out func(string)) error {
 	r := bootstrap.NewRunner(g.statePath)
 	r.CodeOverride = otp
+	r.RotateKey = rotateKey
 	if err := r.RunVPN(ctx); err != nil {
 		return err
 	}

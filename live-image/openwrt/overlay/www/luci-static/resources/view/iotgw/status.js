@@ -482,7 +482,7 @@ return view.extend({
 			])
 		].concat(rows.length ? rows : [ E('tr', { 'class': 'tr' }, [ E('td', { 'class': 'td', 'colspan': 3 }, [ E('em', {}, [ _('No entries yet') ]) ]) ]) ]));
 		return E('div', { 'class': 'cbi-section' }, [ E('h3', {}, [ _('History (newest first)') ]), tbl,
-			E('p', {}, [ E('small', {}, [ _('Full log: logread -e iotgw') ]) ]) ]);
+			E('p', {}, [ E('small', {}, [ _('Full log: logread -e iotgw (or /var/log/messages once provisioning installed rsyslog)') ]) ]) ]);
 	},
 
 	render: function(st) {

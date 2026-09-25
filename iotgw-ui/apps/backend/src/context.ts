@@ -1,6 +1,7 @@
 import { type CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "./logger";
+import { resolveOperatorAuth } from "./auth/operator";
 // Import shared contract types with overrides for inet/macaddr
 import type { Database } from "@iotgw/supabase-contract";
 
@@ -37,10 +38,23 @@ try {
   process.exit(1);
 }
 
-export function createContext({ req, res }: CreateFastifyContextOptions) {
-  const user = { name: req.headers.username ?? "anonymous" };
+// decision-034: every tRPC procedure requires an operator. Without the signing
+// secret no token can be verified, so every call is refused (fail closed).
+if (!process.env.JWT_SECRET) {
+  logger.error(
+    "JWT_SECRET is not set — every tRPC call will be rejected as UNAUTHORIZED (decision-034).",
+  );
+}
 
-  return { req, res, user, supabase };
+export function createContext({ req, res, info }: CreateFastifyContextOptions) {
+  const user = { name: req.headers.username ?? "anonymous" };
+  // HTTP: Authorization header. WebSocket: connectionParams.token.
+  const auth = resolveOperatorAuth({
+    authorization: req.headers.authorization,
+    connectionParams: info?.connectionParams,
+  });
+
+  return { req, res, user, supabase, auth };
 }
 
 export type Context = Awaited<ReturnType<typeof createContext>>;

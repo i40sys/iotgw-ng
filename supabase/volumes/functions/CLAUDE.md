@@ -10,7 +10,7 @@ Deno-based edge functions served through the Kong gateway at `http://wsl.ymbihq.
 | `netmaker-call/` | DB webhooks on `devices` (INSERT + DELETE) **and** `networks` (INSERT/UPDATE/DELETE) | Provisions/deprovisions Netmaker extclients **and networks directly** via the Netmaker REST API (no Kestra/Ansible). Devices: writes WireGuard keys back to `devices` + tracks `device_jobs`. Networks: creates/updates/deletes the Netmaker network (no write-back) + tracks `network_jobs`. See its own CLAUDE.md. |
 | `ssh-ca/` | manual (called by the gateway during enrollment/renewal) | The **only** bridge between an IoT gateway and pki-manager (`decision-024`/`decision-026`, one-time-code auth per `decision-033`). Dispatches on the request's `Content-Type`. Code-envelope actions (`application/octet-stream`, device-auth-authenticated like `vpn`): `trust` returns public trust material (User CA, Host CA, principals); `enroll` — **first enrollment only**, refused 409 once `devices.ssh_host_pubkey` is set — signs the gateway's `host_pubkey` with the domain's **Host CA** and records the PERMANENT enrollment; `live-enroll` (decision-031) returns the trust bundle + a 12 h host cert for the PXE live image's per-boot key under a separate `live-…` FQDN and never touches the device row. Plain-JSON action (`application/json`, unencrypted, no code): `renew` — the gateway proves possession of the *currently enrolled* host key with an SSHSIG (namespace `iotgw-renew`) instead of a code; re-signs the same permanent host record and rolls `ssh_host_pubkey` forward. Holds a zone-scoped **fleet token** (`PKI_FLEET_TOKENS`, sign-host only) — it never sees a private key and never returns the fleet token. Consumed by Ansible `tasks/ssh_ca.yaml` and the gateway agent (`live-image/`). |
 | `hello/`, `martin/` | manual | Examples / smoke tests. |
-| `vpn/` | manual | One-time-code auth (`decision-033`) for device VPN access — returns the WireGuard config (the combined `?with_ssh_ca=true` bundle was removed: VPN and SSH PKI are independent APIs, decision-031). If the decrypted request carries `reply_key` (a fresh X25519 public key), the reply is a **sealed JSON** object (`_shared/device-auth.ts` → `sealVpnReply`) rather than being encrypted with the code — the device's WireGuard private key is never exposed to a code-recovery attack. A request without `reply_key` still gets the legacy code-encrypted reply (logged as deprecated). Shares the OpenSSL-compatible envelope + device lookup with `ssh-ca` via `_shared/` (below). |
+| `vpn/` | manual | One-time-code auth (`decision-033`) for device VPN access — returns the WireGuard config (the combined `?with_ssh_ca=true` bundle was removed: VPN and SSH PKI are independent APIs, decision-031). The reply is always a **sealed JSON** object (`_shared/device-auth.ts` → `sealVpnReply`) built from the decrypted request's `reply_key` (a fresh X25519 public key) — **`reply_key` is now REQUIRED** (`decision-035`/task-135): a request without it gets `426 {"error":"upgrade required: send reply_key (iotgw agent >= v0.3.0)"}` — the legacy code-encrypted reply path has been removed entirely (deploy only after every live image in use sends `reply_key`). **Gateway-held WireGuard key** (`decision-035` §2, task-134): the decrypted request may carry `wg_public_key` (base64, exactly 32 bytes, `400` otherwise). If it differs from `devices.public_key`, `vpn` updates the Netmaker extclient in place (`GET`/`PUT /api/extclients/{network}/{clientid}`, same `netmakerRequest` helper style and UUID-without-dashes convention as `netmaker-call`) — a Netmaker failure is `502` **without** touching the DB. Either way (changed or already equal) `devices` is patched `public_key=<new>, private_key=null`; a patch failure **after** a successful Netmaker update is logged loudly but does not fail the request (Netmaker is the source of truth for the tunnel). The returned config omits the `PrivateKey =` line (replaced with `# PrivateKey: held by the gateway`) whenever `wg_public_key` was sent. A request **without** `wg_public_key` on a device whose `private_key` is already `null` (i.e. already gateway-held) is refused `409 {"error":"this device's WireGuard key is held by the gateway; update the gateway agent"}`. Shares the OpenSSL-compatible envelope + device lookup with `ssh-ca` via `_shared/` (below). Tests: `vpn/index_test.ts` (mocked `fetch` for PostgREST/backend/Netmaker; `handleVpnRequest` is exported and `serve()` only runs when `import.meta.main`). |
 
 > **`_shared/`** — primitives used by BOTH `vpn` and `ssh-ca`, kept identical on
 > purpose (`decision-025 §B`): `device-auth.ts` and `pki-manager.ts`.
@@ -53,6 +53,23 @@ Deno-based edge functions served through the Kong gateway at `http://wsl.ymbihq.
 > `_shared/sshsig_test.ts` (renew-signature verification against a fixture
 > produced by a real `ssh-keygen -Y sign -n iotgw-renew`). Run with
 > `deno test --allow-env supabase/volumes/functions/_shared/*_test.ts`.
+>
+> `vpn/index_test.ts` (decision-035/task-134/135) drives the exported
+> `handleVpnRequest` directly against a monkey-patched `fetch` covering the
+> PostgREST device lookup/write-back, the backend candidates endpoint, and
+> the Netmaker `GET`/`PUT /api/extclients/...` calls; `vpn/index.ts` only
+> calls `serve()` when `import.meta.main` is true, so importing it from a
+> test never binds a port. `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` /
+> `NETMAKER_BASE_URL` / `NETMAKER_MASTER_KEY` are read at module-import time
+> (fail loudly if unset, matching the rest of this codebase) and so **must**
+> be exported in the shell environment before `deno test` starts — setting
+> them inside the test file is too late (ES module evaluation runs
+> `index.ts`'s top level before the test file's own). Run with:
+> ```
+> SUPABASE_URL=http://rest.test.local SUPABASE_SERVICE_ROLE_KEY=test-key \
+> NETMAKER_BASE_URL=http://netmaker.test.local NETMAKER_MASTER_KEY=test-key \
+> deno test --allow-env supabase/volumes/functions/vpn/index_test.ts
+> ```
 
 ## Env vars added for decision-033 (task-132)
 
@@ -67,6 +84,15 @@ Deno-based edge functions served through the Kong gateway at `http://wsl.ymbihq.
 
 (Deployment wiring — adding these to `secrets/supabase.enc.env` and rolling
 `deploy/functions` — is tracked separately; see the other task-132 subtasks.)
+
+`vpn` also reads `NETMAKER_BASE_URL` / `NETMAKER_MASTER_KEY` (decision-035 §2,
+task-134) — **no new secret needed**: both already exist in
+`secrets/supabase.enc.env` for `netmaker-call`, and every function worker gets
+the full `supabase-env` Secret via `envFrom` (see "Conventions" below), so
+`vpn` picks them up automatically on the next image rebuild + rollout. Same
+no-fallback-for-the-key convention as `netmaker-call`: a missing
+`NETMAKER_MASTER_KEY` logs FATAL at import and every Netmaker call then fails
+with 401 from Netmaker itself, surfaced to the caller as `502`.
 
 > **Removed:** the legacy `kestra-call`, `kestra-call_delete`, and
 > `kestra-call.old` functions were deleted once devices+networks were repointed

@@ -460,5 +460,16 @@
       "failed": "Failed",
       "pending": "Pending"
     }
+  },
+  "auth": {
+    "title": "Operator sign in",
+    "description": "Sign in with your operator account.",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "signOut": "Sign out",
+    "invalidCredentials": "Invalid email or password.",
+    "notOperator": "This account is not an iotgw operator. Ask an administrator for access."
   }
 }

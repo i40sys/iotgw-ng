@@ -13,11 +13,13 @@ import (
 	"github.com/i40sys/iotgw-ng/live-image/internal/devapi"
 	"github.com/i40sys/iotgw-ng/live-image/internal/uci"
 	"github.com/i40sys/iotgw-ng/live-image/internal/wgconf"
+	"github.com/i40sys/iotgw-ng/live-image/internal/wgkey"
 )
 
-// ServerConfPath keeps the vpn API's reply verbatim (0600: it holds the
-// private key), as the live image does, so the network range and peer can be
-// re-derived at any time.
+// ServerConfPath keeps the vpn API's reply (0600: completed with the
+// gateway's own private key when the server omitted it, decision-035), as the
+// live image does, so the network range and peer can be re-derived at any
+// time.
 const ServerConfPath = "/etc/iotgw/wg0.server.conf"
 
 // otpRe is a one-time code as the UI shows it.
@@ -100,7 +102,14 @@ func sameList(a, b []string) bool {
 
 // VPNRefresh re-requests the WireGuard configuration from the vpn API and
 // applies it transactionally (decision-032 §6). out receives progress lines.
-func (a *Agent) VPNRefresh(ctx context.Context, otp string, out func(string)) error {
+//
+// The gateway holds its WireGuard private key (decision-035 §2): it sends
+// only the public key of the key already in uci network.<wg>.private_key, so
+// a refresh normally changes nothing on Netmaker and a rollback (which
+// restores that same key) stays valid. rotateKey generates a new key pair
+// instead; so does a gateway with no usable key. The private key is never
+// logged, printed or sent.
+func (a *Agent) VPNRefresh(ctx context.Context, otp string, rotateKey bool, out func(string)) error {
 	cfg, err := LoadConfig(ctx, a.UCI)
 	if err != nil {
 		return err
@@ -114,12 +123,17 @@ func (a *Agent) VPNRefresh(ctx context.Context, otp string, out func(string)) er
 	}
 	wg := cfg.WGIface
 	up, uerr := a.Uplink(ctx, wg)
-	body := map[string]string{"device_id": cfg.DeviceID}
+	priv, pub, keyMsg, err := a.gatewayWGKey(ctx, wg, rotateKey)
+	if err != nil {
+		return err
+	}
+	out(keyMsg)
+	body := map[string]string{"device_id": cfg.DeviceID, "wg_public_key": pub}
 	if uerr == nil {
 		body["gateway"], body["interface"] = up.Gateway, up.Device
 	}
-	client := devapi.New(cfg.APIBase, cfg.DeviceID, code)
-	out(fmt.Sprintf("requesting the VPN configuration from %s (operator code; reply sealed to a one-off key)", client.Endpoint("vpn")))
+	client := devapi.New(cfg.APIBase, cfg.DeviceID, code, devapi.WithCAFile(cfg.APICA))
+	out(fmt.Sprintf("requesting the VPN configuration from %s (operator code; reply sealed to a one-off key; %s)", client.Endpoint("vpn"), client.Trust()))
 	vr, status, err := client.CallVPN(ctx, body)
 	if err != nil {
 		return fmt.Errorf("vpn API (HTTP %d): %w", status, err)
@@ -127,8 +141,15 @@ func (a *Agent) VPNRefresh(ctx context.Context, otp string, out func(string)) er
 	if !vr.Sealed {
 		out("warning: the server answered with the deprecated code-encrypted reply (not sealed to this request's key) — update the vpn function")
 	}
-	reply := vr.Config
-	conf, err := wgconf.Parse(string(reply))
+	full, inserted, err := wgconf.WithPrivateKey(string(vr.Config), priv)
+	if err != nil {
+		return fmt.Errorf("the VPN configuration is invalid: %w", err)
+	}
+	if !inserted {
+		out("warning: the server sent a private key (it predates gateway-held keys) — using the server's key, as before")
+	}
+	reply := []byte(full)
+	conf, err := wgconf.Parse(full)
 	if err != nil {
 		return fmt.Errorf("the VPN configuration is invalid: %w", err)
 	}
@@ -187,4 +208,25 @@ func (a *Agent) VPNRefresh(ctx context.Context, otp string, out func(string)) er
 	}
 	out(fmt.Sprintf("VPN refreshed: %s", after))
 	return nil
+}
+
+// gatewayWGKey returns the WireGuard key pair the refresh uses: the one in
+// uci network.<wg>.private_key, or a new one for rotateKey / no usable key.
+// msg describes the choice with the PUBLIC key only.
+func (a *Agent) gatewayWGKey(ctx context.Context, wg string, rotateKey bool) (priv, pub, msg string, err error) {
+	if !rotateKey {
+		if cur := strings.TrimSpace(a.UCI.Get(ctx, netConfig+"."+wg+".private_key")); cur != "" {
+			if pub, err := wgkey.Public(cur); err == nil {
+				return cur, pub, "keeping the gateway's WireGuard key (public " + pub + ")", nil
+			}
+		}
+	}
+	priv, pub, err = wgkey.Generate()
+	if err != nil {
+		return "", "", "", fmt.Errorf("generate a WireGuard key: %w", err)
+	}
+	if rotateKey {
+		return priv, pub, "rotating the WireGuard key: new public key " + pub + " (the server moves the Netmaker client to it)", nil
+	}
+	return priv, pub, "the gateway has no usable WireGuard key: generated one (public " + pub + ")", nil
 }

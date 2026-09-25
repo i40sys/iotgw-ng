@@ -431,6 +431,9 @@ spec:
         - --validating-webhook-key=/usr/local/certificates/key
         - --watch-ingress-without-class=true
         - --publish-status-address=localhost
+        # decision-035: the device-API certificate for requests without SNI
+        # (gateways call https://10.2.0.47). Secret created by bootstrap.sh.
+        - --default-ssl-certificate=ingress-nginx/device-api-tls
         env:
         - name: POD_NAME
           valueFrom:

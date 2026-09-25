@@ -13,6 +13,7 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as TestMonacoDirectImport } from './routes/test-monaco-direct'
 import { Route as TestJsonEditorImport } from './routes/test-json-editor'
+import { Route as LoginImport } from './routes/login'
 import { Route as testDeviceSelectionImport } from './routes/__test-device-selection'
 import { Route as IndexImport } from './routes/index'
 import { Route as NetworksIndexImport } from './routes/networks/index'
@@ -39,6 +40,12 @@ const TestMonacoDirectRoute = TestMonacoDirectImport.update({
 const TestJsonEditorRoute = TestJsonEditorImport.update({
   id: '/test-json-editor',
   path: '/test-json-editor',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const LoginRoute = LoginImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -142,6 +149,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: ''
       preLoaderRoute: typeof testDeviceSelectionImport
+      parentRoute: typeof rootRoute
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
     '/test-json-editor': {
@@ -250,6 +264,7 @@ declare module '@tanstack/react-router' {
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '': typeof testDeviceSelectionRoute
+  '/login': typeof LoginRoute
   '/test-json-editor': typeof TestJsonEditorRoute
   '/test-monaco-direct': typeof TestMonacoDirectRoute
   '/debug/device-jobs': typeof DebugDeviceJobsRoute
@@ -269,6 +284,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '': typeof testDeviceSelectionRoute
+  '/login': typeof LoginRoute
   '/test-json-editor': typeof TestJsonEditorRoute
   '/test-monaco-direct': typeof TestMonacoDirectRoute
   '/debug/device-jobs': typeof DebugDeviceJobsRoute
@@ -289,6 +305,7 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/__test-device-selection': typeof testDeviceSelectionRoute
+  '/login': typeof LoginRoute
   '/test-json-editor': typeof TestJsonEditorRoute
   '/test-monaco-direct': typeof TestMonacoDirectRoute
   '/debug/device-jobs': typeof DebugDeviceJobsRoute
@@ -310,6 +327,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | ''
+    | '/login'
     | '/test-json-editor'
     | '/test-monaco-direct'
     | '/debug/device-jobs'
@@ -328,6 +346,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | ''
+    | '/login'
     | '/test-json-editor'
     | '/test-monaco-direct'
     | '/debug/device-jobs'
@@ -346,6 +365,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/__test-device-selection'
+    | '/login'
     | '/test-json-editor'
     | '/test-monaco-direct'
     | '/debug/device-jobs'
@@ -366,6 +386,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   testDeviceSelectionRoute: typeof testDeviceSelectionRoute
+  LoginRoute: typeof LoginRoute
   TestJsonEditorRoute: typeof TestJsonEditorRoute
   TestMonacoDirectRoute: typeof TestMonacoDirectRoute
   DebugDeviceJobsRoute: typeof DebugDeviceJobsRoute
@@ -385,6 +406,7 @@ export interface RootRouteChildren {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   testDeviceSelectionRoute: testDeviceSelectionRoute,
+  LoginRoute: LoginRoute,
   TestJsonEditorRoute: TestJsonEditorRoute,
   TestMonacoDirectRoute: TestMonacoDirectRoute,
   DebugDeviceJobsRoute: DebugDeviceJobsRoute,
@@ -413,6 +435,7 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/__test-device-selection",
+        "/login",
         "/test-json-editor",
         "/test-monaco-direct",
         "/debug/device-jobs",
@@ -434,6 +457,9 @@ export const routeTree = rootRoute
     },
     "/__test-device-selection": {
       "filePath": "__test-device-selection.tsx"
+    },
+    "/login": {
+      "filePath": "login.tsx"
     },
     "/test-json-editor": {
       "filePath": "test-json-editor.tsx"

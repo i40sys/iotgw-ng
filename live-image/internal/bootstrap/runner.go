@@ -32,6 +32,11 @@ import (
 // justfile's API_BASE).
 var DefaultAPIBase = ""
 
+// CAFile is the pinned device-API CA shipped in the overlay (decision-035
+// §1). When it exists, an http:// iotgw_api is upgraded to https:// on the
+// same host (default port) and only this CA is trusted.
+var CAFile = devapi.DefaultCAFile
+
 var (
 	deviceIDRe = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}@[0-9a-fA-F]{8}$`)
 	codeRe     = regexp.MustCompile(`^[0-9]{6}$`)
@@ -43,6 +48,9 @@ type Runner struct {
 	// CodeOverride replaces the one-time code from the kernel command line —
 	// for a manual retry from the shell once the boot-time code has expired.
 	CodeOverride string
+	// RotateKey makes a new WireGuard key pair even when this boot already
+	// has one (`iotgw vpn refresh -rotate-key`, decision-035 §2).
+	RotateKey bool
 	// Via is how the Internet is reached once the VPN is up (kernel command
 	// line iotgw_internet=lan|vpn; default lan).
 	Via  InternetVia
@@ -163,9 +171,12 @@ func (r *Runner) identity() bool {
 	}
 	r.Via = via
 	r.code = code
-	r.api = devapi.New(base, deviceID, code)
+	r.api = devapi.New(base, deviceID, code, devapi.WithCAFile(CAFile))
+	// Record the EFFECTIVE base: the install flow copies identity.api_base
+	// into the installed gateway's /etc/config/iotgw.
+	r.st.Identity.APIBase = r.api.Base()
 	ensureHostsEntry()
-	r.end(state.StepIdentity, state.Healthy, "device "+deviceID, nil)
+	r.end(state.StepIdentity, state.Healthy, "device "+deviceID+", API "+r.api.Base()+" ("+r.api.Trust()+")", nil)
 	return true
 }
 

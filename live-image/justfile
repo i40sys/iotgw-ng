@@ -58,13 +58,15 @@ overlay arch="amd64": (build arch)
       -czf {{DIST}}/iotgw-live-overlay-linux-{{arch}}.tar.gz .
 
 # installed-OpenWRT package tarball for one architecture: the binary + procd
-# service + console launcher, extracted into the new rootfs by the install
-# playbook (iotgw-kestra tasks/iotgw_agent.yaml, decision-032)
+# service + console launcher + the pinned device-API CA (decision-035), extracted
+# into the new rootfs by the install playbook (iotgw-kestra tasks/iotgw_agent.yaml,
+# decision-032)
 openwrt arch="amd64": (build arch)
     rm -rf {{DIST}}/openwrt-{{arch}}
     mkdir -p {{DIST}}/openwrt-{{arch}}/usr/sbin
     cp {{DIST}}/{{arch}}/iotgw {{DIST}}/openwrt-{{arch}}/usr/sbin/
     cp -a openwrt/overlay/. {{DIST}}/openwrt-{{arch}}/
+    install -D -m 0644 overlay/etc/iotgw/api-ca.pem {{DIST}}/openwrt-{{arch}}/etc/iotgw/api-ca.pem
     tar --owner=0 --group=0 --numeric-owner --mode=go-w -C {{DIST}}/openwrt-{{arch}} \
       -czf {{DIST}}/iotgw-openwrt-linux-{{arch}}.tar.gz .
 

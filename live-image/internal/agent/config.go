@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/i40sys/iotgw-ng/live-image/internal/devapi"
 	"github.com/i40sys/iotgw-ng/live-image/internal/uci"
 )
 
@@ -79,7 +80,10 @@ type Config struct {
 	// from the operator (-otp, console, LuCI). DeviceUUID / NetworkID /
 	// DomainID / TOTPCounter are still read from older installs but are
 	// informational only and never used to authenticate.
-	APIBase     string
+	APIBase string
+	// APICA is the device-API CA pinned for an https api_base (uci api_ca,
+	// default /etc/iotgw/api-ca.pem — decision-035 §1).
+	APICA       string
 	DeviceID    string // <name>@<8-hex network prefix>
 	DeviceUUID  string
 	NetworkID   string
@@ -108,7 +112,7 @@ func (c Config) IdentityComplete() bool {
 
 // LoadConfig reads /etc/config/iotgw. A missing file yields the defaults.
 func LoadConfig(ctx context.Context, u *uci.Client) (Config, error) {
-	c := Config{Policy: PolicyAuto, Prefer: EgressLAN, Interval: DefaultInterval, WGIface: "wg0"}
+	c := Config{Policy: PolicyAuto, Prefer: EgressLAN, Interval: DefaultInterval, WGIface: "wg0", APICA: devapi.DefaultCAFile}
 	secs, err := u.Show(ctx, ConfigName)
 	if err != nil {
 		// No /etc/config/iotgw yet: defaults, but say so.
@@ -142,6 +146,9 @@ func LoadConfig(ctx context.Context, u *uci.Client) (Config, error) {
 		c.ChangeWindow = time.Duration(n) * time.Second
 	}
 	c.APIBase = strings.TrimRight(s.Get("api_base"), "/")
+	if v := strings.TrimSpace(s.Get("api_ca")); v != "" {
+		c.APICA = v
+	}
 	c.DeviceID = s.Get("device_id")
 	c.DeviceUUID = s.Get("device_uuid")
 	c.NetworkID = s.Get("network_id")

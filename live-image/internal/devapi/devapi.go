@@ -11,18 +11,26 @@ package devapi
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/envelope"
 	"github.com/i40sys/iotgw-ng/live-image/internal/seal"
 )
+
+// DefaultCAFile is the device-API CA the gateway pins (decision-035 §1). It
+// ships in the live-image overlay and in the OpenWRT package; the installed
+// gateway can point elsewhere with uci iotgw.main.api_ca.
+const DefaultCAFile = "/etc/iotgw/api-ca.pem"
 
 // Client talks to the device-authenticated edge functions (vpn, ssh-ca)
 // through Kong.
@@ -31,18 +39,109 @@ type Client struct {
 	deviceID string
 	code     string // "" for the code-less renew call
 	http     *http.Client
+	trust    string // how the server is authenticated (for operator messages)
+	upgraded string // the configured http:// base when it was upgraded to https
+	err      error  // a TLS setup error, returned by every call (fail closed)
 }
+
+// Option configures a Client.
+type Option func(*options)
+
+type options struct{ caFile string }
+
+// WithCAFile pins the server certificate to the CA(s) in path when the base
+// URL is https:// and the file exists (decision-035 §1). An https URL
+// without the file uses the system roots; an http URL ignores it.
+func WithCAFile(path string) Option { return func(o *options) { o.caFile = path } }
 
 // New returns a client for deviceID authenticated by code ("" when only
 // CallPlain is used).
-func New(base, deviceID, code string) *Client {
-	return &Client{
-		base:     strings.TrimRight(base, "/"),
-		deviceID: deviceID,
-		code:     code,
-		http:     &http.Client{Timeout: 30 * time.Second},
+func New(base, deviceID, code string, opts ...Option) *Client {
+	var o options
+	for _, f := range opts {
+		f(&o)
 	}
+	base = strings.TrimRight(base, "/")
+	c := &Client{deviceID: deviceID, code: code}
+	var up bool
+	c.base, up = EffectiveBase(base, o.caFile)
+	if up {
+		c.upgraded = base
+	}
+	c.http, c.trust, c.err = HTTPClient(c.base, o.caFile)
+	if up {
+		c.trust += "; upgraded from " + base
+	}
+	return c
 }
+
+// EffectiveBase is the base URL actually used (decision-035 §1). When the
+// pinned CA file exists, an http:// base is UPGRADED to https:// on the same
+// host with the default port (the configured port is Kong's plain-HTTP
+// NodePort, e.g. :8000) and the same path; the client never falls back to
+// plain HTTP. Without the CA file, or for an https:// base, base is returned
+// unchanged. upgraded reports whether it changed.
+func EffectiveBase(base, caFile string) (eff string, upgraded bool) {
+	base = strings.TrimRight(base, "/")
+	if caFile == "" {
+		return base, false
+	}
+	u, err := url.Parse(base)
+	if err != nil || !strings.EqualFold(u.Scheme, "http") || u.Hostname() == "" {
+		return base, false
+	}
+	if _, err := os.Stat(caFile); err != nil {
+		return base, false
+	}
+	u.Scheme = "https"
+	u.Host = u.Hostname()
+	if strings.Contains(u.Host, ":") { // IPv6 literal
+		u.Host = "[" + u.Host + "]"
+	}
+	return strings.TrimRight(u.String(), "/"), true
+}
+
+// Base is the effective base URL (after an http→https upgrade).
+func (c *Client) Base() string { return c.base }
+
+// Upgraded is the configured http:// base when the client upgraded it to
+// https:// because the pinned CA exists ("" otherwise).
+func (c *Client) Upgraded() string { return c.upgraded }
+
+// HTTPClient returns the HTTP client for base: for https:// with an existing
+// caFile, one that trusts ONLY the CA(s) in it (pinned); for https:// without
+// it, the system roots; for http://, plain HTTP. trust describes the choice.
+// A CA file that exists but cannot be read or holds no certificate is an
+// error: the client must never silently fall back to wider trust.
+func HTTPClient(base, caFile string) (*http.Client, string, error) {
+	hc := &http.Client{Timeout: 30 * time.Second}
+	u, err := url.Parse(base)
+	if err != nil || !strings.EqualFold(u.Scheme, "https") {
+		return hc, "plain HTTP (no TLS)", nil
+	}
+	if caFile == "" {
+		return hc, "TLS, system CA roots", nil
+	}
+	pem, err := os.ReadFile(caFile)
+	if errors.Is(err, os.ErrNotExist) {
+		return hc, "TLS, system CA roots (no " + caFile + ")", nil
+	}
+	if err != nil {
+		return hc, "", fmt.Errorf("device-API CA %s: %w", caFile, err)
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pem) {
+		return hc, "", fmt.Errorf("device-API CA %s holds no PEM certificate", caFile)
+	}
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	tr.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
+	hc.Transport = tr
+	return hc, "TLS, CA pinned to " + caFile, nil
+}
+
+// Trust says how the server is authenticated (plain HTTP, system roots or
+// the pinned CA) — for progress messages.
+func (c *Client) Trust() string { return c.trust }
 
 // Endpoint is the function URL shown to the operator (no secrets in it).
 func (c *Client) Endpoint(fn string) string {
@@ -68,7 +167,7 @@ func (e *APIError) Error() string {
 	case http.StatusTooManyRequests:
 		hint = " — too many wrong codes: the device's code endpoints are locked for a while (15 min)"
 	case http.StatusConflict:
-		if !strings.Contains(e.Message, "already enrolled") {
+		if !strings.Contains(e.Message, "already enrolled") && !strings.Contains(e.Message, "WireGuard key") {
 			hint = " — the device's domain is not linked to a pki-manager zone"
 		}
 	case http.StatusBadGateway, http.StatusServiceUnavailable:
@@ -79,6 +178,9 @@ func (e *APIError) Error() string {
 
 // post sends body and returns the reply body of a 2xx, or an *APIError.
 func (c *Client) post(ctx context.Context, fn, contentType string, body []byte, coded bool) ([]byte, int, error) {
+	if c.err != nil {
+		return nil, 0, c.err
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.Endpoint(fn), bytes.NewReader(body))
 	if err != nil {
 		return nil, 0, err
@@ -86,7 +188,19 @@ func (c *Client) post(ctx context.Context, fn, contentType string, body []byte, 
 	req.Header.Set("Content-Type", contentType)
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, 0, fmt.Errorf("request failed: %w", err)
+		var ua x509.UnknownAuthorityError
+		var he x509.HostnameError
+		hint := ""
+		switch {
+		case errors.As(err, &ua):
+			hint = " — the server's certificate is not issued by the trusted CA (" + c.trust + ")"
+		case errors.As(err, &he):
+			hint = " — the certificate does not name this API address (" + c.base + ")"
+		}
+		if c.upgraded != "" {
+			hint += fmt.Sprintf(" [configured %s, upgraded to %s because the pinned device-API CA exists; no fallback to plain HTTP]", c.upgraded, c.base)
+		}
+		return nil, 0, fmt.Errorf("request failed: %w%s", err, hint)
 	}
 	defer resp.Body.Close()
 	out, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))

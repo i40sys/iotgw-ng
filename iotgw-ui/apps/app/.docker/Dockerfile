@@ -26,6 +26,13 @@ COPY tsconfig.json ./
 # the backend tRPC endpoint is reachable from the user's browser.
 ARG VITE_API_URL=http://localhost:4444/
 ENV VITE_API_URL=$VITE_API_URL
+# Operator login (decision-034): Supabase Auth (Kong) URL + the public anon key,
+# also baked at build time. The anon key is a public client key (it is shipped
+# to every browser); it only reaches GoTrue's public routes.
+ARG VITE_SUPABASE_URL=""
+ARG VITE_SUPABASE_ANON_KEY=""
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 
 # Build the application
 RUN pnpm --filter @iotgw/app build

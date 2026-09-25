@@ -460,5 +460,16 @@
       "failed": "Fallido",
       "pending": "Pendiente"
     }
+  },
+  "auth": {
+    "title": "Acceso de operador",
+    "description": "Inicia sesión con tu cuenta de operador.",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "signIn": "Iniciar sesión",
+    "signingIn": "Iniciando sesión…",
+    "signOut": "Cerrar sesión",
+    "invalidCredentials": "Correo o contraseña incorrectos.",
+    "notOperator": "Esta cuenta no es un operador de iotgw. Pide acceso a un administrador."
   }
 }

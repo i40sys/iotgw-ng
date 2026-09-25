@@ -95,6 +95,11 @@ status:
 verify:
     tools/verify.sh
 
+# Every tRPC call needs an operator (decision-034): the recipe signs in as the
+# dedicated e2e operator whose credentials live in SOPS
+# (secrets/iotgw-ui-backend.enc.env → E2E_OPERATOR_EMAIL / E2E_OPERATOR_PASSWORD)
+# and (re)creates that operator first, so a fresh cluster works too. Never echoed.
+#
 # End-to-end provisioning cycle against the running kind cluster: backend
 # (HTTP -> network+device -> KMS + Netmaker, asserts the WireGuard config and a
 # KMS round-trip, then teardown) followed by the browser (Playwright UI ->
@@ -102,9 +107,29 @@ verify:
 # Requires the cluster up (run after `just bootstrap`). Chromium is installed
 # idempotently on first run.
 e2e:
-    cd iotgw-ui && pnpm --filter @iotgw/app run test:e2e:install
-    cd iotgw-ui && pnpm --filter @iotgw/backend test:e2e
-    cd iotgw-ui && pnpm --filter @iotgw/app test:e2e
+    #!/usr/bin/env bash
+    set -euo pipefail
+    env_of() { grep -E "^$2=" <<<"$1" | head -1 | cut -d= -f2-; }
+    ui_env="$(tools/secrets/secrets.sh cat iotgw-ui-backend)"
+    E2E_OPERATOR_EMAIL="$(env_of "$ui_env" E2E_OPERATOR_EMAIL)"
+    E2E_OPERATOR_PASSWORD="$(env_of "$ui_env" E2E_OPERATOR_PASSWORD)"
+    E2E_SUPABASE_ANON_KEY="$(env_of "$(tools/secrets/secrets.sh cat supabase)" ANON_KEY)"
+    unset ui_env
+    [ -n "$E2E_OPERATOR_EMAIL" ] && [ -n "$E2E_OPERATOR_PASSWORD" ] \
+      || { echo "e2e: E2E_OPERATOR_EMAIL / E2E_OPERATOR_PASSWORD missing from secrets/iotgw-ui-backend.enc.env" >&2; exit 1; }
+    export E2E_OPERATOR_EMAIL E2E_OPERATOR_PASSWORD E2E_SUPABASE_ANON_KEY
+    scripts/operators/create-operator.sh "$E2E_OPERATOR_EMAIL" operator --password-from-env E2E_OPERATOR_PASSWORD
+    cd iotgw-ui
+    pnpm --filter @iotgw/app run test:e2e:install
+    pnpm --filter @iotgw/backend test:e2e
+    pnpm --filter @iotgw/app test:e2e
+
+# Sign-up is disabled (decision-034); flags such as --password-from-env VAR and
+# --reset: call scripts/operators/create-operator.sh directly.
+#
+# Create an iotgw-ui operator (or update its role); prints the password ONCE
+operator-create email role="operator":
+    scripts/operators/create-operator.sh {{email}} {{role}}
 
 # Full local bring-up on kind: create the cluster -> deploy -> smoke -> e2e
 bootstrap: kind-up k8s-deploy k8s-smoke e2e

@@ -1,0 +1,40 @@
+---
+# decision-035: the DEVICE API over TLS for gateways and live images.
+# Gateways reach the kind host by IP (https://10.2.0.47 — *.wsl.ymbihq.local
+# resolves to a WSL-internal address on the gateway LAN), so the request has no
+# SNI and a bare-IP Host: this host-less rule catches it, and ingress-nginx
+# answers with its DEFAULT certificate (--default-ssl-certificate =
+# ingress-nginx/device-api-tls, issued by the device-API CA the gateways pin).
+# Only the two device endpoints are exposed this way.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: device-api
+  labels:
+    app.kubernetes.io/name: kong
+    app.kubernetes.io/part-of: iotgw-ng
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    # TLS is terminated with the default certificate; keep plain HTTP working
+    # during the transition (clients configured with https never downgrade).
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /functions/v1/vpn
+            pathType: Prefix
+            backend:
+              service:
+                name: kong
+                port:
+                  number: 8000
+          - path: /functions/v1/ssh-ca
+            pathType: Prefix
+            backend:
+              service:
+                name: kong
+                port:
+                  number: 8000

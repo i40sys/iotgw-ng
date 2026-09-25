@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/i40sys/iotgw-ng/live-image/internal/devapi"
 	"github.com/i40sys/iotgw-ng/live-image/internal/platform"
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
 	"github.com/i40sys/iotgw-ng/live-image/internal/uci"
@@ -73,7 +74,10 @@ func (i Installed) SyntheticDoc() *state.Bootstrap {
 	now := time.Now().UTC()
 	doc := state.New(now)
 	doc.Finished = true
-	doc.Identity = state.Identity{DeviceID: i.Config.DeviceID, APIBase: i.Config.APIBase}
+	// The effective API URL (http:// upgraded to https:// when the pinned CA
+	// exists, decision-035 §1).
+	apiBase, _ := devapi.EffectiveBase(i.Config.APIBase, i.Config.APICA)
+	doc.Identity = state.Identity{DeviceID: i.Config.DeviceID, APIBase: apiBase}
 	set := func(id string, st state.Status, msg string) {
 		if s := doc.Step(id); s != nil {
 			s.Status, s.Message = st, msg

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { logger } from "../logger";
+import { auditLog } from "../auth/audit";
 import { TRPCError } from "@trpc/server";
 import { createQueryProcedure } from "../utils/query-helper";
 import { createMutationProcedure } from "../utils/mutation-helper";
@@ -419,6 +420,11 @@ export const devicesRouter = {
         });
       }
 
+      auditLog(ctx.operator, "reset_ssh_enrollment", {
+        deviceId: data.id,
+        fqdn: data.ssh_host_fqdn,
+        reason: input.reason,
+      });
       logger.warn(
         {
           deviceId: data.id,
@@ -600,6 +606,11 @@ export const devicesRouter = {
         });
       }
 
+      auditLog(ctx.operator, "create_device", {
+        deviceId: data.id,
+        name: input.name,
+        networkId: input.network_id,
+      });
       const ipInfo = input.ip_address ? ` with IP ${input.ip_address}` : "";
       logger.info(
         `Successfully created device "${input.name}"${ipInfo} in network ${input.network_id}`,
@@ -865,6 +876,11 @@ export const devicesRouter = {
         });
       }
 
+      auditLog(ctx.operator, "delete_device", {
+        deviceId: input.id,
+        name: data?.name,
+      });
+
       // Best-effort: revoke+destroy the device's SSH key in Cosmian KMS so it
       // doesn't outlive the device. A KMS failure must not fail the delete.
       if (data?.ssh_key_id) {
@@ -964,10 +980,11 @@ export const devicesRouter = {
     async ({ ctx, input }) => {
       try {
         const code = await getDeviceCode(ctx.supabase, input.id);
-        logger.info(
-          { deviceId: input.id, step: code.step, next: code.next },
-          "Issued device one-time code to the UI",
-        );
+        auditLog(ctx.operator, "get_device_code", {
+          deviceId: input.id,
+          step: code.step,
+          next: code.next,
+        });
         return code;
       } catch (error) {
         if (error instanceof DeviceNotFoundError) {
@@ -990,10 +1007,10 @@ export const devicesRouter = {
       try {
         await rotateDeviceSeed(ctx.supabase, input.id);
         const code = await getDeviceCode(ctx.supabase, input.id);
-        logger.info(
-          { deviceId: input.id, step: code.step },
-          "Rotated device code seed and issued a new code to the UI",
-        );
+        auditLog(ctx.operator, "rotate_device_code", {
+          deviceId: input.id,
+          step: code.step,
+        });
         return code;
       } catch (error) {
         if (error instanceof DeviceNotFoundError) {

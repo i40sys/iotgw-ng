@@ -104,7 +104,7 @@ assert_fire "network INSERT" "networks_webhook" \
 
 # --- device INSERT (attached to the un-provisioned smoke network)
 assert_fire "device INSERT" "devices_webhook" \
-  "insert into public.devices (id,network_id,name,totp_counter) values ('${DEV_ID}','${NET_ID}','__smoke_dev_${SUFFIX}',0);" \
+  "insert into public.devices (id,network_id,name) values ('${DEV_ID}','${NET_ID}','__smoke_dev_${SUFFIX}');" \
   "device_id" "${DEV_ID}" "device_jobs" || rc=1
 
 [ "$rc" = 0 ] && echo "  pg_net assertion: BOTH webhooks fired" || echo "  pg_net assertion: a webhook did NOT fire (silent pg_net failure)"

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { TRPCError } from "@trpc/server";
 import { appRouter } from "../router";
+import { TEST_OPERATOR } from "./operator-ctx";
 import { logger } from "../../logger";
 import { redactForLog } from "../../utils/redact";
 import example from "../../../../../packages/supabase-contract/src/deployment-config.example.json";
@@ -43,7 +44,6 @@ const createSupabaseMock = (configuration: unknown) => {
       ip_address: "10.0.0.10",
       network_id: "network-1",
       ssh_key_id: "ssh-key-1",
-      totp_counter: 0,
     }),
     networks: single({
       id: "network-1",
@@ -81,6 +81,7 @@ const run = (
     req: {} as any,
     res: {} as any,
     user: { name: "test" },
+    auth: { ok: true, operator: TEST_OPERATOR },
   } as any);
   const promise = caller.executeKestraDeployment({
     device_id: "device-1",

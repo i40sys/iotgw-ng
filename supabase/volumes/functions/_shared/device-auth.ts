@@ -389,9 +389,18 @@ export async function decryptDeviceRequest(
   for (const candidate of candidates) {
     try {
       const plaintext = await decryptPayload(body, candidate.code);
+      // AES-CBC with a WRONG key still passes the PKCS#7 padding check about
+      // once in 256 tries (garbage plaintext). Every device request is a JSON
+      // object, so only a candidate that yields one is the right code —
+      // otherwise a wrong code could authenticate (and consume a step) ~1% of
+      // the time.
+      const parsed: unknown = JSON.parse(plaintext);
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        continue;
+      }
       return { plaintext, code: candidate.code, step: candidate.step, seedId };
     } catch {
-      // Wrong code for this step — try the next candidate.
+      // Wrong code for this step (bad padding or not JSON) — try the next.
     }
   }
 

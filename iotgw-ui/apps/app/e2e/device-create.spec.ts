@@ -16,6 +16,7 @@
  */
 import { test, expect } from "@playwright/test";
 import { trpcQuery, trpcMutate } from "./api";
+import { loginViaUi } from "./login";
 
 type Row = { id: string; name: string };
 type Job = { status: string };
@@ -64,7 +65,7 @@ test.afterAll(async () => {
 test("creating a device through the UI provisions it end-to-end", async ({
   page,
 }) => {
-  await page.goto("/devices");
+  await loginViaUi(page, "/devices");
 
   // Open the create dialog (header button shares the "Create Device" label
   // with the submit button, so the submit is scoped to the dialog below).

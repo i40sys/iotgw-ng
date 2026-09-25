@@ -94,3 +94,51 @@ func SplitList(v string) []string {
 	}
 	return out
 }
+
+// HasPrivateKey reports whether conf carries an [Interface] PrivateKey line.
+func HasPrivateKey(conf string) bool {
+	section := ""
+	sc := bufio.NewScanner(strings.NewReader(conf))
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if strings.HasPrefix(line, "[") {
+			section = strings.ToLower(strings.Trim(line, "[]"))
+			continue
+		}
+		if k, v, ok := strings.Cut(line, "="); ok && section == "interface" && !strings.HasPrefix(line, "#") &&
+			strings.ToLower(strings.TrimSpace(k)) == "privatekey" && strings.TrimSpace(v) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// WithPrivateKey completes a vpn reply that omits the private key (the
+// gateway holds it, decision-035 §2) by inserting `PrivateKey = <key>` right
+// after the [Interface] header — the wg-quick form the install flow's
+// setup_vpn.sh parses. A reply that still carries a PrivateKey line (a server
+// that predates decision-035) is returned unchanged with inserted=false: its
+// key is used, as before.
+func WithPrivateKey(conf, key string) (out string, inserted bool, err error) {
+	if HasPrivateKey(conf) {
+		return conf, false, nil
+	}
+	if strings.TrimSpace(key) == "" {
+		return "", false, errors.New("the configuration has no PrivateKey and the gateway has no key to insert")
+	}
+	var b strings.Builder
+	done := false
+	sc := bufio.NewScanner(strings.NewReader(conf))
+	for sc.Scan() {
+		raw := sc.Text()
+		b.WriteString(raw + "\n")
+		if !done && strings.ToLower(strings.TrimSpace(raw)) == "[interface]" {
+			b.WriteString("PrivateKey = " + strings.TrimSpace(key) + "\n")
+			done = true
+		}
+	}
+	if !done {
+		return "", false, errors.New("config has no [Interface] section")
+	}
+	return b.String(), true, nil
+}

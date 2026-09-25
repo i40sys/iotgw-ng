@@ -61,8 +61,11 @@ spec:
               value: "service_role"
             - name: GOTRUE_JWT_AUD
               value: "authenticated"
+            # decision-034: no self sign-up. Operators are created only by an
+            # administrator through the admin API (service role):
+            # scripts/operators/create-operator.sh / `just operator-create`.
             - name: GOTRUE_DISABLE_SIGNUP
-              value: "false"
+              value: "true"
             - name: GOTRUE_MAILER_AUTOCONFIRM
               value: "true"
             - name: GOTRUE_EXTERNAL_EMAIL_ENABLED

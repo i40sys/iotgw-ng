@@ -2,13 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { logger } from "../logger";
 import { redactForLog } from "./redact";
-import type { Context } from "../context";
-import { supabaseProcedure } from "../routers/trpc";
+import { supabaseProcedure, type OperatorContext } from "../routers/trpc";
 
 // Helper for defining input types for handlers
 export interface HandlerInput<T> {
   input: T;
-  ctx: Context;
+  ctx: OperatorContext;
 }
 
 /**

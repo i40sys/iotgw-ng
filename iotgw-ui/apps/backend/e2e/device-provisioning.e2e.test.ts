@@ -23,17 +23,23 @@
  * Run: `pnpm --filter @iotgw/backend test:e2e`
  */
 import { describe, it, expect, beforeAll } from "vitest";
-import { trpcQuery, trpcMutate, e2eTarget } from "./trpc-client";
+import { trpcQuery, trpcMutate, e2eTarget, rawRequest } from "./trpc-client";
 
 const JOB_TIMEOUT_MS = Number(process.env.E2E_JOB_TIMEOUT_MS ?? "45000");
 
 type Job = { status: string; error_message: string | null };
 type Row = { id: string; name: string };
 
+// Reachability only (no auth): the backend answers 401 without a token
+// (decision-034). A sign-in failure must FAIL the test, not skip it.
 async function backendReachable(): Promise<boolean> {
   try {
-    await trpcQuery("getDomains");
-    return true;
+    const res = await rawRequest({
+      host: e2eTarget.HOST,
+      method: "GET",
+      path: "/getDomains?batch=1&input=%7B%7D",
+    });
+    return res.status > 0 && res.status < 500;
   } catch {
     return false;
   }

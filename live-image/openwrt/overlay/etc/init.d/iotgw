@@ -2,7 +2,8 @@
 # iotgw self-healing agent (iotgw-ng decision-032, task-125).
 # Keeps the management path working: the Netmaker route on the current LAN
 # router, the tunnelled network, and the Internet egress policy
-# (/etc/config/iotgw). Logs: logread -e iotgw. State: /var/run/iotgw/agent.json.
+# (/etc/config/iotgw). Logs: logread -e iotgw (or /var/log/messages once
+# provisioning installed rsyslog). State: /var/run/iotgw/agent.json.
 
 START=95
 STOP=10
