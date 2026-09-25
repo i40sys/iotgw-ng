@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-09-24 19:39'
-updated_date: '2026-09-25 05:19'
+updated_date: '2026-09-25 05:31'
 labels:
   - kestra
   - ansible
@@ -178,4 +178,21 @@ The Kestra `provisioning` flow (i11_provisioning_iotgw.yaml) failed on gw-c3 (ex
 **Follow-ups (outside this task's ACs)**
 - Lab-gateway provisioning re-run = task-129 AC#1 (another session). No flow or playbook was run against any gateway here.
 - `files/stacks/uptime/env.j2` is client-specific and defaults two passwords to a shared literal in the PUBLIC repo; nodered not provisionable from the public repo; `firewall.j2` hard-codes ManagementIPs 10.2.0.47/32; rotate the client credentials the operator pasted.
+
+**End-to-end on gw-c3 (2026-09-25) — provisioning SUCCESS**
+- Preconditions: iotgw-kestra main 2cd5e9f (preflight + `-e @vars.json`) deployed to Kestra; monorepo main 0e7c888/f66034a; backend on :52174 running the validator.
+- Config (deployment `764dbada…`, gw-c3): merged into `configuration`, keeping `osInstallation` and the legacy keys. Minimal set: `__tags__` [system, ntp, firewall, ssh_ca], `iotgw_hostname` iot-gw-c3, generated `root_password` (stored ONLY in the deployment JSON, user decision), `local_ip_address`/`main_local_dns` 10.254.253.1 (gw-c3's existing br-lan), `local_domain` lan, `primary_ntp` 0.openwrt.pool.ntp.org, firewall on with empty allow lists, every other stack flag false.
+- Validated with `validateDeploymentConfigStep` (os-installation + provisioning: 0 issues), saved via tRPC `updateDeployment`, run via `executeKestraDeployment`.
+- Kestra exec `3Y2EmW9i3tFNGyBirESW3Y` **SUCCESS**: preflight → stacks [system, ntp, firewall]; wg0 read back + asserted; network/firewall backed up to `/root/.iotgw-provisioning-backup/`; ssh_ca idempotent (valid host cert already installed → no re-enroll; cert + break-glass assert OK). RECAP ok=68 changed=26 failed=0.
+
+**Verified on the gateway (read-only)**
+- `iotgw vpn status` HEALTHY (handshake fresh, endpoint 216.45.62.117:443); `iotgw ssh status` User CA / Host CA / Host identity / sshd all HEALTHY.
+- `network.iotgw_endpoint` route present again (the template drops it; the agent re-added it, decision-032 §9).
+- hostname `iot-gw-c3` (kernel + uci); `system.ntp.server` 0.openwrt.pool.ntp.org.
+- Firewall: `vpn` zone (wg0) kept; wan input REJECT; the `SSH allowed` rule keeps port 22 open.
+- Kestra connectivity-check exec `5SXe1DENOGpKpdKpmhWwf2` SUCCESS (20 s).
+
+**Observations / follow-ups**
+- network.j2 still hard-codes the lan netmask: gw-c3 went from /24 to **/26** (10.254.253.1/26). Harmless here (br-lan unused), but on a gateway whose LAN hosts sit above .63 it would cut them off. Make the netmask (or CIDR) a schema field.
+- deployment_jobs row stayed RUNNING until the first read (reconcile-on-read, 9419298) — works as designed, but a job nobody opens stays RUNNING in the DB.
 <!-- SECTION:NOTES:END -->
