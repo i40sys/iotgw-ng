@@ -1,9 +1,10 @@
 ---
 id: TASK-126
 title: 'vpn edge function: host-key proof for unattended VPN refresh'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-24 07:49'
+updated_date: '2026-09-25 17:28'
 labels:
   - vpn
   - security
@@ -30,3 +31,9 @@ priority: medium
 - [ ] #2 iotgw vpn refresh sends the signature and still works end-to-end
 - [ ] #3 decision-032 updated with whether the daemon may refresh unattended
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Superseded by decision-033 (2026-09-25, user decision):** VPN refresh stays operator-driven (operator-entered, single-use codes from a KMS-held seed); no host-key proof for unattended VPN refresh, and the daemon never refreshes the VPN. Implemented under task-132.
+<!-- SECTION:NOTES:END -->
