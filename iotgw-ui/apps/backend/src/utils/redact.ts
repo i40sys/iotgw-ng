@@ -1,9 +1,10 @@
 import { deploymentConfigJsonSchema } from "../../../../packages/supabase-contract/src/deployment-config.validate";
 
 // Keys whose VALUE must never reach a log line. A deployment configuration can
-// hold provisioning secrets (task-130: x-secret fields — root password, OAuth2
-// client secrets, EMQX/GLPI/Influx logins, …), so the whole document is
-// dropped, and any schema secret key is masked wherever it appears.
+// hold provisioning secrets (task-130: the schema's x-secret fields, e.g. the
+// root password and the OAuth2 and broker/inventory/metrics logins), so the
+// whole document is dropped, and any schema secret key is masked wherever it
+// appears.
 const REDACTED = "[redacted]";
 
 const WHOLE_VALUE_KEYS = new Set([
