@@ -30,3 +30,17 @@ func TestUsageErrors(t *testing.T) {
 		t.Errorf("hold on the live image exited %d, want 1", code)
 	}
 }
+
+func TestRPCDVPNRefreshNeedsACode(t *testing.T) {
+	platform.Override = platform.OpenWRT
+	defer func() { platform.Override = "" }()
+	if _, err := rpcdCall("vpn_refresh", map[string]any{}); err == nil {
+		t.Error("vpn_refresh without a code was accepted")
+	}
+	if _, err := rpcdCall("vpn_refresh", map[string]any{"otp": "12ab56"}); err == nil {
+		t.Error("vpn_refresh with a malformed code was accepted")
+	}
+	if _, err := rpcdCall("ssh_refresh", map[string]any{"otp": "123"}); err == nil {
+		t.Error("ssh_refresh with a malformed code was accepted")
+	}
+}

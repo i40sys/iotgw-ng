@@ -1,0 +1,14 @@
+{
+  "description": "task-132.04 / decision-033 seal(VPN reply) interop vector. alg = X25519-HKDF-SHA256-A256GCM. shared = X25519(ephemeral_priv, reply_key); key = HKDF-SHA256(ikm=shared, salt=epk||reply_key (64 bytes, epk first), info=utf8('iotgw-vpn-reply v1'), L=32); ct = AES-256-GCM(key, nonce, plaintext, AAD=utf8(device_id)) with the 16-byte GCM tag appended to ct (last 16 bytes of the base64-decoded ct).",
+  "recipient_private_key_x25519_raw_b64": "FBgzqDQ7hzv/IRx0gYoXkLCyk9zsvRNcjZLqWfwLwRc=",
+  "reply_key_b64": "8Bxxx7tadtwMNdwceNt6eBOr4ZMiOHJk+US6qUEI0x0=",
+  "device_id": "iotgw-m3v6@da9148f6-1111-2222-3333-444455556666",
+  "plaintext": "# WireGuard VPN Configuration File, device_id: iotgw-m3v6@da9148f6\n[Interface]\nAddress = 10.121.102.62/32\nPrivateKey = wGitDeviceExamplePrivateKeyBase64EncodedValue=\nMTU = 1420\n\n[Peer]\nPublicKey = MVrf5pB0sPD9pQjV62NDxJNfBuJj2borv9kv8Ba4NiY=\nEndpoint = 216.45.62.117:443\nAllowedIPs = 0.0.0.0/0\nPersistentKeepalive = 20\n",
+  "sealed_reply_json": {
+    "v": 1,
+    "alg": "X25519-HKDF-SHA256-A256GCM",
+    "epk": "COdU4tSGa8w5plrVBebe2hmyItzW8DbI/k6skVI8DzE=",
+    "nonce": "48Q3wfkMYUtoZSPr",
+    "ct": "GHigrgMGXf1pgv4UmVg2oVIffMIcp4KxpR1pxguXtQYqTofrfN1jLfiyP1EDue+anF/FaSpG58sWuqr5BB1B+u0uFmmaZJUxA6BYu80ljMmKbXkWguW9YEYaCdWoROl/e/fg2BUWYobL6h+GLNYBX6VDjIerZ6uhQrQcW/EeybQNfLgHm7Ov+YlTw24ofXEIRoKmKSodMneuYxB9+y0ibEqks3mvTX5tr6xNw8veebqLTzC8oCHOmAbDFSClj8C3h9u37HOKNsNPAT/aWYlqdZz8Bfu64btqL2DaCh1INwAb656gSvrWBUHUjUsoyZC51l5PARW/NwbYv/sCVJVi9lVqkEUu+E+7QDBpvDCFcJ9BnbySM1myKDunAC+LVoNqtXVpSo6ZNll9nNWZokYqyHOVGzklzu76QSRfrHvpW8rz48GNQ7ojkaPJNTLHeJk="
+  }
+}

@@ -97,6 +97,17 @@ spec:
                   name: ops-cert-mint
                   key: OPS_CERT_MINT_TOKEN
                   optional: true
+            # decision-033: the vpn / ssh-ca edge functions present this bearer to
+            # POST /internal/device-auth/candidates to get the device codes valid
+            # now (the seed never leaves the KMS/backend). Bridged from SOPS
+            # (secrets/iotgw-ui-backend.enc.env → DEVICE_AUTH_TOKEN) into the
+            # `device-auth` Secret by bootstrap.sh; unset → the endpoint returns 503.
+            - name: DEVICE_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: device-auth
+                  key: DEVICE_AUTH_TOKEN
+                  optional: true
           readinessProbe:
             tcpSocket:
               port: 4444

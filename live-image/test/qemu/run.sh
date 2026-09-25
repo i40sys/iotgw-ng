@@ -15,14 +15,20 @@
 #          bug), the iotgw package (binary, procd service, console launcher)
 #          and /etc/config/iotgw.
 #
-# A fake vpn/ssh-ca API (test/fakeapi: real envelope + TOTP) runs on the host.
+# A fake vpn/ssh-ca API (test/fakeapi) runs on the host, following the
+# decision-033 contract: its own random per-device seed (the gateway cannot
+# compute a code — the test reads it from /test/code, as an operator reads it
+# off the UI), single-use codes, a VPN reply sealed to the request's X25519
+# key, and ssh-ca renew authenticated by the enrolled host key.
 #
-# Cases: the daemon repairs the Netmaker route; follows a LAN-router change;
-# falls back to VPN when the LAN loses Internet and returns (hysteresis);
-# hold freezes automatic changes; the policy survives a reboot; vpn refresh
-# repairs a broken tunnel and rolls back a bad config; ssh refresh installs a
-# host certificate sshd serves (and proves continuity on renewal); the
-# dashboard runs on the serial console.
+# Cases: the daemon repairs the Netmaker route (and does NOT enroll by
+# itself); follows a LAN-router change; falls back to VPN when the LAN loses
+# Internet and returns (hysteresis); hold freezes automatic changes; the
+# policy survives a reboot; vpn refresh needs a code, uses it once, repairs a
+# broken tunnel and rolls back a bad config; ssh refresh enrolls with a code,
+# renews with the host key (no code), refuses a re-enroll after a "reinstall",
+# and the daemon renews an expiring certificate by itself; the dashboard runs
+# on the serial console; LuCI/rpcd require the code for a VPN refresh.
 #
 # usage: live-image/test/qemu/run.sh          (WORK=dir to keep artifacts)
 set -euo pipefail
@@ -77,10 +83,8 @@ echo "@cert-authority * $(cat scn/host_ca.pub)" >scn/known_hosts
 DOMAIN_ID=d0000000-0000-4000-8000-000000000001
 NETWORK_ID=12345678-0000-4000-8000-000000000002
 DEVICE_UUID=aaaaaaaa-0000-4000-8000-000000000003
-echo $DOMAIN_ID >scn/domain_id
+DEVICE_ID="gw-qemu@${NETWORK_ID:0:8}"
 echo $NETWORK_ID >scn/network_id
-echo $DEVICE_UUID >scn/device_uuid
-echo 4 >scn/totp_counter
 
 # ── images ───────────────────────────────────────────────────────────────────
 log "OpenWRT $OWRT_VER images"
@@ -169,7 +173,8 @@ config iotgw 'main'
 	option max_changes '50'
 	option wg_iface 'wg0'
 	option api_base 'http://10.0.2.2:$API_PORT'
-	option device_id 'gw-qemu@${NETWORK_ID:0:8}'
+	option device_id '$DEVICE_ID'
+	# legacy identity keys (decision-009 installs): parsed, never used for codes
 	option device_uuid '$DEVICE_UUID'
 	option network_id '$NETWORK_ID'
 	option domain_id '$DOMAIN_ID'
@@ -295,6 +300,18 @@ uci commit network
 "./fakeapi" serve -listen "127.0.0.1:$API_PORT" -dir scn >fakeapi.log 2>&1 &
 PIDS+=($!)
 
+API="http://127.0.0.1:$API_PORT"
+# otp PURPOSE: the device's current one-time code, as the operator reads it
+# off the UI (the next step's once the current one is used; "Reset code" when
+# both are spent).
+otp() {
+  local p=${1:-vpn} c
+  if ! c=$(curl -fsS "$API/test/code?device_id=$DEVICE_ID&purpose=$p" 2>/dev/null); then
+    curl -fsS -X POST "$API/test/rotate?device_id=$DEVICE_ID" >/dev/null
+    c=$(curl -fsS "$API/test/code?device_id=$DEVICE_ID&purpose=$p")
+  fi
+  echo "$c"
+}
 tunnel_up() { gw "ping -c1 -W2 10.99.0.1"; }
 egress_is() { [ "$(gw "ip route get 1.1.1.1" | sed -n 's/.* dev \([^ ]*\).*/\1/p')" = "$1" ]; }
 route_gw() { gw "uci -q get network.iotgw_endpoint.gateway"; }
@@ -315,8 +332,9 @@ until_ok "iotgw_endpoint route via 172.30.0.1" 120 route_is 172.30.0.1
 until_ok "install-time route removed" 30 legacy_gone
 until_ok "tunnel up" 120 tunnel_up
 until_ok "Netmaker network routed through wg0" 60 net_via_wg
-self_enrolled() { gw "test -f /etc/ssh/ssh_host_ecdsa_key-cert.pub"; }
-until_ok "daemon enrolled the fresh install by itself (decision-032 §12)" 120 self_enrolled
+enrolled() { gw "test -f /etc/ssh/ssh_host_ecdsa_key-cert.pub"; }
+sleep $((INTERVAL * 2))
+if enrolled; then ko "the daemon enrolled by itself (it has no code; decision-033)"; else ok "the daemon does NOT enroll by itself (a first enrollment needs an operator code)"; fi
 
 log "2. LAN router change (task-125.05 AC1)"
 hub "set -e
@@ -372,30 +390,51 @@ read -r BAD_KEY _ < <(./fakeapi genkey)
 gw "uci set network.wg0.private_key='$BAD_KEY' && uci commit network && ubus call network reload"
 sleep 15
 if tunnel_up; then ko "tunnel should be down with a wrong key"; else ok "tunnel down with a wrong key"; fi
-if gw "iotgw vpn refresh"; then ok "vpn refresh"; else ko "vpn refresh"; fi
-until_ok "tunnel up after vpn refresh" 60 tunnel_up
-curl -fsS -X POST "http://127.0.0.1:$API_PORT/control?vpn=bad-peer" >/dev/null
 # (exits 1 by design; capture first — with pipefail a pipe would report that)
 out=$(gw "iotgw vpn refresh" 2>&1 || true)
+if grep -q "one-time code" <<<"$out"; then ok "vpn refresh without a code is refused (nothing derives one)"; else ko "vpn refresh without a code: $out"; fi
+CODE=$(otp vpn)
+if gw "iotgw vpn refresh -otp $CODE"; then ok "vpn refresh with the operator code"; else ko "vpn refresh"; fi
+if grep -q "reply SEALED to reply_key" fakeapi.log; then ok "the VPN reply is sealed to the request's key"; else ko "the VPN reply was not sealed"; fi
+until_ok "tunnel up after vpn refresh" 60 tunnel_up
+out=$(gw "iotgw vpn refresh -otp $CODE" 2>&1 || true)
+if grep -q "already used" <<<"$out"; then ok "a used code is refused (single use)"; else ko "code replay not refused: $out"; fi
+curl -fsS -X POST "$API/control?vpn=bad-peer" >/dev/null
+out=$(gw "iotgw vpn refresh -otp $(otp vpn)" 2>&1 || true)
 if grep -q "rolled back" <<<"$out"; then ok "bad config rolled back"; else ko "bad config not rolled back: $out"; fi
-curl -fsS -X POST "http://127.0.0.1:$API_PORT/control?vpn=good" >/dev/null
+curl -fsS -X POST "$API/control?vpn=good" >/dev/null
 if [ "$(gw 'uci -q get network.wgserver.public_key')" = "$HUB_PUB" ]; then ok "peer restored"; else ko "peer not restored"; fi
 until_ok "tunnel still up after the rollback" 90 tunnel_up
 
-log "7. ssh refresh (task-125.08)"
-if gw "iotgw ssh refresh"; then ok "ssh refresh"; else ko "ssh refresh"; fi
+log "7. ssh refresh (task-125.08, decision-033)"
+out=$(gw "iotgw ssh refresh" 2>&1 || true)
+if grep -q "one-time code" <<<"$out" && ! enrolled; then ok "a first enrollment without a code is refused"; else ko "enroll without a code: $out"; fi
+if gw "iotgw ssh refresh -otp $(otp ssh-enroll)"; then ok "first enrollment with the operator code"; else ko "ssh refresh (enroll)"; fi
 opssh() { ssh -o BatchMode=yes -o LogLevel=ERROR -o ConnectTimeout=5 -i scn/operator -o CertificateFile=scn/operator-cert.pub \
   -o UserKnownHostsFile=scn/known_hosts -o StrictHostKeyChecking=yes -o HostKeyAlias=gw.test.iotgw \
   -o HostKeyAlgorithms=ecdsa-sha2-nistp256-cert-v01@openssh.com -p $GW_SSHD root@127.0.0.1 "$@"; }
 until_ok "operator logs in with a user certificate; host certificate verified" 30 opssh true
 if gw "iotgw ssh refresh" | grep -q "nothing to do"; then ok "renewal skipped while the certificate is current"; else ko "renewal not idempotent"; fi
-if gw "iotgw ssh refresh -force" && grep -q "continuity proof OK" fakeapi.log; then ok "forced renewal proves continuity"; else ko "forced renewal / continuity"; fi
+if gw "iotgw ssh refresh -force" && grep -q "renew signature OK" fakeapi.log; then ok "forced renewal signed by the host key (no code)"; else ko "forced renewal (renew by host key)"; fi
 until_ok "sshd still serving after renewal" 30 opssh true
-curl -fsS -X POST "http://127.0.0.1:$API_PORT/control?ssh=bad-cert" >/dev/null
+curl -fsS -X POST "$API/control?ssh=bad-cert" >/dev/null
 out=$(gw "iotgw ssh refresh -force" 2>&1 || true)
 if grep -q "REJECTED, nothing changed" <<<"$out"; then ok "a bad host certificate is rejected before sshd is touched"; else ko "bad host certificate not rejected: $out"; fi
-curl -fsS -X POST "http://127.0.0.1:$API_PORT/control?ssh=good" >/dev/null
+curl -fsS -X POST "$API/control?ssh=good" >/dev/null
 until_ok "sshd still serves the previous certificate" 30 opssh true
+# A "reinstall" (no local certificate, the server still has the host key):
+# enroll is refused with a pointer to Reset SSH enrollment; nothing changes.
+gw "mv /etc/ssh/ssh_host_ecdsa_key-cert.pub /tmp/iotgw-cert.bak"
+out=$(gw "iotgw ssh refresh -otp $(otp ssh-enroll)" 2>&1 || true)
+gw "mv /tmp/iotgw-cert.bak /etc/ssh/ssh_host_ecdsa_key-cert.pub"
+if grep -q "Reset SSH enrollment" <<<"$out"; then ok "re-enroll of an enrolled device is refused (409 → Reset SSH enrollment)"; else ko "re-enroll not refused: $out"; fi
+# The daemon renews an expiring certificate by itself, with the host key.
+curl -fsS -X POST "$API/control?validity=short" >/dev/null
+gw "iotgw ssh refresh -force" >/dev/null || ko "forced renewal (short certificate)"
+curl -fsS -X POST "$API/control?validity=long" >/dev/null
+self_renewed() { gw "grep -A1 '\"kind\": \"renew\"' /var/run/iotgw/agent.json | grep -q '\"result\": \"ok\"'"; }
+until_ok "the daemon renewed the expiring certificate by itself (no code)" $((INTERVAL * 8)) self_renewed
+until_ok "sshd serving after the self-renewal" 30 opssh true
 
 log "8. LuCI page + rpcd plugin: the web backend is the daemon's snapshot"
 # Install the whole OpenWRT package the way the playbook does (extract it).
@@ -411,7 +450,10 @@ if [ "$(gw "uci -q get iotgw.main.hold")" = 1 ]; then ok "hold via rpcd"; else k
 gw "ubus call iotgw hold '{\"enable\":false}'" >/dev/null
 job=$(gw "ubus call iotgw ssh_refresh '{}' | jsonfilter -e @.job")
 job_done() { [ "$(gw "ubus call iotgw job '{\"id\":\"$job\"}' | jsonfilter -e @.rc")" = 0 ]; }
-until_ok "background job (ssh refresh) finishes with rc 0" 120 job_done
+until_ok "background job (ssh refresh, no code: enrolled) finishes with rc 0" 120 job_done
+if gw "ubus call iotgw vpn_refresh '{}'" | grep -q "one-time code"; then ok "vpn_refresh via rpcd requires the code"; else ko "vpn_refresh via rpcd without a code accepted"; fi
+job=$(gw "ubus call iotgw vpn_refresh '{\"otp\":\"$(otp vpn)\"}' | jsonfilter -e @.job")
+until_ok "background job (vpn refresh with the code) finishes with rc 0" 120 job_done
 RPC="http://127.0.0.1:$GW_HTTP/ubus"
 SID=$(curl -fsS "$RPC" -d '{"jsonrpc":"2.0","id":1,"method":"call","params":["00000000000000000000000000000000","session","login",{"username":"root","password":""}]}' | jq -r '.result[1].ubus_rpc_session')
 if curl -fsS "$RPC" -d "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"call\",\"params\":[\"$SID\",\"iotgw\",\"status\",{}]}" | jq -e '.result[1].available == true' >/dev/null; then ok "LuCI session reaches iotgw status over /ubus"; else ko "LuCI session cannot call iotgw"; fi

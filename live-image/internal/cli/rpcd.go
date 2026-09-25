@@ -136,8 +136,15 @@ func rpcdCall(method string, in map[string]any) (map[string]any, error) {
 		return map[string]any{"ok": true, "hold": boolean(in, "enable")}, nil
 
 	case "vpn_refresh", "ssh_refresh":
+		// decision-033: the VPN always needs the operator's one-time code; SSH
+		// only for a first enrollment (an enrolled gateway renews with its
+		// host key).
 		args := []string{strings.TrimSuffix(method, "_refresh"), "refresh"}
-		if otp := str(in, "otp"); otp != "" {
+		otp := str(in, "otp")
+		if method == "vpn_refresh" && otp == "" {
+			return nil, errors.New("a VPN refresh needs the device's one-time code from the iotgw-ng UI")
+		}
+		if otp != "" {
 			if !otpRe.MatchString(otp) {
 				return nil, errors.New("the one-time code must be 6 digits")
 			}

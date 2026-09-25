@@ -730,7 +730,7 @@ export const deploymentsRouter = {
         const { data: deviceData, error: deviceError } = await supabase
           .from("devices")
           .select(
-            "id, name, description, ip_address, network_id, ssh_key_id, totp_counter",
+            "id, name, description, ip_address, network_id, ssh_key_id",
           )
           .eq("id", input.device_id)
           .single();
@@ -827,7 +827,6 @@ export const deploymentsRouter = {
           device_uuid: deviceData.id,
           network_id: networkData.id,
           domain_id: domainData.id,
-          totp_counter: deviceData.totp_counter ?? 0,
           // The domain's pki-manager zone (task-092): the runner mints its
           // iotgw-ops user cert for THIS zone so the target gateway's User CA
           // trusts it. Null until the domain's zone is provisioned (task-080).

@@ -9,6 +9,12 @@ import {
   destroyDeviceSshKey,
 } from "../services/kms";
 import {
+  DeviceNotFoundError,
+  ensureDeviceSeed,
+  getDeviceCode,
+  rotateDeviceSeed,
+} from "../services/device-code";
+import {
   offboardHost,
   listActiveHosts,
   isPkiConfigured,
@@ -599,6 +605,18 @@ export const devicesRouter = {
         `Successfully created device "${input.name}"${ipInfo} in network ${input.network_id}`,
       );
 
+      // Create the device's one-time-code seed in Cosmian KMS (decision-033).
+      // Best-effort like the SSH key below: getDeviceCode / the edge functions
+      // create it lazily if this fails.
+      try {
+        await ensureDeviceSeed(supabase, data.id);
+      } catch (error) {
+        logger.error(
+          { error, deviceId: data.id },
+          "Device created but code seed creation failed; it will be created lazily",
+        );
+      }
+
       // Auto-generate the device's SSH key in Cosmian KMS (decision-010).
       // Best-effort: a KMS failure must not fail device creation — the device is
       // left without a key and can be repaired later via generateMissingSshKey.
@@ -937,51 +955,55 @@ export const devicesRouter = {
     },
   ),
 
-  incrementTotpCounter: createMutationProcedure(
-    "increment_totp_counter",
-    z.object({ id: z.string() }),
+  // Device one-time code (decision-033). The backend computes it from the
+  // device's KMS-held seed; the browser never derives codes. Returns the next
+  // step's code when the current one was already consumed for `vpn`.
+  getDeviceCode: createQueryProcedure(
+    "get_device_code",
+    z.object({ id: z.string().min(1, "Device ID is required") }),
     async ({ ctx, input }) => {
-      const { supabase } = ctx;
-
-      // First, get the current counter value and network info
-      const { data: currentDevice, error: fetchError } = await supabase
-        .from("devices")
-        .select("totp_counter, network_id, network:networks(domain_id)")
-        .eq("id", input.id)
-        .single();
-
-      if (fetchError) {
-        logger.error({ error: fetchError }, "Error fetching device for TOTP");
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Device with ID ${input.id} not found`,
-          cause: fetchError,
-        });
+      try {
+        const code = await getDeviceCode(ctx.supabase, input.id);
+        logger.info(
+          { deviceId: input.id, step: code.step, next: code.next },
+          "Issued device one-time code to the UI",
+        );
+        return code;
+      } catch (error) {
+        if (error instanceof DeviceNotFoundError) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Device with ID ${input.id} not found`,
+          });
+        }
+        throw error;
       }
+    },
+  ),
 
-      const newCounter = (currentDevice.totp_counter ?? 0) + 1;
-
-      // Increment the counter
-      const { data, error } = await supabase
-        .from("devices")
-        .update({ totp_counter: newCounter })
-        .eq("id", input.id)
-        .select("*, network:networks(domain_id)")
-        .single();
-
-      if (error) {
-        logger.error({ error }, "Error incrementing TOTP counter");
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to increment TOTP counter: ${error.message}`,
-          cause: error,
-        });
+  // "Reset code": rotate the device's seed (new KMS key, old one destroyed), so
+  // every outstanding code dies, then return the new current code.
+  rotateDeviceCode: createMutationProcedure(
+    "rotate_device_code",
+    z.object({ id: z.string().min(1, "Device ID is required") }),
+    async ({ ctx, input }) => {
+      try {
+        await rotateDeviceSeed(ctx.supabase, input.id);
+        const code = await getDeviceCode(ctx.supabase, input.id);
+        logger.info(
+          { deviceId: input.id, step: code.step },
+          "Rotated device code seed and issued a new code to the UI",
+        );
+        return code;
+      } catch (error) {
+        if (error instanceof DeviceNotFoundError) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Device with ID ${input.id} not found`,
+          });
+        }
+        throw error;
       }
-
-      logger.info(
-        `Successfully incremented TOTP counter for device ${input.id} to ${newCounter}`,
-      );
-      return data;
     },
   ),
 

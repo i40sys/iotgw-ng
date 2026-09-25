@@ -79,7 +79,7 @@ func (m Model) installedPanel(w int) string {
 	provSt := statusOf(in.Provisioned())
 	if !in.Provisioned() && in.IdentityOK && in.WGConfigured {
 		// Installed but not enrolled yet: the normal state until provisioning.
-		provSt, provTxt = state.NotConfigured, "not yet — SSH enrollment missing: run the provisioning deployment (or iotgw ssh refresh)"
+		provSt, provTxt = state.NotConfigured, "not yet — SSH enrollment missing: run the provisioning deployment (or [s] with a one-time code)"
 	}
 	rows := []string{
 		row("Installed", statusOf(in.ConfigErr == ""), installedTxt),

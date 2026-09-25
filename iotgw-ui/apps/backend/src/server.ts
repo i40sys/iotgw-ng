@@ -3,12 +3,13 @@ import {
   type FastifyTRPCPluginOptions,
 } from "@trpc/server/adapters/fastify";
 import fastify from "fastify";
-import { createContext } from "./context";
+import { createContext, supabase } from "./context";
 import { appRouter, type AppRouter } from "./routers/router";
 import ws from "@fastify/websocket";
 import cors from "@fastify/cors";
 import envToLogger from "./logger";
 import { issueOpsUserCert, isPkiConfigured } from "./services/pki";
+import { registerDeviceCodeRoutes } from "./internal/device-code-routes";
 
 const environment = (process.env.NODE_ENV ?? "development") as
   | "development"
@@ -81,6 +82,11 @@ server.post<{
     return reply.code(502).send({ error: message });
   }
 });
+
+// Device one-time-code endpoints (decision-033): code candidates for the vpn /
+// ssh-ca edge functions (DEVICE_AUTH_TOKEN) and the first-enrollment code for
+// Kestra provisioning (OPS_CERT_MINT_TOKEN). The seed never leaves the backend.
+registerDeviceCodeRoutes(server, { supabase });
 
 void (async () => {
   try {

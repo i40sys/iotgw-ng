@@ -171,6 +171,9 @@ CA-signed operator certificate — so nothing could reach a new install. The
 daemon now performs the FIRST enrollment itself when the gateway has no host
 certificate (retry every 10 min; hold suspends it). Same TOTP authentication
 as the controller's enrollment; renewals stay controller-driven (task-104).
+*(Replaced by decision-033: the daemon cannot derive a code any more; it now
+renews an existing enrollment with its host key, and first enrollment is done
+by provisioning or the operator.)*
 This narrows the "daemon never calls the APIs" rule of *Refresh
 authentication* to: never refreshes the VPN, never renews by itself.
 
@@ -209,6 +212,15 @@ recreating the device (offboard).
   `vpn` is a follow-up task (task-126), not part of this epic.
 - A reset `totp_counter` in the UI invalidates derived codes: the CLI says so
   and points to `uci set iotgw.main.totp_counter=N` or `-otp`.
+
+> **Superseded by decision-033 (2026-09-25).** The gateway can no longer
+> compute a code: codes come from a random per-device seed held by the KMS and
+> are read only by the backend. `vpn refresh` requires the operator's `-otp`
+> (console `[v]`, LuCI) and the daemon never refreshes the VPN. `ssh refresh`
+> **renews with the enrolled host key and no code** (`ssh-ca renew`); a code is
+> needed only for a first enrollment. The daemon's first-enrollment loop (§12)
+> is replaced by host-key **self-renewal**; first enrollment happens in
+> provisioning (backend-issued code) or by the operator.
 
 ### Implementation choices worth knowing
 

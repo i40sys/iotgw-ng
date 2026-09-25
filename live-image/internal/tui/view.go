@@ -138,21 +138,16 @@ func (m Model) switchPanel() string {
 		return panel("Resume automatic repair?", state.Pending, w,
 			"The daemon will again fix the Netmaker route and the Internet path on its next check.",
 			"", keyStyle.Render("[y]")+" resume   "+keyStyle.Render("[n]")+" cancel")
-	case m.confirmRefresh == "vpn":
-		return panel("Refresh the VPN configuration?", state.Pending, w,
-			"Re-requests the WireGuard configuration from the vpn API (code derived from",
-			"this device's identity) and applies it; it is kept only if the tunnel comes",
-			"back up, otherwise the previous configuration is restored.",
-			"wg0 restarts (a few seconds without VPN; SSH over the VPN drops).",
-			"", keyStyle.Render("[y]")+" refresh   "+keyStyle.Render("[n]")+" cancel")
+	case m.codeFor != "":
+		return m.codePanel()
 	case m.confirmRefresh == "ssh":
-		return panel("Refresh SSH trust and the host certificate?", state.Pending, w,
-			"Re-requests the User CA and a host certificate from the ssh-ca API (code",
-			"derived from this device's identity), checks them with `sshd -t` and reloads",
-			"sshd; every file is restored if sshd does not serve them. A current",
-			"certificate is kept unless you force it. After a reinstall, first use",
-			"\"Reset SSH enrollment\" on the device page in the iotgw-ng UI.",
-			"", keyStyle.Render("[y]")+" refresh   "+keyStyle.Render("[f]")+" force re-issue   "+keyStyle.Render("[n]")+" cancel")
+		return panel("Renew the SSH host certificate?", state.Pending, w,
+			"Requests a renewed host certificate and the User CA from the ssh-ca API,",
+			"signed with this gateway's enrolled host key (no code needed), checks them",
+			"with `sshd -t` and reloads sshd; every file is restored if sshd does not",
+			"serve them. A current certificate is kept unless you force it. After a",
+			"reinstall, first use \"Reset SSH enrollment\" on the device page in the UI.",
+			"", keyStyle.Render("[y]")+" renew   "+keyStyle.Render("[f]")+" force re-issue   "+keyStyle.Render("[n]")+" cancel")
 	case m.confirmVia == "vpn":
 		return panel("Switch Internet to VPN (full tunnel)?", state.Pending, w,
 			"All traffic and DNS go through wg0; the Internet egresses from the",
@@ -178,6 +173,37 @@ func (m Model) switchPanel() string {
 		return panel("Last action", st, w, m.notice)
 	}
 	return ""
+}
+
+// codePanel is the inline one-time code input ([v], or [s] before the first
+// enrollment). The digits are shown as they are typed — the operator reads
+// them off the UI anyway — but never logged; the action's command line masks
+// them.
+func (m Model) codePanel() string {
+	title, intro := "VPN refresh — one-time code", []string{
+		"Re-requests the WireGuard configuration from the vpn API and applies it; it",
+		"is kept only if the tunnel comes back up, otherwise the previous one is",
+		"restored. wg0 restarts (a few seconds without VPN; SSH over the VPN drops).",
+	}
+	if m.codeFor == "ssh" {
+		title, intro = "First SSH enrollment — one-time code", []string{
+			"This gateway has no host certificate yet. Enrolls it with the ssh-ca API",
+			"(User CA + host certificate), checks with `sshd -t` and reloads sshd;",
+			"every file is restored if sshd does not serve them.",
+		}
+	}
+	shown := m.codeBuf + strings.Repeat("_", codeLen-len(m.codeBuf))
+	var sp []string
+	for _, c := range shown {
+		sp = append(sp, string(c))
+	}
+	rows := append(intro,
+		"Take the device's current code from its page in the iotgw-ng UI (single use).",
+		"",
+		titleStyle.Render("Code: ")+keyStyle.Render(strings.Join(sp, " ")),
+		"",
+		keyStyle.Render("[0-9]")+" type   "+keyStyle.Render("[Backspace]")+" delete   "+keyStyle.Render("[Enter]")+" run   "+keyStyle.Render("[Esc]")+" cancel")
+	return panel(title, state.Pending, m.width, rows...)
 }
 
 // actionShown is how many of the latest output lines the dashboard shows;

@@ -31,6 +31,7 @@ export type Database = {
           ip_address?: string | null;
         };
       };
+      device_otp_uses: GeneratedDatabase["public"]["Tables"]["device_otp_uses"];
       devices: GeneratedDatabase["public"]["Tables"]["devices"];
       domains: GeneratedDatabase["public"]["Tables"]["domains"];
       networks: GeneratedDatabase["public"]["Tables"]["networks"];

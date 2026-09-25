@@ -1,40 +1,55 @@
-// vpn — TOTP-authenticated delivery of a device's WireGuard configuration.
+// vpn — one-time-code-authenticated delivery of a device's WireGuard
+// configuration.
 //
-// See iotgw-ui decision-009 for the authentication model. The TOTP derivation
-// and the OpenSSL-compatible AES-256-CBC envelope used to live inline here;
-// they now come from `../_shared/device-auth.ts` so this function and `ssh-ca`
-// cannot drift apart (decision-025 §B). The wire format is unchanged.
+// See decision-033 (supersedes decision-009's browser/gateway-derived TOTP).
+// The code is no longer derived by the client: it comes from a random
+// per-device seed held only in Cosmian KMS, read only by the iotgw-ui
+// backend. This function asks the backend for the codes valid right now
+// (`_shared/device-auth.ts` → `authenticateDevice`) and tries each against
+// the request's OpenSSL envelope; success consumes the code so it can never
+// be reused. The OpenSSL-compatible AES-256-CBC envelope primitives are
+// unchanged and still come from `../_shared/device-auth.ts` so this function
+// and `ssh-ca` cannot drift apart (decision-025 §B).
 //
 // AUTHENTICATION FLOW
 //   1. the client passes device_id as a query parameter
-//   2. the server derives the codes valid for that device right now
+//   2. the server asks the backend for the codes valid for that device right now
 //   3. the server tries to decrypt the body with each of them
-//   4. a successful decryption IS the authentication
-//   5. the response is encrypted with the same code
+//   4. a successful decryption IS the authentication; the code is consumed
+//
+// REPLY SEALING (decision-033 §4)
+//   If the decrypted request carries `reply_key` (a base64 32-byte X25519
+//   public key the gateway generated for this call), the reply is JSON,
+//   sealed to that key (`sealVpnReply`) — never to the 6-digit code. A
+//   request WITHOUT `reply_key` still gets the legacy code-encrypted reply,
+//   logged as deprecated, until every live image in use has been redeployed.
 //
 // QUERY PARAMETERS
 //   device_id   required, format "<name>@<networkPrefix>"
-//   download    optional, "true" for a Content-Disposition attachment
+//   download    optional, "true" for a Content-Disposition attachment (legacy
+//               reply only)
 //
-// PAYLOAD (encrypted with the TOTP as the password)
+// PAYLOAD (encrypted with the one-time code as the password)
 //   device_id   must match the query parameter
 //   gateway     optional, default "10.2.0.1"
 //   interface   optional, default "eth0"
+//   reply_key   optional, base64 32-byte X25519 public key — requests a
+//               sealed JSON reply instead of the legacy code-encrypted one
 //
-// EXAMPLE
-//   TOTP=123456; DEVICE_ID="iotgw-m3v6@da9148f6"
+// EXAMPLE (legacy reply, no reply_key)
+//   CODE=123456; DEVICE_ID="iotgw-m3v6@da9148f6"
 //   echo '{"gateway":"10.2.0.1","interface":"eth0","device_id":"'"$DEVICE_ID"'"}' |
-//     openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:${TOTP} > /tmp/req.enc
+//     openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:${CODE} > /tmp/req.enc
 //   curl "$KONG/functions/v1/vpn?device_id=${DEVICE_ID}" \
 //     -H 'Content-Type: application/octet-stream' --data-binary @/tmp/req.enc -o /tmp/res.enc
-//   openssl enc -d -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:${TOTP} -in /tmp/res.enc
+//   openssl enc -d -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:${CODE} -in /tmp/res.enc
 
 import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
 import {
-  authenticateAndDecrypt,
-  encryptPayload,
+  authenticateDevice,
   fetchDeviceRow,
-  validTotpCodes,
+  encryptPayload,
+  sealVpnReply,
   type SupabaseRestConfig,
 } from "../_shared/device-auth.ts";
 
@@ -66,22 +81,16 @@ interface DeviceRecord {
   public_key: string | null;
   created_at: string;
   updated_at: string;
-  totp_counter: number;
   network: {
     id: string;
-    domain_id: string;
     ipv4_cidr: string | null;
-    domain: {
-      id: string;
-      name: string;
-    } | null;
   } | null;
 }
 
 const DEVICE_SELECT =
   "id,network_id,name,description,ip_address,private_key,public_key," +
-  "created_at,updated_at,totp_counter," +
-  "network:networks(id,domain_id,ipv4_cidr,domain:domains(id,name))";
+  "created_at,updated_at," +
+  "network:networks(id,ipv4_cidr)";
 
 const formatDeviceAddress = (ip: string | null | undefined) => {
   const trimmed = ip?.trim();
@@ -132,7 +141,6 @@ serve(async (req: Request) => {
 
   let gateway = "10.2.0.1";
   let iface = "eth0";
-  let totp_code = "";
   let deviceRecord: DeviceRecord | null = null;
 
   try {
@@ -162,16 +170,6 @@ serve(async (req: Request) => {
         400,
       );
     }
-    const domain = deviceRecord.network?.domain;
-    if (!deviceRecord.network || !domain) {
-      return jsonError(
-        {
-          error: "Unable to fetch device keys",
-          details: "Device network or domain information is missing.",
-        },
-        400,
-      );
-    }
 
     const bodyBuffer = await req.arrayBuffer();
     if (!bodyBuffer || bodyBuffer.byteLength === 0) {
@@ -188,25 +186,20 @@ serve(async (req: Request) => {
       );
     }
 
-    const codes = await validTotpCodes({
-      domainId: domain.id,
-      networkId: deviceRecord.network.id,
-      deviceId: deviceRecord.id,
-      totpCounter: deviceRecord.totp_counter,
-    });
-
-    const authenticated = await authenticateAndDecrypt(encryptedData, codes);
-    if (!authenticated) {
-      console.error(`TOTP authentication failed for device ${deviceRecord.id}`);
-      // Terse on purpose: the previous implementation echoed every candidate
-      // code and the device's ids, which handed a prober everything it needed.
-      return jsonError({ error: "Authentication failed" }, 401);
+    const authResult = await authenticateDevice(encryptedData, deviceRecord.id, "vpn");
+    if (authResult instanceof Response) {
+      return authResult;
     }
-    totp_code = authenticated.code;
+    const { code, plaintext } = authResult;
 
-    let jsonData: { gateway?: string; interface?: string; device_id?: string };
+    let jsonData: {
+      gateway?: string;
+      interface?: string;
+      device_id?: string;
+      reply_key?: string;
+    };
     try {
-      jsonData = JSON.parse(authenticated.plaintext);
+      jsonData = JSON.parse(plaintext);
     } catch (parseError) {
       return jsonError(
         {
@@ -228,7 +221,7 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log(`TOTP validation successful for device: ${deviceRecord.id}`);
+    console.log(`Authentication successful for device: ${deviceRecord.id}`);
 
     const wireguardConfig = generateWireGuardConfig(
       gateway,
@@ -243,7 +236,22 @@ serve(async (req: Request) => {
     // diagnosed and evolve independently.
     const responseBody = wireguardConfig;
 
-    const encryptedConfig = await encryptPayload(responseBody, totp_code);
+    if (jsonData.reply_key) {
+      let sealed;
+      try {
+        sealed = await sealVpnReply(responseBody, jsonData.reply_key, device_id);
+      } catch (sealError) {
+        const details = sealError instanceof Error ? sealError.message : String(sealError);
+        console.error(`Failed to seal vpn reply for device ${deviceRecord.id}:`, details);
+        return jsonError({ error: "Invalid reply_key", details }, 400);
+      }
+      return new Response(JSON.stringify(sealed), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    console.warn("deprecated unsealed vpn reply");
+    const encryptedConfig = await encryptPayload(responseBody, code);
     const download = url.searchParams.get("download") === "true";
 
     return new Response(encryptedConfig as unknown as BodyInit, {

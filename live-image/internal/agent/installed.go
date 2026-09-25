@@ -17,7 +17,7 @@ type Installed struct {
 	Config      Config
 	InstalledAt string
 
-	IdentityOK   bool // the device can authenticate by itself
+	IdentityOK   bool // api_base + device_id present (codes come from the operator)
 	WGConfigured bool // network.<wg> has a private key and a peer
 	HostCert     bool // an SSH host certificate is installed
 
@@ -73,7 +73,7 @@ func (i Installed) SyntheticDoc() *state.Bootstrap {
 	now := time.Now().UTC()
 	doc := state.New(now)
 	doc.Finished = true
-	doc.Identity = state.Identity{DeviceID: i.Config.DeviceID, HasCode: i.IdentityOK, APIBase: i.Config.APIBase}
+	doc.Identity = state.Identity{DeviceID: i.Config.DeviceID, APIBase: i.Config.APIBase}
 	set := func(id string, st state.Status, msg string) {
 		if s := doc.Step(id); s != nil {
 			s.Status, s.Message = st, msg

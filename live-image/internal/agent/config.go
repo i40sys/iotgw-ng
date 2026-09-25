@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/i40sys/iotgw-ng/live-image/internal/totp"
 	"github.com/i40sys/iotgw-ng/live-image/internal/uci"
 )
 
@@ -75,8 +74,11 @@ type Config struct {
 	MaxChanges   int
 	ChangeWindow time.Duration
 
-	// Device identity, written by the install playbook. Identifiers only —
-	// the one-time code is derived from them (internal/totp).
+	// Device identity, written by the install playbook. Identifiers only:
+	// the gateway cannot compute a one-time code (decision-033) — codes come
+	// from the operator (-otp, console, LuCI). DeviceUUID / NetworkID /
+	// DomainID / TOTPCounter are still read from older installs but are
+	// informational only and never used to authenticate.
 	APIBase     string
 	DeviceID    string // <name>@<8-hex network prefix>
 	DeviceUUID  string
@@ -96,14 +98,12 @@ const (
 	minInterval     = 15 * time.Second
 )
 
-// TOTPIdentity is what the device code is derived from.
-func (c Config) TOTPIdentity() totp.Identity {
-	return totp.Identity{DomainID: c.DomainID, NetworkID: c.NetworkID, DeviceUUID: c.DeviceUUID, Counter: c.TOTPCounter}
-}
-
-// IdentityComplete reports whether the device can authenticate by itself.
+// IdentityComplete reports whether the device knows who it is and where the
+// device API is (api_base + device_id). Authentication still needs an
+// operator code (VPN, first SSH enrollment) or the enrolled host key (SSH
+// renewal).
 func (c Config) IdentityComplete() bool {
-	return c.APIBase != "" && c.DeviceID != "" && c.TOTPIdentity().Complete()
+	return c.APIBase != "" && c.DeviceID != ""
 }
 
 // LoadConfig reads /etc/config/iotgw. A missing file yields the defaults.

@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import * as OTPAuth from "otpauth";
 import { Button } from "@/components/ui/button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -15,9 +14,10 @@ import {
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import { formatDuration } from "@/lib/utils";
+import { useDeviceCode } from "@/hooks/use-device-code";
 import {
   Tooltip,
   TooltipContent,
@@ -35,8 +35,6 @@ interface BootingLiveStepProps {
   deviceId?: string;
   deviceName?: string;
   networkId?: string;
-  domainId?: string;
-  totpCounter?: number;
   /** Shared connectivity check handler from parent */
   onCheckConnectivity?: () => void;
   /** Shared connectivity check loading state from parent */
@@ -49,38 +47,26 @@ export function BootingLiveStep({
   deviceId,
   deviceName,
   networkId,
-  domainId,
-  totpCounter = 0,
   onCheckConnectivity,
   isCheckingConnectivity,
   connectivityResult: externalConnectivityResult,
 }: BootingLiveStepProps) {
   const { t } = useTranslation();
-  const [token, setToken] = useState<string>("");
-  const [timeRemaining, setTimeRemaining] = useState<number>(600);
   const [copied, setCopied] = useState(false);
-  const [startTime, setStartTime] = useState<number>(0);
-  const [currentCounter, setCurrentCounter] = useState<number>(totpCounter);
+  // The one-time code comes from the backend (decision-033); the browser never
+  // derives it.
+  const {
+    code: token,
+    isNext,
+    secondsLeft,
+    progress,
+    error: codeError,
+    reset,
+    isResetting,
+  } = useDeviceCode(deviceId);
   // Use external connectivity result if provided, otherwise use local state
   const [localConnectivityResult, setLocalConnectivityResult] = useState<ConnectivityResult | null>(null);
   const connectivityResult = externalConnectivityResult !== undefined ? externalConnectivityResult : localConnectivityResult;
-  const queryClient = useQueryClient();
-
-  const incrementCounterMutation = useMutation({
-    ...trpc.incrementTotpCounter.mutationOptions(),
-    onSuccess: (data) => {
-      void queryClient.invalidateQueries({
-        queryKey: trpc.getDevices.queryKey(),
-      });
-      setCurrentCounter(data.totp_counter);
-      setStartTime(Math.floor(Date.now() / 1000));
-      toast.success(t("deployments.steps.totpRegenerated"));
-    },
-    onError: (error) => {
-      toast.error(error.message || t("deployments.steps.totpRegenerateFailed"));
-    },
-  });
-
   // Local connectivity check mutation (used when no external handler is provided)
   const localConnectivityCheckMutation = useMutation({
     ...trpc.checkDeviceConnectivity.mutationOptions(),
@@ -111,59 +97,6 @@ export function BootingLiveStep({
   // Determine if checking connectivity (external or local)
   const isPending = isCheckingConnectivity ?? localConnectivityCheckMutation.isPending;
 
-  // Sync currentCounter when totpCounter prop changes
-  useEffect(() => {
-    setCurrentCounter(totpCounter);
-  }, [totpCounter]);
-
-  // On expiry, show a fresh code for the SAME counter — never bump it here.
-  // Bumping invalidates every outstanding code, so a gateway still booting with
-  // the code the operator already typed would fail `vpn` auth. Only the
-  // explicit Reset button may invalidate codes.
-  useEffect(() => {
-    if (timeRemaining === 0) {
-      setStartTime(Math.floor(Date.now() / 1000));
-    }
-  }, [timeRemaining]);
-
-  useEffect(() => {
-    if (!deviceId || !networkId || !domainId) return;
-
-    const combinedSecret = `${domainId}-${networkId}-${deviceId}-${currentCounter}`;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(combinedSecret);
-    const secret = new OTPAuth.Secret({ buffer: data });
-
-    const initialStartTime = startTime || Math.floor(Date.now() / 1000);
-    if (startTime === 0) {
-      setStartTime(initialStartTime);
-    }
-
-    const totp = new OTPAuth.TOTP({
-      issuer: "IoTGW",
-      label: deviceName || "device",
-      algorithm: "SHA1",
-      digits: 6,
-      period: 600,
-      secret: secret,
-    });
-
-    const updateToken = () => {
-      const currentToken = totp.generate({ timestamp: startTime * 1000 });
-      setToken(currentToken);
-
-      const now = Math.floor(Date.now() / 1000);
-      const elapsed = now - startTime;
-      const remaining = Math.max(0, 600 - elapsed);
-      setTimeRemaining(remaining);
-    };
-
-    updateToken();
-    const interval = setInterval(updateToken, 1000);
-
-    return () => clearInterval(interval);
-  }, [deviceId, networkId, domainId, deviceName, startTime, currentCounter]);
-
   const handleCopy = async (text: string, label: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -175,19 +108,10 @@ export function BootingLiveStep({
     }
   };
 
-  const handleReset = () => {
-    if (deviceId) {
-      incrementCounterMutation.mutate({ id: deviceId });
-    }
-  };
-
   // Calculate username: device_name@network_id[:8]
   const username = deviceName && networkId
     ? `${deviceName}@${networkId.slice(0, 8)}`
     : undefined;
-
-  // Calculate progress percentage
-  const progress = (timeRemaining / 600) * 100;
 
   if (!deviceId) {
     return (
@@ -330,13 +254,15 @@ export function BootingLiveStep({
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-muted-foreground text-xs">
-                    {t("deployments.steps.refreshesIn", { time: formatDuration(timeRemaining) })}
+                    {token
+                      ? t("deployments.steps.codeValidFor", { time: formatDuration(secondsLeft) })
+                      : t("deployments.steps.codeLoading")}
                   </p>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={handleReset}
-                    disabled={incrementCounterMutation.isPending}
+                    onClick={reset}
+                    disabled={isResetting}
                     className="h-auto px-2 py-1"
                   >
                     <FontAwesomeIcon
@@ -345,10 +271,20 @@ export function BootingLiveStep({
                       aria-hidden="true"
                     />
                     <span className="text-xs">
-                      {t("deployments.steps.regenerate")}
+                      {t("deployments.steps.resetCode")}
                     </span>
                   </Button>
                 </div>
+                {isNext && (
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    {t("deployments.steps.codeIsNext")}
+                  </p>
+                )}
+                {codeError && (
+                  <p className="text-destructive mt-2 text-xs">
+                    {t("deployments.steps.codeFailed", { error: codeError.message })}
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/agent"
+	"github.com/i40sys/iotgw-ng/live-image/internal/sysexec"
 )
 
 func owrtModel(hold bool) Model {
@@ -65,32 +67,154 @@ func press(m Model, k string) Model {
 	return next.(Model)
 }
 
-func TestRefreshKeysAskFirstAndRunOnConfirm(t *testing.T) {
-	for _, tc := range []struct{ key, what, title string }{
-		{"v", "vpn", "Refresh the VPN configuration?"},
-		{"s", "ssh", "Refresh SSH trust and the host certificate?"},
-	} {
-		m := press(owrtModel(false), tc.key)
-		if m.confirmRefresh != tc.what || !strings.Contains(m.body(), tc.title) {
-			t.Fatalf("[%s] did not open the %s prompt", tc.key, tc.what)
+func init() {
+	// Never run the real binary (as root, through sudo) from a test.
+	runPrivileged = func(context.Context, time.Duration, sysexec.LineFunc, string, ...string) (sysexec.Result, error) {
+		return sysexec.Result{}, errors.New("not run in tests")
+	}
+}
+
+func hit(m Model, t tea.KeyType) Model {
+	next, _ := m.Update(tea.KeyMsg{Type: t})
+	return next.(Model)
+}
+
+func typeCode(m Model, code string) Model {
+	for _, c := range code {
+		m = press(m, string(c))
+	}
+	return m
+}
+
+func enrolledModel() Model {
+	m := owrtModel(false)
+	m.inst.HostCert = true
+	return m
+}
+
+// runCode submits the code input and returns the model plus the command
+// line the action would show (the streamed action's start message).
+func runCode(t *testing.T, m Model) (Model, actionStartMsg) {
+	t.Helper()
+	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = next.(Model)
+	if cmd == nil {
+		t.Fatal("[Enter] started nothing")
+	}
+	return m, findStart(t, cmd)
+}
+
+// findStart runs a (batched) command until the refresh's actionStartMsg.
+// (runPrivileged is stubbed in init: nothing is executed.)
+func findStart(t *testing.T, cmd tea.Cmd) actionStartMsg {
+	t.Helper()
+	var walk func(tea.Msg) (actionStartMsg, bool)
+	walk = func(msg tea.Msg) (actionStartMsg, bool) {
+		switch v := msg.(type) {
+		case actionStartMsg:
+			return v, true
+		case tea.BatchMsg:
+			for _, c := range v {
+				if c == nil {
+					continue
+				}
+				if s, ok := walk(c()); ok {
+					return s, true
+				}
+			}
 		}
-		if c := press(m, "n"); c.confirmRefresh != "" || c.busy {
-			t.Errorf("[%s] then [n] did not cancel", tc.key)
-		}
-		// Cmds are not executed here: [y] only marks the action as running.
-		r := press(m, "y")
-		if r.confirmRefresh != "" || !r.busy {
-			t.Errorf("[%s] then [y] did not start the refresh", tc.key)
-		}
-		if press(r, tc.key).confirmRefresh != "" {
-			t.Errorf("[%s] opened a second prompt while an action runs", tc.key)
+		return actionStartMsg{}, false
+	}
+	s, ok := walk(cmd())
+	if !ok {
+		t.Fatal("no action started")
+	}
+	return s
+}
+
+func TestVPNRefreshAsksForTheCode(t *testing.T) {
+	m := press(owrtModel(false), "v")
+	if m.codeFor != "vpn" || !strings.Contains(m.body(), "VPN refresh — one-time code") {
+		t.Fatalf("[v] did not open the code input:\n%s", m.body())
+	}
+	// Letters, q and an incomplete code do nothing; Backspace deletes.
+	m = typeCode(m, "12a3q")
+	if m.codeBuf != "123" || m.codeFor != "vpn" {
+		t.Fatalf("code buffer %q (open=%q)", m.codeBuf, m.codeFor)
+	}
+	if !strings.Contains(m.body(), "1 2 3 _ _ _") {
+		t.Errorf("the typed digits are not shown in the prompt:\n%s", m.body())
+	}
+	if r := hit(m, tea.KeyEnter); r.busy || r.codeFor != "vpn" {
+		t.Error("[Enter] ran with an incomplete code")
+	}
+	m = hit(m, tea.KeyBackspace)
+	m = typeCode(m, "45678")
+	if m.codeBuf != "124567" {
+		t.Fatalf("after Backspace and overflow: %q", m.codeBuf)
+	}
+	if c := hit(m, tea.KeyEsc); c.codeFor != "" || c.codeBuf != "" || c.busy {
+		t.Error("[Esc] did not cancel and clear the code")
+	}
+	r, start := runCode(t, m)
+	if !r.busy || r.codeFor != "" || r.codeBuf != "" {
+		t.Error("[Enter] did not start the refresh and clear the code")
+	}
+	if start.cmdline != "iotgw vpn refresh -otp ******" {
+		t.Errorf("command line shown: %q", start.cmdline)
+	}
+	if strings.Contains(r.body(), "124567") {
+		t.Error("the code is still on the dashboard after it was submitted")
+	}
+	if press(r, "v").codeFor != "" {
+		t.Error("[v] opened a second prompt while an action runs")
+	}
+}
+
+func TestSSHRefreshEnrolledRenewsWithoutCode(t *testing.T) {
+	m := press(enrolledModel(), "s")
+	if m.confirmRefresh != "ssh" || m.codeFor != "" || !strings.Contains(m.body(), "Renew the SSH host certificate?") {
+		t.Fatalf("[s] on an enrolled gateway did not open the renew prompt:\n%s", m.body())
+	}
+	if c := press(m, "n"); c.confirmRefresh != "" || c.busy {
+		t.Error("[s] then [n] did not cancel")
+	}
+	if r := press(m, "y"); r.confirmRefresh != "" || !r.busy {
+		t.Error("[s] then [y] did not start the renewal")
+	}
+	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("f")})
+	if !next.(Model).busy {
+		t.Fatal("[f] did not start a forced renewal")
+	}
+	if s := findStart(t, cmd); s.cmdline != "iotgw ssh refresh -force" {
+		t.Errorf("forced renewal command line: %q", s.cmdline)
+	}
+}
+
+func TestSSHRefreshNotEnrolledAsksForTheCode(t *testing.T) {
+	m := press(owrtModel(false), "s")
+	if m.codeFor != "ssh" || m.confirmRefresh != "" || !strings.Contains(m.body(), "First SSH enrollment") {
+		t.Fatalf("[s] before enrollment did not ask for a code:\n%s", m.body())
+	}
+	_, start := runCode(t, typeCode(m, "654321"))
+	if start.cmdline != "iotgw ssh refresh -otp ******" {
+		t.Errorf("command line shown: %q", start.cmdline)
+	}
+}
+
+func TestCodePromptsFitTheConsole(t *testing.T) {
+	for _, m := range []Model{press(owrtModel(false), "v"), press(owrtModel(false), "s"), press(enrolledModel(), "s")} {
+		for i, l := range strings.Split(m.body(), "\n") {
+			if w := lipgloss.Width(l); w > 80 {
+				t.Fatalf("line %d is %d wide at 80 columns: %q", i, w, l)
+			}
 		}
 	}
-	if press(press(owrtModel(false), "v"), "f").busy {
-		t.Error("[f] (force) started a VPN refresh; it is SSH-only")
-	}
-	if !press(press(owrtModel(false), "s"), "f").busy {
-		t.Error("[f] did not start a forced SSH refresh")
+}
+
+func TestDisplayArgsMasksTheCode(t *testing.T) {
+	if got := displayArgs([]string{"vpn", "refresh", "-otp", "123456"}); got != "iotgw vpn refresh -otp ******" || strings.Contains(got, "123456") {
+		t.Errorf("displayArgs = %q", got)
 	}
 }
 

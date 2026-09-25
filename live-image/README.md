@@ -89,9 +89,9 @@ output to the journal only, never to the console).
 |---|---|---|---|---|
 | 1 | `identity` | Device identity | Reads `device_id` / `otp` / `iotgw_api` / `iotgw_internet` from `/proc/cmdline` and validates them; adds the hostname to `/etc/hosts` | No `device_id`, bad format (`<name>@<8 hex>`), code not 6 digits, no API URL (neither `iotgw_api=` nor a build-time `API_BASE`), bad URL |
 | 2 | `network` | Physical network | Retries a TCP connect to the API host for up to 90 s. It does **not** require a default route, because the API may be on-link | API unreachable after 90 s |
-| 3 | `vpn-fetch` | VPN config fetch | Seals `{device_id, gateway, interface}` with the code and POSTs it to the **vpn** API. Validates the reply as a WireGuard config and saves it verbatim as `wg0.server.conf`. Reads the `# Network:` header | Transport error, non-2xx (the HTTP code is recorded), reply cannot be decrypted, invalid config |
+| 3 | `vpn-fetch` | VPN config fetch | Generates a one-off X25519 key, seals `{device_id, gateway, interface, reply_key}` with the code and POSTs it to the **vpn** API; opens the reply sealed to that key (decision-033 §4; a legacy code-encrypted reply is still accepted). Validates it as a WireGuard config and saves it verbatim as `wg0.server.conf`. Reads the `# Network:` header | Transport error, non-2xx (the HTTP code is recorded), reply cannot be opened, invalid config |
 | 4 | `vpn-apply` | VPN configuration | Renders `wg0.conf` for the Internet mode, runs `wg-quick up wg0`, sets DNS, waits up to 25 s for a WireGuard handshake | `wg-quick` fails (FAILED); no handshake (WARNING) |
-| 5 | `pki-fetch` | SSH PKI fetch | Ensures an ECDSA host key exists and POSTs `{action: live-enroll, host_pubkey}` to the **ssh-ca** API | Non-2xx, e.g. 401 wrong/expired code, 409 domain has no pki zone, 502 pki-manager (no fleet token) |
+| 5 | `pki-fetch` | SSH PKI fetch | Ensures an ECDSA host key exists and POSTs `{action: live-enroll, host_pubkey}` to the **ssh-ca** API | Non-2xx, e.g. 401 wrong/expired/already-used code, 429 too many wrong codes, 409 domain has no pki zone, 502 pki-manager (no fleet token) |
 | 6 | `user-ca` | User CA install | Writes the domain's User CA, `auth_principals/root` (`iotgw-admin`, `iotgw-ops`), the revoked-keys file and the `60-iotgw-ssh-ca.conf` drop-in | Not a valid public key |
 | 7 | `host-cert` | Host certificate | Writes the live host certificate, the `61-iotgw-live-host-cert.conf` drop-in, and the Host CA as `@cert-authority` in `/etc/ssh/ssh_known_hosts` | No certificate in the reply, certificate does not parse |
 | 8 | `sshd` | sshd configuration | `sshd -t`, `systemctl reload-or-restart ssh`, then checks with `sshd -T` that `TrustedUserCAKeys` and `HostCertificate` are active | `sshd -t` fails (our drop-ins are removed again), or sshd is not using them |
@@ -104,6 +104,9 @@ Rules the runner follows:
   a mysterious `Permission denied` later.
 - **Retries:** transport errors and 5xx are retried (3 attempts, backoff); 4xx
   replies are not, because a rejected code will not start working.
+- **One code, two uses.** The boot-time code is presented once to `vpn` and
+  once to `ssh-ca live-enroll`; the server consumes it **per purpose**, so both
+  succeed, and neither accepts it again (decision-033 §3).
 - **sshd drop-ins are written only on success.** A broken PKI step never leaves
   sshd pointing at missing files.
 - **The state is written after every transition**, atomically, so the dashboard
@@ -117,9 +120,11 @@ iotgw-bootstrap internet-via lan|vpn          switch how the Internet is reached
 iotgw-bootstrap -version
 ```
 
-- `-otp` replaces the boot-time code. Codes last 10 minutes (±1 window); if you
-  were too slow at the iPXE prompt, take a fresh code from the UI and run
-  `sudo iotgw-bootstrap -otp <code>`.
+- `-otp` replaces the boot-time code. Codes are **single use** and last
+  10 minutes (±1 window); if you were too slow at the iPXE prompt, or want to
+  re-run a step (`iotgw vpn refresh` / `iotgw ssh refresh` on the live image
+  re-use the boot-time code otherwise, which the server has already consumed),
+  take a fresh code from the device page in the UI and pass it with `-otp`.
 - `-state` defaults to `/run/iotgw/bootstrap.json`.
 
 ---
@@ -277,13 +282,23 @@ Status values: `HEALTHY`, `WARNING`, `FAILED`, `PENDING`, `RUNNING`,
 
 Both calls go to the platform's API gateway (Kong) at `iotgw_api`,
 `/functions/v1/<fn>?device_id=<name>@<net8>`. Both use the **same device
-envelope**:
+envelope** (decision-033):
 
+- the one-time code comes from the **operator** (typed at the iPXE prompt →
+  `otp=`, or `-otp`). It is computed only by the backend, from a random
+  per-device seed held in the KMS; nothing on the gateway can derive it. Each
+  code is accepted **once per purpose**, and 5 wrong codes lock the device's
+  code endpoints for 15 min (HTTP 429);
 - the request body is `openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt`
-  keyed with the one-time code (`internal/envelope`, byte-compatible with the
-  openssl CLI and the edge functions' `_shared/device-auth.ts`);
-- successfully decrypting it *is* the authentication;
-- the reply comes back sealed with the same code;
+  keyed with the code (`internal/envelope`, byte-compatible with the openssl
+  CLI and the edge functions' `_shared/device-auth.ts`); successfully
+  decrypting it *is* the authentication;
+- the **vpn** reply is sealed to a one-off X25519 key the request carries
+  (`reply_key`; `internal/seal`: X25519 → HKDF-SHA256 → AES-256-GCM, AAD =
+  `device_id`), so a recorded exchange never yields the WireGuard private key
+  even if the 6-digit code is brute-forced. A server that predates it answers
+  with the legacy code-encrypted reply, still accepted;
+- the **ssh-ca** reply comes back sealed with the code (it is public material);
 - errors come back as plain JSON.
 
 | Call | Edge function | Returns |
@@ -333,8 +348,8 @@ live-image/
 │   ├── platform/    live image vs OpenWRT: service state, sshd reload/restart
 │   ├── uci/         `uci` CLI client, show parser, config snapshots + tests
 │   ├── iproute/     text `ip route` parser (iproute2 and BusyBox) + tests
-│   ├── devapi/      vpn / ssh-ca client (the device envelope over HTTP)
-│   ├── totp/        device code derivation (same as device-auth.ts) + tests
+│   ├── devapi/      vpn / ssh-ca client (code envelope, sealed vpn reply, plain renew) + tests
+│   ├── seal/        sealed vpn reply: X25519 + HKDF-SHA256 + AES-256-GCM (decision-033) + tests
 │   ├── wgconf/      wg-quick config parser + tests
 │   ├── state/       /run/iotgw/bootstrap.json schema, atomic read/write, status vocabulary
 │   ├── envelope/    device-code envelope (openssl-compatible AES-256-CBC + PBKDF2) + tests
@@ -352,7 +367,7 @@ live-image/
 │   ├── etc/init.d/iotgw            procd service: `iotgw daemon`
 │   └── usr/libexec/iotgw-console   tty1 / serial launcher: `iotgw status`, then login
 ├── test/
-│   ├── fakeapi/                    vpn + ssh-ca stand-in (real envelope + TOTP)
+│   ├── fakeapi/                    vpn + ssh-ca stand-in (own seed, single-use codes, sealed reply, renew) + tests
 │   └── qemu/run.sh                 end-to-end test on two OpenWRT VMs
 ├── remove.list                     legacy paths dropped from the image
 └── justfile                        check · build · overlay · openwrt · dist · deploy-* (see below)
@@ -381,12 +396,12 @@ writes `/etc/config/iotgw` (device identity from the flow + the live image's
 | Piece | What it does |
 |---|---|
 | `iotgw daemon` (`/etc/init.d/iotgw`, procd) | every `check_interval` (60 s): finds the uplink and the **current** LAN router (`ubus`), probes Internet out of the uplink and out of the tunnel (`SO_BINDTODEVICE`), the WireGuard handshake and the route to the Netmaker server; keeps `network.iotgw_endpoint` (the Netmaker /32) on the current router, routes the Netmaker network through `wg0`, and applies the Internet policy |
-| `iotgw status` on tty1 + serial | the live image's panels, with **Installed** (installed / provisioned / SSH certificate / VPN / Internet / active uplink) and **Self-healing agent** instead of Provisioning; `[i]` chooses the policy, `[h]` toggles hold, `[v]` / `[s]` run a VPN / SSH refresh (`[f]` forces the SSH re-issue), `[r]` refreshes and fully repaints. Every action asks first and is then **followed live** in an *Action* panel: the command, elapsed time, each output line as it is written (timestamped, stderr marked `!`), and the result — so a failure can be diagnosed at the console; `[d]` Details keeps the whole output. The launcher waits for the boot to settle and keeps kernel messages off the console while the dashboard owns it; the screen is also fully repainted every 60 s |
+| `iotgw status` on tty1 + serial | the live image's panels, with **Installed** (installed / provisioned / SSH certificate / VPN / Internet / active uplink) and **Self-healing agent** instead of Provisioning; `[i]` chooses the policy, `[h]` toggles hold, `[v]` asks for the 6-digit one-time code (inline: digits, Backspace, Enter runs, Esc cancels) and runs a VPN refresh, `[s]` renews the SSH certificate with the host key after a `y`/`f` (force) confirmation — or, on a gateway not enrolled yet, asks for the code and enrolls; `[r]` refreshes and fully repaints. The code never reaches a log: the command line shown is `iotgw vpn refresh -otp ******`. Every action asks first and is then **followed live** in an *Action* panel: the command, elapsed time, each output line as it is written (timestamped, stderr marked `!`), and the result — so a failure can be diagnosed at the console; `[d]` Details keeps the whole output. The launcher waits for the boot to settle and keeps kernel messages off the console while the dashboard owns it; the screen is also fully repainted every 60 s |
 | `iotgw internet lan\|vpn\|auto` | persistent policy in `/etc/config/iotgw`. `auto` (default) = LAN preferred, automatic fallback to VPN; `lan`/`vpn` pin the path (applied at once) |
 | `iotgw hold enable [-reason …]\|disable\|status` | freeze automatic changes; the daemon keeps monitoring and records what it would have done. A banner on the dashboard says so |
-| `iotgw vpn refresh [-otp CODE]` | re-request the WireGuard config from `vpn`, apply it through UCI, keep it only if the tunnel comes up |
-| first enrollment (daemon) | a fresh install with no host certificate is enrolled by the daemon itself (retry every 10 min), so the controller can reach it; after a REINSTALL an operator first uses **Reset SSH enrollment** on the device page |
-| `iotgw ssh refresh [-otp CODE] [-force]` | re-request trust + host certificate from `ssh-ca` (`enroll`, with the task-075 continuity signature), `sshd -t`, reload (restart fallback), verify sshd serves them — or restore every file |
+| `iotgw vpn refresh -otp CODE` | re-request the WireGuard config from `vpn` (reply sealed to a one-off key), apply it through UCI, keep it only if the tunnel comes up. The code is **required** |
+| `iotgw ssh refresh [-otp CODE] [-force]` | **enrolled** (host certificate installed): `renew` — plain JSON signed by the host key (SSHSIG, namespace `iotgw-renew`), **no code**; skipped while the certificate is current unless `-force`. **Not enrolled**: `enroll` with the operator's code (required). Then `sshd -t`, reload (restart fallback), verify sshd serves them — or restore every file. A 409 means the server already has a host key for the device (a reinstall): use **Reset SSH enrollment** in the UI first |
+| SSH self-renewal (daemon) | when the host certificate nears expiry (< 30 days) the daemon renews it by itself with the host key (at most once per hour, suspended by hold). It **never** enrolls (no code) and never calls `vpn` |
 
 **One backend, three faces.** The daemon also publishes the full status
 (host, network, Internet, VPN, reachability, SSH PKI, the Installed/agent
@@ -399,8 +414,8 @@ viewer: the daemon keeps running and repairing; two consoles (tty1 + serial)
 no longer probe the system twice.
 
 **LuCI: Status → IoGW NG** (OpenWRT 23.05, client-side LuCI). Same panels
-and actions as the console (policy, hold, VPN/SSH refresh with an optional
-one-time code, history). How it talks to the system — the standard LuCI way
+and actions as the console (policy, hold, VPN refresh with the **required**
+one-time code, SSH refresh with a code only for a first enrollment, history). How it talks to the system — the standard LuCI way
 on this version, no CGI:
 
 ```text
@@ -413,7 +428,7 @@ browser ──JSON-RPC──► uhttpd /ubus ──► rpcd ──exec──► 
 | `status` | the daemon's snapshot + recent manual jobs |
 | `refresh` | SIGUSR1 to the daemon: a full status round now |
 | `hold {enable, reason}` | hold on/off (immediate) |
-| `set_policy {policy}`, `vpn_refresh {otp}`, `ssh_refresh {otp, force}` | start a **background job** (they can outlast rpcd's 30 s exec timeout); returns a job id |
+| `set_policy {policy}`, `vpn_refresh {otp}` (otp required), `ssh_refresh {otp, force}` (otp optional) | start a **background job** (they can outlast rpcd's 30 s exec timeout); returns a job id |
 | `job {id}` | the job's output and exit code (the page polls it) |
 
 Files: `/usr/share/luci/menu.d/luci-app-iotgw.json` (menu entry),
@@ -435,10 +450,17 @@ default route metric 5 (LAN wins). For VPN egress the agent sets the uplink's
 metric to 20, so `wg0` wins while the pinned /32 keeps the tunnel itself on the
 LAN router. DNS stays with dnsmasq.
 
-**Refresh authentication**: without `-otp`, the code is derived from the
-identifiers in `/etc/config/iotgw` exactly as the controller derives it. If the
-device's counter was reset in the UI, update `totp_counter` or pass `-otp`.
-The daemon never calls the APIs by itself.
+**Refresh authentication** (decision-033): the gateway **cannot compute a
+one-time code** — codes come from a random per-device seed that only the
+backend reads, and the operator takes the current one from the device page in
+the UI (`-otp`, console, LuCI). A code works **once** per purpose; if it was
+used (or the reply was lost) the UI offers the next one, and **Reset code**
+rotates the seed. The VPN is always operator-driven (`vpn refresh` needs the
+code); an enrolled gateway renews its SSH certificate with its **host key**
+(no code), which is also how the daemon renews by itself. The legacy identity
+keys (`device_uuid`, `network_id`, `domain_id`, `totp_counter`) may still be in
+`/etc/config/iotgw` from older installs; they are read but never used for
+authentication. Agents ≤ v0.2.2 derive codes and can no longer refresh.
 
 **Root password (accepted gap, task-127):** the install leaves root with an
 **empty password**; the provisioning `system` stack sets it (`root_password`).
@@ -452,8 +474,11 @@ Logs: `logread -e iotgw`.
 **End-to-end test**: `just e2e` boots two OpenWRT 23.05 VMs (a LAN router +
 WireGuard hub whose endpoint is off-LAN, and a gateway installed with the
 gw-c3 on-link route) and checks route repair, router change, LAN→VPN fallback
-and return, hold, policy across reboot, vpn/ssh refresh with rollback, and the
-console dashboard. It uses KVM when `/dev/kvm` is writable, TCG otherwise.
+and return, hold, policy across reboot, vpn refresh (code required and single
+use, sealed reply, rollback), ssh refresh (enroll with a code, renew by host
+key, 409 after a "reinstall", daemon self-renewal), LuCI/rpcd, and the
+console dashboard. The fake API (`test/fakeapi`) holds its own seed and
+exposes the current code at `/test/code` — the test's stand-in for the UI. It uses KVM when `/dev/kvm` is writable, TCG otherwise.
 
 ---
 
@@ -572,7 +597,8 @@ can verify the live host certificate strictly:
 | Symptom | Likely cause |
 |---|---|
 | Identity FAILED | booted a menu entry without the username/code prompt, or mistyped `name@net8` |
-| VPN config fetch FAILED, HTTP 401 | the code expired or the counter was reset in the UI → `sudo iotgw-bootstrap -otp <new code>` |
+| VPN config fetch FAILED, HTTP 401 | the code expired, was already used, or the code was reset in the UI → `sudo iotgw-bootstrap -otp <new code>` |
+| HTTP 429 "too many failed codes" | 5 wrong codes: the device's code endpoints are locked for 15 min |
 | SSH PKI fetch FAILED, HTTP 409 | the device's domain has no pki-manager zone (backend `provisionPkiZone`) |
 | SSH PKI fetch FAILED, HTTP 502 "No fleet token" | the zone has no entry in `PKI_FLEET_TOKENS` (manual per domain today) |
 | VPN WARNING "no handshake" | UDP to the hub blocked, or the device's keys are not on the hub |

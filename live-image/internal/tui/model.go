@@ -55,8 +55,13 @@ type Model struct {
 	// Hold ([h], OpenWRT): confirm → run → notice.
 	confirmHold string // "enable" | "disable" awaiting y/n
 
-	// VPN / SSH refresh ([v] / [s], OpenWRT): confirm → run → notice.
-	confirmRefresh string // "vpn" | "ssh" awaiting y/n (f = force, ssh)
+	// VPN / SSH refresh ([v] / [s], OpenWRT). decision-033: the gateway
+	// cannot compute a one-time code, so [v] (and [s] on a gateway that is
+	// not enrolled yet) first asks for the operator's 6-digit code; [s] on an
+	// enrolled gateway renews with the host key after a y/f confirmation.
+	confirmRefresh string // "ssh" awaiting y/n (f = force)
+	codeFor        string // "vpn" | "ssh": the code input is open
+	codeBuf        string // digits typed so far (never logged or shown in full)
 
 	// action is the console action running now or run last, streamed line
 	// by line from actionCh (see streamAction).
@@ -73,6 +78,18 @@ func (m *Model) currentVia() string {
 		return "vpn"
 	}
 	return "lan"
+}
+
+// codeLen is the length of a device one-time code.
+const codeLen = 6
+
+// enrolled reports whether the gateway holds an SSH host certificate (it
+// renews with its host key, no code needed), from the snapshot.
+func (m *Model) enrolled() bool {
+	if m.inst != nil && m.inst.HostCert {
+		return true
+	}
+	return m.pki != nil && m.pki.HostCertPresent
 }
 
 // holdOn reports whether the daemon is on hold (OpenWRT).
@@ -160,6 +177,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			break
 		}
+		if m.codeFor != "" {
+			k := msg.String()
+			switch {
+			case k == "esc":
+				m.codeFor, m.codeBuf = "", ""
+			case k == "backspace":
+				if n := len(m.codeBuf); n > 0 {
+					m.codeBuf = m.codeBuf[:n-1]
+				}
+			case k == "enter":
+				if len(m.codeBuf) == codeLen {
+					what, code := m.codeFor, m.codeBuf
+					m.codeFor, m.codeBuf, m.busy = "", "", true
+					cmds = append(cmds, refreshCmd(what, false, code))
+				}
+			case len(k) == 1 && k[0] >= '0' && k[0] <= '9':
+				if len(m.codeBuf) < codeLen {
+					m.codeBuf += k
+				}
+			}
+			break
+		}
 		if m.confirmRefresh != "" {
 			what, force := m.confirmRefresh, false
 			switch msg.String() {
@@ -171,7 +210,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				fallthrough
 			case "y", "Y":
 				m.confirmRefresh, m.busy = "", true
-				cmds = append(cmds, refreshCmd(what, force))
+				cmds = append(cmds, refreshCmd(what, force, ""))
 			case "n", "N", "esc", "q":
 				m.confirmRefresh = ""
 			}
@@ -211,9 +250,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.confirmHold = map[bool]string{true: "disable", false: "enable"}[m.holdOn()]
 				m.vp.GotoTop()
 			}
-		case "v", "s":
+		case "v":
 			if m.owrt && !m.busy {
-				m.confirmRefresh = map[string]string{"v": "vpn", "s": "ssh"}[msg.String()]
+				m.codeFor, m.codeBuf = "vpn", ""
+				m.vp.GotoTop()
+			}
+		case "s":
+			if m.owrt && !m.busy {
+				if m.enrolled() {
+					m.confirmRefresh = "ssh"
+				} else {
+					m.codeFor, m.codeBuf = "ssh", ""
+				}
 				m.vp.GotoTop()
 			}
 		case "r":

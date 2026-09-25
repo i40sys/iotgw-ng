@@ -146,13 +146,21 @@ return view.extend({
 		});
 	},
 
-	/* Optional one-time code (the UI's device code); empty = derived. */
-	askCode: function(title, withForce, go) {
-		var code = E('input', { 'class': 'cbi-input-text', 'type': 'text', 'maxlength': 6, 'placeholder': _('optional 6-digit code') });
+	/*
+	 * The device's one-time code, typed by the operator from the device page
+	 * in the iotgw-ng UI (decision-033: the gateway cannot compute one; each
+	 * code works once). Required for a VPN refresh; for SSH only for a first
+	 * enrollment — an enrolled gateway renews with its host key.
+	 */
+	askCode: function(title, required, withForce, go) {
+		var code = E('input', { 'class': 'cbi-input-text', 'type': 'text', 'inputmode': 'numeric', 'autocomplete': 'off', 'maxlength': 6,
+			'placeholder': required ? _('6-digit code') : _('optional 6-digit code') });
 		var force = E('input', { 'type': 'checkbox' });
 		var body = [
-			E('p', {}, [ _('Leave the code empty to derive it from the device identity in /etc/config/iotgw. Enter the current code from the platform UI if the derived one is rejected (e.g. the device counter was reset).') ]),
-			E('p', {}, [ E('label', {}, [ _('One-time code') + ': ', code ]) ])
+			E('p', {}, [ required
+				? _('Enter the device\'s current one-time code from its page in the iotgw-ng UI. Each code works once.')
+				: _('An enrolled gateway renews its certificate with its own host key: leave the code empty. The one-time code from the iotgw-ng UI is only needed for a first enrollment.') ]),
+			E('p', {}, [ E('label', {}, [ (required ? _('One-time code') : _('One-time code (only needed for a first enrollment)')) + ': ', code ]) ])
 		];
 		if (withForce)
 			body.push(E('p', {}, [ E('label', {}, [ force, ' ', _('Force: re-request even if the current certificate is still valid') ]) ]));
@@ -160,8 +168,8 @@ return view.extend({
 			E('button', { 'class': 'btn', 'click': ui.hideModal }, [ _('Cancel') ]), ' ',
 			E('button', { 'class': 'btn cbi-button-action', 'click': function() {
 				var v = code.value.trim();
-				if (v !== '' && !/^[0-9]{6}$/.test(v)) {
-					ui.addNotification(null, E('p', [ _('The code must be 6 digits.') ]), 'warning');
+				if ((required || v !== '') && !/^[0-9]{6}$/.test(v)) {
+					ui.addNotification(null, E('p', [ required ? _('Enter the 6-digit one-time code.') : _('The code must be 6 digits.') ]), 'warning');
 					return;
 				}
 				ui.hideModal();
@@ -173,14 +181,14 @@ return view.extend({
 
 	handleVPNRefresh: function() {
 		var self = this;
-		this.askCode(_('Refresh the VPN configuration'), false, function(otp) {
+		this.askCode(_('Refresh the VPN configuration'), true, false, function(otp) {
 			callVPN(otp).then(function(r) { return self.watchJob(_('VPN refresh'), r); });
 		});
 	},
 
 	handleSSHRefresh: function() {
 		var self = this;
-		this.askCode(_('Refresh SSH trust and host certificate'), true, function(otp, force) {
+		this.askCode(_('Refresh SSH trust and host certificate'), false, true, function(otp, force) {
 			callSSH(otp, force).then(function(r) { return self.watchJob(_('SSH refresh'), r); });
 		});
 	},
@@ -325,7 +333,7 @@ return view.extend({
 		var cert = pki.HostIDStatus == 'HEALTHY' && !never(pki.HostCertValidTo) ? _('valid until %s').format(when(pki.HostCertValidTo)) : (pki.HostIDDetail || '');
 		return panel(_('Installed'), worst(ok(!inst.ConfigErr), provSt, pki.HostIDStatus, vpn.Status, net.Overall), [
 			[ _('Installed'), [ badge(ok(!inst.ConfigErr)), ' ', dash(inst.OS) + (inst.InstalledAt ? _(', installed %s').format(inst.InstalledAt) : '') ] ],
-			[ _('Provisioned'), [ badge(provSt), ' ', prov ? _('identity, VPN and SSH enrollment present') : notYet ? _('not yet — SSH enrollment missing: run the provisioning deployment (or SSH refresh)') : _('missing: %s').format(miss.join(', ')) ] ],
+			[ _('Provisioned'), [ badge(provSt), ' ', prov ? _('identity, VPN and SSH enrollment present') : notYet ? _('not yet — SSH enrollment missing: run the provisioning deployment (or SSH refresh with a one-time code)') : _('missing: %s').format(miss.join(', ')) ] ],
 			[ _('SSH certificate'), [ badge(pki.HostIDStatus), ' ', cert ] ],
 			[ _('VPN'), [ badge(vpn.Status), ' ', vpn.Status == 'HEALTHY' ? _('tunnel up, last handshake %s').format(ago(vpn.LastHandshake)) : (vpn.Detail || '') ] ],
 			[ _('Internet'), [ badge(net.Overall), ' ', inet ] ],

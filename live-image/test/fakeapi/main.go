@@ -1,22 +1,38 @@
 // Command fakeapi is a stand-in for the `vpn` and `ssh-ca` edge functions,
 // used by the QEMU end-to-end test (test/qemu/run.sh, decision-032 /
-// task-125.11). It speaks the real device envelope (internal/envelope) and
-// authenticates with the real TOTP derivation (internal/totp), so the agent
-// under test runs its production code path — without touching the real
-// Netmaker or pki-manager.
+// task-125.11) and following the decision-033 contract: it speaks the real
+// device envelope (internal/envelope) and the sealed VPN reply
+// (internal/seal), so the agent under test runs its production code path —
+// without touching the real Netmaker, pki-manager or KMS.
+//
+// Like the backend, it holds a random seed per device and computes the codes
+// itself (RFC 6238, HMAC-SHA1, 600 s step, ±1); the gateway cannot. Codes are
+// single-use per purpose (a code at step N kills every step ≤ N), five wrong
+// codes lock the device for 15 minutes, and ssh-ca `renew` is authenticated
+// by an SSHSIG of the enrolled host key.
 //
 //	fakeapi genkey                      print "<private> <public>" (WireGuard)
 //	fakeapi serve -listen 127.0.0.1:18080 -dir DIR
 //
 // DIR holds the scenario: gw.key (gateway WireGuard private key), hub.pub,
-// host_ca / user_ca.pub (ssh-keygen CAs) and the device identity. POST
-// /control?vpn=good|bad-peer switches what the vpn function returns.
+// host_ca / user_ca.pub (ssh-keygen CAs) and network_id.
+//
+// Test-only endpoints (the operator's view of the UI):
+//
+//	GET  /test/code?device_id=D[&purpose=vpn]   the code the UI would show now
+//	                                            (the next step's once the current one
+//	                                            is used; 409 when both are spent)
+//	POST /test/rotate?device_id=D               "Reset code": a new seed
+//	POST /control?vpn=good|bad-peer&ssh=good|bad-cert&validity=long|short&reset_ssh=1
 package main
 
 import (
 	"crypto/ecdh"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha1"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -31,7 +47,14 @@ import (
 	"time"
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/envelope"
-	"github.com/i40sys/iotgw-ng/live-image/internal/totp"
+	"github.com/i40sys/iotgw-ng/live-image/internal/seal"
+)
+
+const (
+	stepSeconds = 600
+	maxFailures = 5
+	lockFor     = 15 * time.Minute
+	renewSkew   = 300 // seconds
 )
 
 func main() {
@@ -50,21 +73,44 @@ func main() {
 	listen := fs.String("listen", "127.0.0.1:18080", "listen address")
 	dir := fs.String("dir", ".", "scenario directory")
 	_ = fs.Parse(os.Args[2:])
-	s := &server{dir: *dir, vpnMode: "good", issued: map[string]bool{}}
-	http.HandleFunc("/functions/v1/vpn", s.vpn)
-	http.HandleFunc("/functions/v1/ssh-ca", s.sshCA)
-	http.HandleFunc("/control", s.control)
+	s := newServer(*dir)
 	log.Printf("fakeapi listening on %s (scenario %s)", *listen, *dir)
-	log.Fatal(http.ListenAndServe(*listen, nil))
+	log.Fatal(http.ListenAndServe(*listen, s.mux()))
+}
+
+// device is the server-side record of one device.
+type device struct {
+	seed        []byte
+	seedN       int
+	used        map[string]int64 // purpose → highest used step (this seed)
+	failures    int
+	lockedUntil time.Time
+	hostPub     string // enrolled host key ("type base64"); "" = not enrolled
+	lastRenewTS int64
 }
 
 type server struct {
-	dir     string
-	mu      sync.Mutex
-	vpnMode string
-	sshMode string          // good | bad-cert
-	issued  map[string]bool // host pubkeys already certified (continuity)
-	counts  map[string]int
+	dir      string
+	mu       sync.Mutex
+	vpnMode  string // good | bad-peer
+	sshMode  string // good | bad-cert
+	validity string // long | short (short = inside the gateway's renewal margin)
+	devices  map[string]*device
+	now      func() time.Time
+}
+
+func newServer(dir string) *server {
+	return &server{dir: dir, vpnMode: "good", sshMode: "good", validity: "long", devices: map[string]*device{}, now: time.Now}
+}
+
+func (s *server) mux() *http.ServeMux {
+	m := http.NewServeMux()
+	m.HandleFunc("/functions/v1/vpn", s.vpn)
+	m.HandleFunc("/functions/v1/ssh-ca", s.sshCA)
+	m.HandleFunc("/control", s.control)
+	m.HandleFunc("/test/code", s.testCode)
+	m.HandleFunc("/test/rotate", s.testRotate)
+	return m
 }
 
 func (s *server) read(name string) string {
@@ -75,22 +121,46 @@ func (s *server) read(name string) string {
 	return strings.TrimSpace(string(b))
 }
 
-// open authenticates like device-auth.ts: try every currently valid code.
-func (s *server) open(r *http.Request) ([]byte, string, error) {
-	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
-	if err != nil {
-		return nil, "", err
+// dev returns (creating it, with a fresh seed) the record of id. s.mu held.
+func (s *server) dev(id string) *device {
+	d := s.devices[id]
+	if d == nil {
+		d = &device{}
+		s.rotate(d)
+		s.devices[id] = d
 	}
-	id := totp.Identity{DomainID: s.read("domain_id"), NetworkID: s.read("network_id"), DeviceUUID: s.read("device_uuid")}
-	fmt.Sscanf(s.read("totp_counter"), "%d", &id.Counter)
-	now := time.Now()
-	for _, off := range []time.Duration{0, -totp.Period, totp.Period} {
-		code := totp.Code(id, now.Add(off))
-		if plain, err := envelope.Open(body, code); err == nil {
-			return plain, code, nil
-		}
+	return d
+}
+
+// rotate gives d a new random seed (the UI's "Reset code"). s.mu held.
+func (s *server) rotate(d *device) {
+	d.seed = make([]byte, 32)
+	if _, err := rand.Read(d.seed); err != nil {
+		log.Fatal(err)
 	}
-	return nil, "", fmt.Errorf("no valid code opens the request")
+	d.seedN++
+	d.used = map[string]int64{}
+}
+
+// codeAt is RFC 6238 TOTP (HMAC-SHA1, 6 digits) at a step.
+func codeAt(seed []byte, step int64) string {
+	var msg [8]byte
+	binary.BigEndian.PutUint64(msg[:], uint64(step))
+	m := hmac.New(sha1.New, seed)
+	m.Write(msg[:])
+	h := m.Sum(nil)
+	o := h[len(h)-1] & 0x0f
+	v := (uint32(h[o])&0x7f)<<24 | uint32(h[o+1])<<16 | uint32(h[o+2])<<8 | uint32(h[o+3])
+	return fmt.Sprintf("%06d", v%1_000_000)
+}
+
+func (s *server) step() int64 { return s.now().Unix() / stepSeconds }
+
+func usedStep(d *device, purpose string) int64 {
+	if v, ok := d.used[purpose]; ok {
+		return v
+	}
+	return -1
 }
 
 func jsonErr(w http.ResponseWriter, status int, msg string) {
@@ -99,32 +169,100 @@ func jsonErr(w http.ResponseWriter, status int, msg string) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
-func (s *server) reply(w http.ResponseWriter, code string, plain []byte) {
-	sealed, err := envelope.Seal(plain, code)
-	if err != nil {
-		jsonErr(w, 500, err.Error())
-		return
+// authenticate is device-auth.ts: lock check, try each candidate code,
+// record a failure, consume the code (single use per purpose).
+func (s *server) authenticate(w http.ResponseWriter, deviceID, purpose string, body []byte) ([]byte, string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d := s.dev(deviceID)
+	if s.now().Before(d.lockedUntil) {
+		jsonErr(w, 429, "too many failed codes; try again later")
+		return nil, "", false
 	}
-	w.Header().Set("Content-Type", "application/octet-stream")
-	_, _ = w.Write(sealed)
+	now := s.step()
+	for _, st := range []int64{now - 1, now, now + 1} {
+		code := codeAt(d.seed, st)
+		plain, err := envelope.Open(body, code)
+		if err != nil {
+			continue
+		}
+		if usedStep(d, purpose) >= st {
+			log.Printf("%s: device %s: code (step %d) already used", purpose, deviceID, st)
+			jsonErr(w, 401, "code already used — get a new code from the UI")
+			return nil, "", false
+		}
+		d.used[purpose] = st
+		d.failures = 0
+		log.Printf("%s: device %s: code accepted (step %d) and consumed", purpose, deviceID, st)
+		return plain, code, true
+	}
+	d.failures++
+	if d.failures >= maxFailures {
+		d.lockedUntil, d.failures = s.now().Add(lockFor), 0
+	}
+	log.Printf("%s: device %s: no valid code opens the request", purpose, deviceID)
+	jsonErr(w, 401, "Authentication failed")
+	return nil, "", false
 }
 
 func (s *server) control(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if m := r.URL.Query().Get("vpn"); m != "" {
+	q := r.URL.Query()
+	if m := q.Get("vpn"); m != "" {
 		s.vpnMode = m
 	}
-	if m := r.URL.Query().Get("ssh"); m != "" {
+	if m := q.Get("ssh"); m != "" {
 		s.sshMode = m
 	}
-	fmt.Fprintf(w, "vpn=%s ssh=%s\n", s.vpnMode, s.sshMode)
+	if m := q.Get("validity"); m != "" {
+		s.validity = m
+	}
+	if q.Get("reset_ssh") != "" {
+		for id, d := range s.devices {
+			d.hostPub, d.lastRenewTS = "", 0
+			log.Printf("ssh-ca: SSH enrollment of %s reset", id)
+		}
+	}
+	fmt.Fprintf(w, "vpn=%s ssh=%s validity=%s\n", s.vpnMode, s.sshMode, s.validity)
+}
+
+// testCode is what the UI's getDeviceCode shows: the current step's code, or
+// the next step's once the current one was used for that purpose.
+func (s *server) testCode(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("device_id")
+	purpose := r.URL.Query().Get("purpose")
+	if purpose == "" {
+		purpose = "vpn"
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d := s.dev(id)
+	now := s.step()
+	for _, st := range []int64{now, now + 1} {
+		if usedStep(d, purpose) < st {
+			fmt.Fprintln(w, codeAt(d.seed, st))
+			return
+		}
+	}
+	jsonErr(w, 409, "both the current and the next code are used: rotate the seed (Reset code)")
+}
+
+func (s *server) testRotate(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("device_id")
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d := s.dev(id)
+	s.rotate(d)
+	log.Printf("device %s: seed rotated (#%d)", id, d.seedN)
+	fmt.Fprintf(w, "rotated %d\n", d.seedN)
 }
 
 func (s *server) vpn(w http.ResponseWriter, r *http.Request) {
-	plain, code, err := s.open(r)
-	if err != nil {
-		jsonErr(w, 401, err.Error())
+	body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	deviceID := r.URL.Query().Get("device_id")
+	plain, code, ok := s.authenticate(w, deviceID, "vpn", body)
+	if !ok {
 		return
 	}
 	var req map[string]string
@@ -137,7 +275,6 @@ func (s *server) vpn(w http.ResponseWriter, r *http.Request) {
 		// A syntactically valid key nobody holds: the tunnel cannot come up.
 		peer = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 	}
-	log.Printf("vpn: device %s gateway %s interface %s → mode %s", req["device_id"], req["gateway"], req["interface"], mode)
 	conf := fmt.Sprintf(`# WireGuard VPN Configuration File (fakeapi)
 # Network ID: %s
 # Network: 10.99.0.0/24
@@ -151,13 +288,46 @@ Endpoint = 203.0.113.10:51820
 AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 20
 `, s.read("network_id"), s.read("gw.key"), peer)
-	s.reply(w, code, []byte(conf))
+	if rk := req["reply_key"]; rk != "" {
+		out, err := seal.Seal(rk, deviceID, []byte(conf))
+		if err != nil {
+			jsonErr(w, 400, "bad reply_key: "+err.Error())
+			return
+		}
+		log.Printf("vpn: device %s gateway %s interface %s → mode %s, reply SEALED to reply_key", deviceID, req["gateway"], req["interface"], mode)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(out)
+		return
+	}
+	log.Printf("vpn: device %s → mode %s, deprecated unsealed vpn reply", deviceID, mode)
+	sealed, err := envelope.Seal([]byte(conf), code)
+	if err != nil {
+		jsonErr(w, 500, err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+	_, _ = w.Write(sealed)
+}
+
+func normPub(pub string) (string, bool) {
+	f := strings.Fields(pub)
+	if len(f) < 2 {
+		return "", false
+	}
+	return f[0] + " " + f[1], true
 }
 
 func (s *server) sshCA(w http.ResponseWriter, r *http.Request) {
-	plain, code, err := s.open(r)
-	if err != nil {
-		jsonErr(w, 401, err.Error())
+	body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	deviceID := r.URL.Query().Get("device_id")
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+		s.renew(w, deviceID, body)
+		return
+	}
+	// The purpose is known only once the envelope is open; the gateway only
+	// sends enroll here (live-enroll is the live image's, not tested here).
+	plain, code, ok := s.authenticate(w, deviceID, "ssh-enroll", body)
+	if !ok {
 		return
 	}
 	var req map[string]string
@@ -166,83 +336,152 @@ func (s *server) sshCA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req["action"] != "enroll" {
-		jsonErr(w, 400, "fakeapi only implements enroll")
+		jsonErr(w, 400, "fakeapi only implements enroll (code) and renew (host key)")
 		return
 	}
-	pub := strings.TrimSpace(req["host_pubkey"])
-	f := strings.Fields(pub)
-	if len(f) < 2 {
+	norm, ok := normPub(req["host_pubkey"])
+	if !ok {
 		jsonErr(w, 400, "bad host_pubkey")
 		return
 	}
-	norm := f[0] + " " + f[1]
 	s.mu.Lock()
-	enrolled := len(s.issued) > 0
+	enrolled := s.dev(deviceID).hostPub != ""
 	s.mu.Unlock()
 	if enrolled {
-		// task-075: a re-enroll must prove the previous host key.
-		if err := s.verifyContinuity(req["device_id"], norm, code, req["continuity_sig"]); err != nil {
-			log.Printf("ssh-ca: continuity REJECTED: %v", err)
-			jsonErr(w, 401, "re-enrollment requires proof of the existing host key: "+err.Error())
-			return
-		}
-		log.Printf("ssh-ca: continuity proof OK")
+		log.Printf("ssh-ca: enroll REFUSED: device %s already enrolled", deviceID)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(409)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "device already enrolled",
+			"details": "renew with the host key (action renew), or use Reset SSH enrollment in the UI after a reinstall"})
+		return
 	}
+	resp, status, err := s.issue(deviceID, norm, "enroll")
+	if err != nil {
+		jsonErr(w, status, err.Error())
+		return
+	}
+	log.Printf("ssh-ca: enrolled %s (host key %s…)", deviceID, norm[:40])
+	sealed, err := envelope.Seal(resp, code)
+	if err != nil {
+		jsonErr(w, 500, err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+	_, _ = w.Write(sealed)
+}
+
+// renew is the code-less ssh-ca action: SSHSIG (namespace iotgw-renew) by the
+// enrolled host key over "<device_id>\n<host_pubkey>\n<ts>".
+func (s *server) renew(w http.ResponseWriter, deviceID string, body []byte) {
+	var req struct {
+		DeviceID   string `json:"device_id"`
+		Action     string `json:"action"`
+		HostPubkey string `json:"host_pubkey"`
+		TS         int64  `json:"ts"`
+		Sig        string `json:"sig"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil || req.Action != "renew" {
+		jsonErr(w, 400, "plain JSON requests must be action renew")
+		return
+	}
+	if req.DeviceID != deviceID {
+		jsonErr(w, 400, "device_id mismatch")
+		return
+	}
+	norm, ok := normPub(req.HostPubkey)
+	if !ok {
+		jsonErr(w, 400, "bad host_pubkey")
+		return
+	}
+	if d := s.now().Unix() - req.TS; d > renewSkew || d < -renewSkew {
+		jsonErr(w, 401, "renew timestamp out of window")
+		return
+	}
+	s.mu.Lock()
+	enrolledKey := s.dev(deviceID).hostPub
+	s.mu.Unlock()
+	if enrolledKey == "" {
+		jsonErr(w, 401, "device is not enrolled: enroll with a one-time code")
+		return
+	}
+	if err := verifySSHSig(enrolledKey, "iotgw-renew", fmt.Sprintf("%s\n%s\n%d", deviceID, norm, req.TS), req.Sig); err != nil {
+		log.Printf("ssh-ca: renew signature REJECTED: %v", err)
+		jsonErr(w, 401, "renew signature does not verify against the enrolled host key")
+		return
+	}
+	s.mu.Lock()
+	d := s.dev(deviceID)
+	if d.lastRenewTS >= req.TS {
+		s.mu.Unlock()
+		jsonErr(w, 401, "stale or replayed renew")
+		return
+	}
+	d.lastRenewTS = req.TS
+	s.mu.Unlock()
+	log.Printf("ssh-ca: renew signature OK (device %s)", deviceID)
+	resp, status, err := s.issue(deviceID, norm, "renew")
+	if err != nil {
+		jsonErr(w, status, err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(resp)
+}
+
+// issue signs norm with the host CA, records the enrollment and returns the
+// reply payload.
+func (s *server) issue(deviceID, norm, action string) ([]byte, int, error) {
 	tmp, _ := os.MkdirTemp("", "fakeca-")
 	defer os.RemoveAll(tmp)
 	pubFile := filepath.Join(tmp, "host.pub")
 	_ = os.WriteFile(pubFile, []byte(norm+"\n"), 0o644)
 	s.mu.Lock()
-	bad := s.sshMode == "bad-cert"
+	bad, short := s.sshMode == "bad-cert", s.validity == "short"
 	s.mu.Unlock()
 	if bad {
 		// A certificate for SOME OTHER key: sshd -t would accept it.
 		_ = os.Remove(pubFile)
 		_ = exec.Command("ssh-keygen", "-q", "-t", "ecdsa", "-N", "", "-f", filepath.Join(tmp, "host")).Run()
 	}
+	validity, until := "-5m:+52w", 52*7*24*time.Hour
+	if short {
+		// Inside the gateway's 30-day renewal margin: the daemon renews it.
+		validity, until = "-5m:+10d", 10*24*time.Hour
+	}
 	out, err := exec.Command("ssh-keygen", "-q", "-s", filepath.Join(s.dir, "host_ca"), "-I", "gw-test", "-h",
-		"-n", "gw.test.iotgw,10.10.2.15", "-V", "-5m:+52w", pubFile).CombinedOutput()
+		"-n", "gw.test.iotgw,10.10.2.15", "-V", validity, pubFile).CombinedOutput()
 	if err != nil {
-		jsonErr(w, 502, "sign: "+string(out))
-		return
+		return nil, 502, fmt.Errorf("sign: %s", out)
 	}
 	cert, _ := os.ReadFile(filepath.Join(tmp, "host-cert.pub"))
 	if !bad {
 		s.mu.Lock()
-		s.issued[norm] = true
+		s.dev(deviceID).hostPub = norm // rolls forward on renew
 		s.mu.Unlock()
 	}
-	log.Printf("ssh-ca: host certificate issued for %s", norm[:40])
 	resp, _ := json.Marshal(map[string]any{
-		"action": "enroll", "zone": "iotgw-test", "domain": "test",
+		"action": action, "zone": "iotgw-test", "domain": "test",
 		"principals": []string{"iotgw-admin", "iotgw-ops"}, "auth_principals": "iotgw-admin\niotgw-ops\n",
 		"user_ca": s.read("user_ca.pub") + "\n", "host_cert": string(cert),
 		"host_ca": s.read("host_ca.pub") + "\n", "cert_authority": "@cert-authority *.test.iotgw " + s.read("host_ca.pub") + "\n",
-		"fqdn": "gw.test.iotgw", "host_cert_valid_before": time.Now().Add(52 * 7 * 24 * time.Hour).UTC().Format(time.RFC3339),
+		"fqdn": "gw.test.iotgw", "host_cert_valid_before": s.now().Add(until).UTC().Format(time.RFC3339),
 	})
-	s.reply(w, code, resp)
+	return resp, 200, nil
 }
 
-// verifyContinuity checks the SSHSIG over "<device_id>\n<new pubkey>\n<code>"
-// against the previously issued host key(s), like ssh-ca does.
-func (s *server) verifyContinuity(deviceID, norm, code, sig string) error {
+// verifySSHSig checks an armored SSHSIG over msg against pub.
+func verifySSHSig(pub, namespace, msg, sig string) error {
 	if sig == "" {
-		return fmt.Errorf("no continuity_sig")
+		return fmt.Errorf("no signature")
 	}
-	tmp, _ := os.MkdirTemp("", "fakecont-")
+	tmp, _ := os.MkdirTemp("", "fakesig-")
 	defer os.RemoveAll(tmp)
-	s.mu.Lock()
-	var signers []string
-	for k := range s.issued {
-		signers = append(signers, "gw "+k)
-	}
-	s.mu.Unlock()
 	allowed := filepath.Join(tmp, "allowed")
-	_ = os.WriteFile(allowed, []byte(strings.Join(signers, "\n")+"\n"), 0o644)
+	_ = os.WriteFile(allowed, []byte("gw "+pub+"\n"), 0o644)
 	sigFile := filepath.Join(tmp, "sig")
 	_ = os.WriteFile(sigFile, []byte(sig), 0o644)
-	cmd := exec.Command("ssh-keygen", "-Y", "verify", "-f", allowed, "-I", "gw", "-n", "iotgw-reenroll", "-s", sigFile)
-	cmd.Stdin = strings.NewReader(deviceID + "\n" + norm + "\n" + code)
+	cmd := exec.Command("ssh-keygen", "-Y", "verify", "-f", allowed, "-I", "gw", "-n", namespace, "-s", sigFile)
+	cmd.Stdin = strings.NewReader(msg)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("%v: %s", err, strings.TrimSpace(string(out)))
 	}

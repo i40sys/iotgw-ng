@@ -20,7 +20,7 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 // Create a single instance of the Supabase client to reuse in context
-const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   auth: { persistSession: false },
 });
 

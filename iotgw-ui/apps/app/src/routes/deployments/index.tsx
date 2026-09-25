@@ -1579,12 +1579,6 @@ function DeploymentsPage() {
                                     )?.name
                                   }
                                   networkId={selectedNetworkId}
-                                  domainId={selectedDomainId}
-                                  totpCounter={
-                                    devicesQuery.data?.find(
-                                      (d) => d.id === selectedDeviceId
-                                    )?.totp_counter ?? 0
-                                  }
                                   onCheckConnectivity={handleCheckConnectivity}
                                   isCheckingConnectivity={connectivityCheck.isChecking}
                                   connectivityResult={connectivityResult}

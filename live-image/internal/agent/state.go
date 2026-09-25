@@ -42,7 +42,7 @@ type Endpoint struct {
 // Event is one line of the agent's action history.
 type Event struct {
 	At     time.Time `json:"at"`
-	Kind   string    `json:"kind"`   // check | change | rollback | hold | error | info
+	Kind   string    `json:"kind"`   // check | change | rollback | hold | renew | error | info
 	Result string    `json:"result"` // ok | failed | skipped | held
 	Text   string    `json:"text"`
 }

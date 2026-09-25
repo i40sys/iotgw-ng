@@ -79,6 +79,17 @@ spec:
                 secretKeyRef:
                   name: supabase-env
                   key: KESTRA_PASSWORD
+            # --- Device codes (decision-033) -----------------------------
+            # vpn / ssh-ca get the codes valid now from the iotgw-ui backend
+            # (which alone reads the per-device seed from the KMS).
+            - name: IOTGW_BACKEND_URL
+              value: "http://iotgw-ui-backend.iotgw-ui.svc.cluster.local:4444"
+            - name: DEVICE_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: device-auth
+                  key: DEVICE_AUTH_TOKEN
+                  optional: true
             # --- SSH CA (decision-024 / decision-026) ---------------------
             # The `ssh-ca` function brokers gateway enrollment to pki-manager.
             # PKI_FLEET_TOKENS is a JSON map of zone slug -> `pkimg_…` token,

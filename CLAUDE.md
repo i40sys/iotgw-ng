@@ -77,13 +77,17 @@ Domain created (UI → backend)
      host CA + principals (iotgw-admin, iotgw-ops), persists the ids on the
      `domains` row (pki_zone/pki_user_ca_id/pki_host_ca_id). task-080.
 
-Gateway enrollment (Ansible tasks/ssh_ca.yaml — Kestra install flow or standalone)
+Gateway enrollment (the gateway's `iotgw ssh refresh`; driven by Ansible
+tasks/ssh_ca.yaml in provisioning, or by the operator on the console / LuCI)
    1. gateway generates its own ecdsa-P256 HOST key (private half never leaves)
-   2. POST the host pubkey to the `ssh-ca` EDGE FUNCTION, authenticated with the
-      device TOTP (same envelope as `vpn`, decision-009) — the ONLY bridge between
-      a device and pki-manager; the gateway never sees the fleet token
+   2. POST the host pubkey to the `ssh-ca` EDGE FUNCTION — the ONLY bridge between
+      a device and pki-manager; the gateway never sees the fleet token.
+      FIRST enrollment: authenticated with a single-use device one-time code
+      (backend-issued for provisioning, or typed by the operator; decision-033 —
+      the gateway cannot compute codes). RENEWAL: signed with the enrolled host
+      key, no code (`ssh-ca renew`); the daemon renews by itself.
    3. ssh-ca signs it with the domain's Host CA and returns the host cert + the
-      User CA anchor + principals; the task installs them + two sshd drop-ins
+      User CA anchor + principals; the agent installs them + two sshd drop-ins
       (50- break-glass authorized_keys, 60- HostCertificate/TrustedUserCAKeys),
       validates `sshd -t`, reloads (never restart), fail-safe rollback.
 
@@ -114,7 +118,7 @@ integration point:
 | **decision-021** | [Container image CI/CD + ghcr.io/i40sys conventions (3 custom images, digest-pinned, signed)](backlog/decisions/decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions.md) |
 | **doc-016** | [Database-change provisioning automation pattern](backlog/docs/doc-016-database-change-provisioning-automation-pattern.md) (current: DB trigger → `netmaker-call` → Netmaker REST) |
 | **decision-010** | [SSH key management via Cosmian KMS](backlog/decisions/decision-010-ssh-key-management-with-cosmian-kms.md) |
-| **decision-009** | [TOTP authentication for device VPN access](backlog/decisions/decision-009-totp-authentication-for-device-vpn-access.md) |
+| **decision-033** | [Device one-time codes from a KMS-held random seed](backlog/decisions/decision-033%20-%20Device-one-time-codes-from-a-KMS-held-random-seed-operator-entered-single-use.md) — operator-entered, single-use; sealed VPN reply; host-key SSH renewal (supersedes decision-009) |
 | **decision-024** | [SSH-CA target architecture — iotgw-ng consumes pki-manager, one zone per domain](backlog/decisions/decision-024-ssh-ca-target-architecture-iotgw-ng-consumes-pki-manager-one-zone-per-domain.md) (+ current-state `decision-023`, change map `decision-025`, provisioning sequence `decision-026`, migration plan `decision-027`, open decisions `decision-028`) |
 | **doc-008** | [Domains → Networks → Devices hierarchy](backlog/docs/doc-008-domains-networks-and-devices-architecture.md) |
 | **doc-010** | [DB migration + webhook management](backlog/docs/doc-010-database-migration-and-webhook-management-guide.md) |

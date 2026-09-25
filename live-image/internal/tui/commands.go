@@ -186,6 +186,10 @@ type (
 	actionEndMsg  struct{ err error }
 )
 
+// runPrivileged runs a console action (a seam for the tests, which must
+// never execute anything).
+var runPrivileged = sysexec.RunPrivilegedStream
+
 // streamAction runs `iotgw <args>` as root and streams it to the dashboard:
 // actionStartMsg, one actionLineMsg per output line, actionEndMsg, then the
 // action's own outcome message from finish. The Update loop pulls them one
@@ -197,13 +201,13 @@ func streamAction(title string, timeout time.Duration, args []string, finish fun
 			defer close(ch)
 			ctx, cancel := context.WithTimeout(context.Background(), timeout+10*time.Second)
 			defer cancel()
-			res, err := sysexec.RunPrivilegedStream(ctx, timeout, func(stderr bool, line string) {
+			res, err := runPrivileged(ctx, timeout, func(stderr bool, line string) {
 				ch <- actionLineMsg{at: time.Now(), stderr: stderr, text: line}
 			}, platform.Self(), args...)
 			ch <- actionEndMsg{err: err}
 			ch <- finish(res, err)
 		}()
-		return actionStartMsg{title: title, cmdline: "iotgw " + strings.Join(args, " "), ch: ch}
+		return actionStartMsg{title: title, cmdline: displayArgs(args), ch: ch}
 	}
 }
 
@@ -240,16 +244,31 @@ func holdCmd(on bool) tea.Cmd {
 }
 
 // refreshCmd re-requests the VPN configuration or the SSH trust + host
-// certificate (`iotgw vpn|ssh refresh`, as root), with the code derived from
-// the device identity — the same transaction as the CLI and the LuCI page.
-func refreshCmd(what string, force bool) tea.Cmd {
+// certificate (`iotgw vpn|ssh refresh`, as root) — the same transaction as
+// the CLI and the LuCI page. otp is the operator's one-time code (always for
+// the VPN, for a first SSH enrollment); "" = an SSH renewal by host key.
+func refreshCmd(what string, force bool, otp string) tea.Cmd {
 	args := []string{what, "refresh"}
+	if otp != "" {
+		args = append(args, "-otp", otp)
+	}
 	if force {
 		args = append(args, "-force")
 	}
 	return streamAction(refreshTitle[what], 290*time.Second, args, func(res sysexec.Result, err error) tea.Msg {
 		return refreshDoneMsg{what: what, err: err, out: lastLine(res.Stdout)}
 	})
+}
+
+// displayArgs is args as shown on the dashboard: a one-time code is masked.
+func displayArgs(args []string) string {
+	shown := append([]string(nil), args...)
+	for i := 0; i+1 < len(shown); i++ {
+		if shown[i] == "-otp" {
+			shown[i+1] = "******"
+		}
+	}
+	return "iotgw " + strings.Join(shown, " ")
 }
 
 func lastLine(s string) string {

@@ -913,12 +913,12 @@ function DevicesPage() {
                               aria-hidden="true"
                             />
                             <span className="sr-only">
-                              TOTP for {device.name}
+                              One-time code for {device.name}
                             </span>
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>TOTP</p>
+                          <p>One-time code</p>
                         </TooltipContent>
                       </Tooltip>
                       <Tooltip>
@@ -1213,7 +1213,6 @@ function DevicesPage() {
               ?.domain_id ?? ""
           }
           deviceName={selectedDevice.name}
-          totpCounter={selectedDevice.totp_counter ?? 0}
         />
       )}
     </div>

@@ -39,7 +39,7 @@ export function deviceSshKeyId(deviceId: string): string {
 
 // ── KMIP TTLV-JSON helpers ────────────────────────────────────────────────
 
-type TtlvType =
+export type TtlvType =
   | "Structure"
   | "TextString"
   | "Enumeration"
@@ -48,40 +48,40 @@ type TtlvType =
   | "ByteString"
   | "DateTime";
 
-interface TtlvNode {
+export interface TtlvNode {
   tag: string;
   type: TtlvType;
   value: string | number | boolean | TtlvNode[];
 }
 
-const s = (tag: string, value: string): TtlvNode => ({
+export const s = (tag: string, value: string): TtlvNode => ({
   tag,
   type: "TextString",
   value,
 });
-const e = (tag: string, value: string): TtlvNode => ({
+export const e = (tag: string, value: string): TtlvNode => ({
   tag,
   type: "Enumeration",
   value,
 });
-const i = (tag: string, value: number): TtlvNode => ({
+export const i = (tag: string, value: number): TtlvNode => ({
   tag,
   type: "Integer",
   value,
 });
-const b = (tag: string, value: boolean): TtlvNode => ({
+export const b = (tag: string, value: boolean): TtlvNode => ({
   tag,
   type: "Boolean",
   value,
 });
-const struct = (tag: string, value: TtlvNode[]): TtlvNode => ({
+export const struct = (tag: string, value: TtlvNode[]): TtlvNode => ({
   tag,
   type: "Structure",
   value,
 });
 
 /** Depth-first search for the first node with the given tag. */
-function findNode(node: unknown, tag: string): TtlvNode | undefined {
+export function findNode(node: unknown, tag: string): TtlvNode | undefined {
   if (!node || typeof node !== "object") return undefined;
   const n = node as TtlvNode;
   if (n.tag === tag) return n;
@@ -94,7 +94,7 @@ function findNode(node: unknown, tag: string): TtlvNode | undefined {
   return undefined;
 }
 
-async function kmip(body: TtlvNode): Promise<TtlvNode> {
+export async function kmip(body: TtlvNode): Promise<TtlvNode> {
   let res: Response;
   try {
     res = await fetch(`${KMS_URL}/kmip/2_1`, {
@@ -141,12 +141,12 @@ function haystack(err: unknown): string {
   if (!(err instanceof KmsError)) return "";
   return `${err.message} ${JSON.stringify(err.detail ?? "")}`.toLowerCase();
 }
-function isNotFound(err: unknown): boolean {
+export function isNotFound(err: unknown): boolean {
   return /(item_?not_?found|object_?not_?found|no object|does not exist|non-?existent|not\s+found)/.test(
     haystack(err),
   );
 }
-function isAlreadyExists(err: unknown): boolean {
+export function isAlreadyExists(err: unknown): boolean {
   // Match "(objects) already exist" but NOT not-found phrasings like
   // "does not exist" / "non-existent" (those are handled by isNotFound).
   return /already\s*exist|objects?\s+(?:already\s+)?exist/.test(haystack(err)) && !isNotFound(err);
@@ -208,7 +208,7 @@ async function createKeyPair(
  * leaving a tombstone that would block re-creating the same id). Tolerates a
  * missing object.
  */
-async function revokeAndDestroy(id: string): Promise<void> {
+export async function revokeAndDestroy(id: string): Promise<void> {
   try {
     await kmip(
       struct("Revoke", [

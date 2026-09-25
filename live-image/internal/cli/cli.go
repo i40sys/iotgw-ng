@@ -38,7 +38,7 @@ usage: iotgw <command> [options]
   status                         console dashboard (what iotgw-status runs)
   daemon                         self-healing agent (installed OpenWRT, runs from /etc/init.d/iotgw)
   vpn status                     WireGuard/Netmaker state
-  vpn refresh [-otp CODE]        re-request the VPN configuration and apply it safely
+  vpn refresh -otp CODE          re-request the VPN configuration and apply it safely
   ssh status                     SSH PKI state (User CA, host certificate, sshd)
   ssh refresh [-otp CODE] [-force]
                                  re-request SSH trust + host certificate, reload sshd safely
@@ -49,7 +49,9 @@ usage: iotgw <command> [options]
   rpcd list | rpcd call METHOD   rpcd exec plugin behind the LuCI page (ubus object "iotgw")
   version
 
-Without -otp, refresh derives the device code from /etc/config/iotgw.
+CODE is the device's one-time code from the iotgw-ng UI (single use; the
+gateway cannot compute one). vpn refresh always needs it; ssh refresh only for
+a first enrollment — an enrolled gateway renews with its host key.
 `
 
 // Main runs the command line and returns the exit code.
@@ -205,7 +207,7 @@ func daemonCmd(args []string) int {
 
 func vpnCmd(args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: iotgw vpn status | vpn refresh [-otp CODE]")
+		fmt.Fprintln(os.Stderr, "usage: iotgw vpn status | vpn refresh -otp CODE")
 		return 2
 	}
 	switch args[0] {
@@ -213,7 +215,7 @@ func vpnCmd(args []string) int {
 		return vpnStatus()
 	case "refresh":
 		fs := flag.NewFlagSet("vpn refresh", flag.ExitOnError)
-		otp := fs.String("otp", "", "one-time code from the UI (default: derived from /etc/config/iotgw)")
+		otp := fs.String("otp", "", "one-time code from the device page in the iotgw-ng UI (required)")
 		_ = fs.Parse(args[1:])
 		if !requireRoot("vpn refresh") {
 			return 1
@@ -225,7 +227,7 @@ func vpnCmd(args []string) int {
 		}
 		return 0
 	}
-	fmt.Fprintln(os.Stderr, "usage: iotgw vpn status | vpn refresh [-otp CODE]")
+	fmt.Fprintln(os.Stderr, "usage: iotgw vpn status | vpn refresh -otp CODE")
 	return 2
 }
 
@@ -293,7 +295,7 @@ func sshCmd(args []string) int {
 		return 0
 	case "refresh":
 		fs := flag.NewFlagSet("ssh refresh", flag.ExitOnError)
-		otp := fs.String("otp", "", "one-time code from the UI (default: derived from /etc/config/iotgw)")
+		otp := fs.String("otp", "", "one-time code from the iotgw-ng UI (only for a first enrollment)")
 		force := fs.Bool("force", false, "re-request even if the current certificate is valid")
 		_ = fs.Parse(args[1:])
 		if !requireRoot("ssh refresh") {

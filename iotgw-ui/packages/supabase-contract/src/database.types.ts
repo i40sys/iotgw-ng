@@ -224,6 +224,38 @@ export type Database = {
         }
         Relationships: []
       }
+      device_otp_uses: {
+        Row: {
+          device_id: string
+          purpose: string
+          seed_id: string
+          step: number
+          used_at: string
+        }
+        Insert: {
+          device_id: string
+          purpose: string
+          seed_id: string
+          step: number
+          used_at?: string
+        }
+        Update: {
+          device_id?: string
+          purpose?: string
+          seed_id?: string
+          step?: number
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_otp_uses_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devices: {
         Row: {
           created_at: string | null
@@ -242,7 +274,12 @@ export type Database = {
           ssh_host_key_fingerprint: string | null
           ssh_host_pubkey: string | null
           ssh_key_id: string | null
+          ssh_renew_last_ts: number | null
           totp_counter: number
+          totp_failures: number
+          totp_locked_until: string | null
+          totp_seed_id: string | null
+          totp_seed_rotated_at: string | null
           updated_at: string | null
         }
         Insert: {
@@ -262,7 +299,12 @@ export type Database = {
           ssh_host_key_fingerprint?: string | null
           ssh_host_pubkey?: string | null
           ssh_key_id?: string | null
+          ssh_renew_last_ts?: number | null
           totp_counter?: number
+          totp_failures?: number
+          totp_locked_until?: string | null
+          totp_seed_id?: string | null
+          totp_seed_rotated_at?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -282,7 +324,12 @@ export type Database = {
           ssh_host_key_fingerprint?: string | null
           ssh_host_pubkey?: string | null
           ssh_key_id?: string | null
+          ssh_renew_last_ts?: number | null
           totp_counter?: number
+          totp_failures?: number
+          totp_locked_until?: string | null
+          totp_seed_id?: string | null
+          totp_seed_rotated_at?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -479,6 +526,19 @@ export type Database = {
       }
     }
     Functions: {
+      consume_device_otp: {
+        Args: {
+          p_device_id: string
+          p_purpose: string
+          p_seed_id: string
+          p_step: number
+        }
+        Returns: boolean
+      }
+      consume_device_renew: {
+        Args: { p_device_id: string; p_ts: number }
+        Returns: boolean
+      }
       create_deployment_job: {
         Args: {
           p_configuration_json: Json
@@ -864,6 +924,10 @@ export type Database = {
       pg_stat_statements_reset: {
         Args: { dbid?: unknown; queryid?: number; userid?: unknown }
         Returns: undefined
+      }
+      record_device_otp_failure: {
+        Args: { p_device_id: string }
+        Returns: string
       }
       update_deployment_job_status: {
         Args: {

@@ -2,8 +2,15 @@
 id: decision-009
 title: "009: TOTP Authentication for Device VPN Access"
 date: '2025-11-18 07:43'
-status: accepted
+status: superseded
 ---
+> **Superseded by decision-033 (2026-09-25).** The secret composition below
+> (`<domain>-<network>-<device>-<counter>`) is built from identifiers, not
+> secrets, so anyone knowing them could mint a code. Codes now come from a random
+> per-device seed held by the KMS and read only by the backend; they are
+> single-use, the browser no longer computes them, and the VPN reply is sealed
+> to a key the gateway generates. Kept for history.
+
 ## Context
 
 IoT devices need secure access to VPN configurations without traditional username/password authentication. The challenge is to provide time-limited, device-specific credentials that can be validated by an edge function while maintaining security and ease of use.

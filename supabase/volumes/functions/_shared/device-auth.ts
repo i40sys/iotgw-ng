@@ -1,20 +1,24 @@
 // Device authentication primitives shared by the `vpn` and `ssh-ca` edge
-// functions (decision-009, decision-024, decision-026).
+// functions (decision-033, superseding decision-009's browser/gateway-derived
+// TOTP; see decision-024/decision-026 for the PKI side).
 //
-// A PXE-booting / freshly provisioned gateway has no credential of its own yet.
-// It authenticates by proving it can encrypt a request with the TOTP derived
-// from `<domain_id>-<network_id>-<device_id>-<totp_counter>` — values only the
-// device's own provisioning payload and the database know. The same code
-// encrypts the response, so the exchange is confidential even to an observer
-// who holds the anon key.
+// A gateway no longer derives its own one-time code: the code is a random
+// 256-bit-seed TOTP whose seed lives only in Cosmian KMS, read only by the
+// iotgw-ui BACKEND. An edge function never sees the seed — it asks the
+// backend's `/internal/device-auth/candidates` for the small set of codes
+// that are valid *right now* (bearer `DEVICE_AUTH_TOKEN`), tries each against
+// the request's OpenSSL envelope, and — on the first one that decrypts —
+// consumes it via the `consume_device_otp` RPC so it can never be reused
+// (decision-033 §1/§3).
 //
-// This file exists because `ssh-ca` must use *exactly* the same primitive as
-// `vpn`: a silent divergence between two copies would either break enrollment
-// or, worse, accept a code the other would reject. See decision-025 §B.
+// This file exists so `ssh-ca` uses *exactly* the same primitives as `vpn`: a
+// silent divergence between two copies would either break enrollment or,
+// worse, accept something the other would reject. See decision-025 §B.
 //
-// The envelope is deliberately OpenSSL-compatible
+// The request envelope is deliberately OpenSSL-compatible
 // (`openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt`) so a gateway needs
-// nothing but busybox + openssl to speak it.
+// nothing but busybox + openssl to speak it. The VPN *reply* is no longer
+// encrypted with the code (decision-033 §4) — see `sealVpnReply` below.
 
 // ── OpenSSL-compatible AES-256-CBC envelope ────────────────────────────────
 
@@ -102,83 +106,338 @@ export async function encryptPayload(
   return out;
 }
 
-// ── TOTP (RFC 4226 HOTP over a 600 s time step) ────────────────────────────
+// ── base64 helpers ──────────────────────────────────────────────────────────
 
-export const TOTP_PERIOD_SECONDS = 600;
-export const TOTP_DIGITS = 6;
-/** ±1 step, to absorb clock drift between the gateway and the cluster. */
-export const TOTP_WINDOW = 1;
+export function base64ToBytes(s: string): Uint8Array {
+  return Uint8Array.from(atob(s.replace(/\s+/g, "")), (c) => c.charCodeAt(0));
+}
 
-async function generateHOTP(
-  secret: Uint8Array,
-  counter: number,
-  digits: number,
-): Promise<string> {
-  const counterBuffer = new ArrayBuffer(8);
-  new DataView(counterBuffer).setBigUint64(0, BigInt(counter), false);
+export function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    secret,
-    { name: "HMAC", hash: "SHA-1" },
-    false,
-    ["sign"],
-  );
-  const hmac = new Uint8Array(await crypto.subtle.sign("HMAC", key, counterBuffer));
+// ── the sealed VPN reply (decision-033 §4) ─────────────────────────────────
+//
+// The request still authenticates with the code envelope, but the reply — the
+// device's WireGuard PRIVATE key — is sealed to a fresh X25519 key the
+// gateway generated for this call (`reply_key` in the decrypted request),
+// never to the (brute-forceable) 6-digit code. A recorded exchange over plain
+// HTTP therefore yields the request but never the private key.
+//
+//   shared = X25519(ephemeral_priv, reply_key)
+//   key    = HKDF-SHA256(ikm=shared, salt=epk‖reply_key (64 bytes),
+//                         info="iotgw-vpn-reply v1", L=32)
+//   ct     = AES-256-GCM(key, nonce, plaintext, AAD=utf8(device_id))  (incl. 16B tag)
 
-  const offset = hmac[hmac.length - 1] & 0x0f;
-  const binary =
-    ((hmac[offset] & 0x7f) << 24) |
-    ((hmac[offset + 1] & 0xff) << 16) |
-    ((hmac[offset + 2] & 0xff) << 8) |
-    (hmac[offset + 3] & 0xff);
+export const VPN_REPLY_ALG = "X25519-HKDF-SHA256-A256GCM" as const;
+const VPN_REPLY_HKDF_INFO = new TextEncoder().encode("iotgw-vpn-reply v1");
 
-  return (binary % 10 ** digits).toString().padStart(digits, "0");
+export interface SealedVpnReply {
+  v: 1;
+  alg: typeof VPN_REPLY_ALG;
+  /** base64, 32-byte X25519 ephemeral public key. */
+  epk: string;
+  /** base64, 12-byte AES-GCM nonce. */
+  nonce: string;
+  /** base64, AES-256-GCM ciphertext with the 16-byte tag appended. */
+  ct: string;
 }
 
 /**
- * The codes a device may legitimately present right now.
- *
- * The secret is the literal string `<domain>-<network>-<device>-<counter>`;
- * bumping `devices.totp_counter` invalidates every previously valid code.
+ * `ephemeralKeyPair`/`nonce` are test-only injection points (never used by
+ * production callers) so a deterministic interop vector can be generated for
+ * a non-TypeScript client (e.g. the Go gateway) to verify against.
  */
-export async function validTotpCodes(ids: {
-  domainId: string;
-  networkId: string;
-  deviceId: string;
-  totpCounter: number;
-}): Promise<string[]> {
-  const secret = new TextEncoder().encode(
-    `${ids.domainId}-${ids.networkId}-${ids.deviceId}-${ids.totpCounter}`,
-  );
-  const current = Math.floor(Math.floor(Date.now() / 1000) / TOTP_PERIOD_SECONDS);
+export interface SealVpnReplyTestOverrides {
+  ephemeralKeyPair?: CryptoKeyPair;
+  nonce?: Uint8Array;
+}
 
-  const codes: string[] = [];
-  for (let offset = -TOTP_WINDOW; offset <= TOTP_WINDOW; offset++) {
-    codes.push(await generateHOTP(secret, current + offset, TOTP_DIGITS));
+export async function sealVpnReply(
+  plaintext: string,
+  replyKeyB64: string,
+  deviceId: string,
+  testOverrides?: SealVpnReplyTestOverrides,
+): Promise<SealedVpnReply> {
+  const replyKeyBytes = base64ToBytes(replyKeyB64);
+  if (replyKeyBytes.length !== 32) {
+    throw new Error("reply_key must be a base64-encoded 32-byte X25519 public key");
   }
-  return codes;
+  const recipientPublicKey = await crypto.subtle.importKey(
+    "raw",
+    replyKeyBytes,
+    { name: "X25519" },
+    true,
+    [],
+  );
+
+  const ephemeral = testOverrides?.ephemeralKeyPair ??
+    ((await crypto.subtle.generateKey(
+      { name: "X25519" },
+      true,
+      ["deriveBits"],
+    )) as CryptoKeyPair);
+  const ephemeralPublicBytes = new Uint8Array(
+    await crypto.subtle.exportKey("raw", ephemeral.publicKey),
+  );
+
+  const sharedBits = new Uint8Array(
+    await crypto.subtle.deriveBits(
+      { name: "X25519", public: recipientPublicKey },
+      ephemeral.privateKey,
+      256,
+    ),
+  );
+
+  const salt = new Uint8Array(64);
+  salt.set(ephemeralPublicBytes, 0);
+  salt.set(replyKeyBytes, 32);
+
+  const hkdfKey = await crypto.subtle.importKey("raw", sharedBits, "HKDF", false, [
+    "deriveBits",
+  ]);
+  const aesKeyBits = await crypto.subtle.deriveBits(
+    { name: "HKDF", hash: "SHA-256", salt, info: VPN_REPLY_HKDF_INFO },
+    hkdfKey,
+    256,
+  );
+  const aesKey = await crypto.subtle.importKey(
+    "raw",
+    aesKeyBits,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt"],
+  );
+
+  const nonce = testOverrides?.nonce ?? crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(
+    await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv: nonce, additionalData: new TextEncoder().encode(deviceId) },
+      aesKey,
+      new TextEncoder().encode(plaintext),
+    ),
+  );
+
+  return {
+    v: 1,
+    alg: VPN_REPLY_ALG,
+    epk: bytesToBase64(ephemeralPublicBytes),
+    nonce: bytesToBase64(nonce),
+    ct: bytesToBase64(ct),
+  };
+}
+
+// ── device / candidate-code authentication (decision-033 §1-§3) ───────────
+
+export type DeviceAuthPurpose = "vpn" | "ssh-enroll" | "ssh-live-enroll" | "ssh-trust";
+
+type DenoEnvLike = { get(key: string): string | undefined };
+const denoEnv: DenoEnvLike | undefined =
+  (globalThis as { Deno?: { env: DenoEnvLike } }).Deno?.env;
+
+function requiredEnv(name: string): string {
+  const value = denoEnv?.get(name);
+  if (!value) throw new Error(`${name} must be set`);
+  return value;
+}
+
+const DEFAULT_BACKEND_URL = "http://iotgw-ui-backend.iotgw-ui.svc.cluster.local:4444";
+
+function backendUrlFromEnv(): string {
+  return (denoEnv?.get("IOTGW_BACKEND_URL") ?? DEFAULT_BACKEND_URL).replace(/\/+$/, "");
+}
+
+function jsonResponse(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+interface DeviceAuthCandidate {
+  step: number;
+  code: string;
+}
+
+interface CandidatesResponse {
+  seed_id: string;
+  locked_until: string | null;
+  candidates: DeviceAuthCandidate[];
 }
 
 /**
- * Decrypt a request body by trying every currently valid code. Success *is*
- * the authentication — we never compare a code the client sent us, so there is
- * nothing to leak by timing and nothing to replay beyond the 600 s window.
- *
- * Returns the plaintext and the code that worked (needed to encrypt the reply).
+ * `POST {IOTGW_BACKEND_URL}/internal/device-auth/candidates`, bearer
+ * `DEVICE_AUTH_TOKEN`. Returns the parsed body, or a `Response` to return
+ * verbatim (a 401 substituted for the backend's 404 so a stale/probing
+ * device_id never learns "device not found" from an edge function).
  */
-export async function authenticateAndDecrypt(
+async function fetchCandidates(deviceUuid: string): Promise<CandidatesResponse | Response> {
+  const token = requiredEnv("DEVICE_AUTH_TOKEN");
+  const backendUrl = backendUrlFromEnv();
+
+  const res = await fetch(`${backendUrl}/internal/device-auth/candidates`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ device_uuid: deviceUuid }),
+  });
+
+  if (res.status === 404) {
+    return jsonResponse({ error: "Authentication failed" }, 401);
+  }
+  if (!res.ok) {
+    throw new Error(
+      `device-auth candidates request failed (status ${res.status}): ${await res.text()}`,
+    );
+  }
+  return (await res.json()) as CandidatesResponse;
+}
+
+export interface SupabaseRestConfig {
+  url: string;
+  serviceRoleKey: string;
+}
+
+export function restHeaders(cfg: SupabaseRestConfig): Record<string, string> {
+  return {
+    apikey: cfg.serviceRoleKey,
+    Authorization: `Bearer ${cfg.serviceRoleKey}`,
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+}
+
+function restConfigFromEnv(): SupabaseRestConfig {
+  return {
+    url: requiredEnv("SUPABASE_URL"),
+    serviceRoleKey: requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  };
+}
+
+async function callRpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
+  const cfg = restConfigFromEnv();
+  const res = await fetch(`${cfg.url}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: restHeaders(cfg),
+    body: JSON.stringify(args),
+  });
+  if (!res.ok) {
+    throw new Error(`rpc ${fn} failed (status ${res.status}): ${await res.text()}`);
+  }
+  const text = await res.text();
+  return (text ? JSON.parse(text) : null) as T;
+}
+
+/** `record_device_otp_failure(p_device_id)` — returns the (maybe null) resulting lockout. */
+export async function recordDeviceOtpFailure(deviceId: string): Promise<string | null> {
+  return await callRpc<string | null>("record_device_otp_failure", { p_device_id: deviceId });
+}
+
+/** `consume_device_otp(p_device_id, p_seed_id, p_purpose, p_step)` — single-use gate. */
+export async function consumeDeviceOtp(
+  deviceId: string,
+  seedId: string,
+  purpose: DeviceAuthPurpose,
+  step: number,
+): Promise<boolean> {
+  return await callRpc<boolean>("consume_device_otp", {
+    p_device_id: deviceId,
+    p_seed_id: seedId,
+    p_purpose: purpose,
+    p_step: step,
+  });
+}
+
+/** `consume_device_renew(p_device_id, p_ts)` — replay guard for the host-key `renew` action. */
+export async function consumeDeviceRenew(deviceId: string, ts: number): Promise<boolean> {
+  return await callRpc<boolean>("consume_device_renew", { p_device_id: deviceId, p_ts: ts });
+}
+
+export interface DeviceAuthSuccess {
+  plaintext: string;
+  code: string;
+  step: number;
+}
+
+interface DecryptedDeviceRequest extends DeviceAuthSuccess {
+  seedId: string;
+}
+
+/**
+ * Steps 1-2 of decision-033 §1/§3: fetch the codes valid right now, enforce
+ * the lockout, and try each against the envelope. Does NOT consume the code —
+ * split out from `authenticateDevice` because `ssh-ca`'s code-envelope
+ * actions (`trust`/`enroll`/`live-enroll`) carry their `purpose` *inside* the
+ * still-encrypted plaintext, so the purpose needed for `consume_device_otp`
+ * is only known after this step runs. `authenticateDevice` below is the
+ * single-call convenience wrapper for the common case (`vpn`, where the
+ * purpose is known upfront).
+ */
+export async function decryptDeviceRequest(
   body: Uint8Array,
-  codes: string[],
-): Promise<{ plaintext: string; code: string } | null> {
-  for (const code of codes) {
+  deviceUuid: string,
+): Promise<DecryptedDeviceRequest | Response> {
+  const candidatesResult = await fetchCandidates(deviceUuid);
+  if (candidatesResult instanceof Response) return candidatesResult;
+  const { seed_id: seedId, locked_until: lockedUntil, candidates } = candidatesResult;
+
+  if (lockedUntil && new Date(lockedUntil).getTime() > Date.now()) {
+    return jsonResponse({ error: "too many failed codes; try again later" }, 429);
+  }
+
+  for (const candidate of candidates) {
     try {
-      return { plaintext: await decryptPayload(body, code), code };
+      const plaintext = await decryptPayload(body, candidate.code);
+      return { plaintext, code: candidate.code, step: candidate.step, seedId };
     } catch {
-      // Wrong code for this window — try the next.
+      // Wrong code for this step — try the next candidate.
     }
   }
-  return null;
+
+  try {
+    await recordDeviceOtpFailure(deviceUuid);
+  } catch (error) {
+    console.error(`record_device_otp_failure failed for device ${deviceUuid}:`, error);
+  }
+  return jsonResponse({ error: "Authentication failed" }, 401);
+}
+
+/**
+ * The full decision-033 §1-§3 flow for a caller that knows its `purpose`
+ * upfront (the `vpn` function; `ssh-ca`'s per-action purposes are resolved
+ * after decrypting and call `consumeDeviceOtp` directly — see
+ * `decryptDeviceRequest`'s docstring).
+ *
+ * Returns `{plaintext, code, step}` on success, or a `Response` to return
+ * verbatim (429 locked out, 401 wrong/reused code).
+ */
+export async function authenticateDevice(
+  body: Uint8Array,
+  deviceUuid: string,
+  purpose: DeviceAuthPurpose,
+): Promise<DeviceAuthSuccess | Response> {
+  const decrypted = await decryptDeviceRequest(body, deviceUuid);
+  if (decrypted instanceof Response) return decrypted;
+
+  const consumed = await consumeDeviceOtp(deviceUuid, decrypted.seedId, purpose, decrypted.step);
+  if (!consumed) {
+    return jsonResponse(
+      { error: "code already used — get a new code from the UI" },
+      401,
+    );
+  }
+
+  return { plaintext: decrypted.plaintext, code: decrypted.code, step: decrypted.step };
+}
+
+/** `|now - ts| <= windowSeconds` — extracted for unit testing without a live clock. */
+export function withinTimeWindow(
+  ts: number,
+  windowSeconds: number,
+  now: number = Math.floor(Date.now() / 1000),
+): boolean {
+  return Math.abs(now - ts) <= windowSeconds;
 }
 
 // ── Device lookup ──────────────────────────────────────────────────────────
@@ -198,20 +457,6 @@ export function parseDeviceIdentifier(deviceId: string): {
     throw new Error("device_id is missing required components");
   }
   return { name, networkPrefix };
-}
-
-export interface SupabaseRestConfig {
-  url: string;
-  serviceRoleKey: string;
-}
-
-export function restHeaders(cfg: SupabaseRestConfig): Record<string, string> {
-  return {
-    apikey: cfg.serviceRoleKey,
-    Authorization: `Bearer ${cfg.serviceRoleKey}`,
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  };
 }
 
 /**

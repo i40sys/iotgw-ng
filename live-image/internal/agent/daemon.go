@@ -31,8 +31,8 @@ type Daemon struct {
 	lastSummary string
 	// lastSkipped dedups rate-limit / backoff notices.
 	lastSkipped string
-	// lastEnroll paces the first-enrollment attempts (see selfEnroll).
-	lastEnroll time.Time
+	// lastRenew paces the SSH self-renewal attempts (see selfRenew).
+	lastRenew time.Time
 }
 
 // Run loops until ctx ends. The first check runs shortly after start (the
@@ -177,7 +177,7 @@ func (d *Daemon) Cycle(ctx context.Context) time.Duration {
 		d.change(ctx, cfg, "route", "keep the Netmaker route on the current LAN router", ops, NoRegression)
 	}
 
-	d.selfEnroll(ctx, cfg)
+	d.selfRenew(ctx, cfg)
 
 	// ── 2. the Internet egress policy ───────────────────────────────────────
 	dec := Decide(cfg.Policy, cfg.Prefer, obs, &d.cnt)
@@ -246,41 +246,40 @@ func orNone(s string) string {
 	return s
 }
 
-// enrollRetry paces first-enrollment attempts while a gateway is not enrolled.
-const enrollRetry = 10 * time.Minute
+// renewRetry paces the SSH self-renewal: at most one attempt per hour.
+const renewRetry = time.Hour
 
-// selfEnroll enrolls a gateway that has NO host certificate yet (a fresh
-// install), so the controller can reach it with its CA-signed operator
-// certificate without anyone running `iotgw ssh refresh` (decision-032 §12).
-// First enrollment only — renewals stay controller-driven (task-104). Same
-// TOTP authentication as the controller's enrollment. A reinstalled device
-// is refused (task-075 continuity) until an operator resets its enrollment
-// in the UI; the next attempt then succeeds on its own. Hold suspends it.
-func (d *Daemon) selfEnroll(ctx context.Context, cfg Config) {
-	if _, err := os.Stat(sshHostCert); err == nil {
+// selfRenew renews the SSH host certificate by itself when it nears expiry
+// (decision-033 §5), authenticated by the enrolled host key — a proof of
+// possession, no code. The daemon never enrolls (a first enrollment needs an
+// operator code) and never touches the VPN. Hold suspends it.
+func (d *Daemon) selfRenew(ctx context.Context, cfg Config) {
+	if !cfg.IdentityComplete() || !Enrolled() || time.Since(d.lastRenew) < renewRetry {
 		return
 	}
-	if !cfg.IdentityComplete() || time.Since(d.lastEnroll) < enrollRetry {
+	if need, why := needsRenewal(ctx); !need {
+		return
+	} else if cfg.Hold {
+		d.heldOnce("renew", "SSH certificate needs renewal ("+why+"); on hold, NOT renewing")
 		return
 	}
-	if cfg.Hold {
-		d.heldOnce("enroll", "not enrolled; on hold, NOT enrolling")
-		return
-	}
-	d.lastEnroll = time.Now()
+	d.lastRenew = time.Now()
 	var lines []string
-	err := d.A.SSHRefresh(ctx, "", false, func(l string) { lines = append(lines, l) })
+	did, err := d.A.SSHRenew(ctx, func(l string) { lines = append(lines, l) })
+	if !did {
+		return
+	}
 	last := ""
 	if len(lines) > 0 {
 		last = lines[len(lines)-1]
 	}
 	if err != nil {
-		d.st.AddEvent("enroll", "failed", "first SSH enrollment: "+err.Error())
-		d.A.logf("enroll: first SSH enrollment failed (retry in %s): %v", enrollRetry, err)
+		d.st.AddEvent("renew", "failed", "SSH certificate self-renewal: "+err.Error())
+		d.A.logf("renew: SSH certificate self-renewal failed (retry in %s): %v", renewRetry, err)
 		return
 	}
-	d.st.AddEvent("enroll", "ok", last)
-	d.A.logf("enroll: %s", last)
+	d.st.AddEvent("renew", "ok", last)
+	d.A.logf("renew: %s", last)
 	if d.Snap != nil {
 		d.Snap.Kick()
 	}

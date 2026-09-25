@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { TRPCError } from "@trpc/server";
 import { appRouter } from "../router";
 import { ensureDeviceSshKey } from "../../services/kms";
+import { ensureDeviceSeed } from "../../services/device-code";
 
 // SSH-key generation now goes directly to Cosmian KMS (decision-010); mock the
 // KMS client rather than Kestra/fetch.
@@ -10,7 +11,16 @@ vi.mock("../../services/kms", () => ({
   deviceSshKeyId: (id: string) => `device_ssh_${id}`,
 }));
 
+// decision-033: createDevice also creates the device's one-time-code seed.
+vi.mock("../../services/device-code", () => ({
+  ensureDeviceSeed: vi.fn(),
+  getDeviceCode: vi.fn(),
+  rotateDeviceSeed: vi.fn(),
+  DeviceNotFoundError: class DeviceNotFoundError extends Error {},
+}));
+
 const mockEnsure = vi.mocked(ensureDeviceSshKey);
+const mockEnsureSeed = vi.mocked(ensureDeviceSeed);
 
 type SupabaseResult<T> = { data: T; error: null } | { data: null; error: any };
 type SupabaseResultSequence<T> = SupabaseResult<T> | SupabaseResult<T>[];
@@ -404,6 +414,41 @@ describe("SSH key ID routing", () => {
       ssh_key_id: "device_ssh_device-9",
     });
     expect(supabase._updates.devices.eq).toHaveBeenCalledWith("id", "device-9");
+    expect(result).toMatchObject({ id: "device-9", ssh_key_id: "device_ssh_device-9" });
+    expect(mockEnsureSeed).toHaveBeenCalledWith(supabase, "device-9");
+  });
+
+  it("createDevice still succeeds when the code seed cannot be created", async () => {
+    const supabase = createSupabaseMock({
+      inserts: {
+        devices: {
+          data: {
+            id: "device-9",
+            name: "New Device",
+            network_id: "network-1",
+            ssh_key_id: null,
+            network: { id: "network-1", domain_id: "domain-1" },
+          },
+          error: null,
+        },
+      },
+      updates: { devices: { data: null, error: null } },
+    });
+
+    mockEnsureSeed.mockRejectedValueOnce(new Error("KMS down"));
+    mockEnsure.mockResolvedValue({
+      sshKeyId: "device_ssh_device-9",
+      created: true,
+    });
+
+    const caller = createCaller(supabase);
+    const result = await caller.createDevice({
+      network_id: "network-1",
+      name: "New Device",
+    });
+
+    // the seed is created lazily later; the SSH key path is unaffected
+    expect(mockEnsureSeed).toHaveBeenCalledOnce();
     expect(result).toMatchObject({ id: "device-9", ssh_key_id: "device_ssh_device-9" });
   });
 

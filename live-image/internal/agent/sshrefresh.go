@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,7 +33,7 @@ const (
 	sshdConfig      = "/etc/ssh/sshd_config"
 	sshIncludeLine  = "Include /etc/ssh/sshd_config.d/*.conf"
 	sshRenewMargin  = 30 * 24 * time.Hour
-	sshReenrollNS   = "iotgw-reenroll"
+	sshRenewNS      = "iotgw-renew"
 	sshdVerifyWait  = 2 * time.Second
 	sshdVerifyTries = 5
 )
@@ -187,27 +188,50 @@ func keyFingerprint(ctx context.Context, path string) (string, error) {
 	return "", errors.New("no fingerprint")
 }
 
-// continuitySig signs `<device_id>\n<host_pubkey type+key>\n<code>` with the
-// CURRENT host key (task-075), proving the re-enroll is a continuation.
-func continuitySig(ctx context.Context, deviceID, hostPub, code string) (string, error) {
+// normHostPub is the host public key as ssh-ca normalizes it: "type base64",
+// no comment (normalizeHostPubkey in supabase/volumes/functions/ssh-ca).
+func normHostPub(hostPub string) (string, error) {
 	f := strings.Fields(hostPub)
 	if len(f) < 2 {
 		return "", errors.New("bad host public key")
 	}
-	dir, err := os.MkdirTemp("", "iotgw-reenroll-")
+	return f[0] + " " + f[1], nil
+}
+
+// renewSig signs `<device_id>\n<host_pubkey type+key>\n<ts>` with the
+// enrolled host key (SSHSIG, namespace iotgw-renew; decision-033 §5): the
+// proof that authenticates a renewal without any code.
+func renewSig(ctx context.Context, deviceID, hostPub string, ts int64) (string, error) {
+	norm, err := normHostPub(hostPub)
+	if err != nil {
+		return "", err
+	}
+	dir, err := os.MkdirTemp("", "iotgw-renew-")
 	if err != nil {
 		return "", err
 	}
 	defer os.RemoveAll(dir)
 	msg := filepath.Join(dir, "challenge")
-	if err := os.WriteFile(msg, []byte(deviceID+"\n"+f[0]+" "+f[1]+"\n"+code), 0o600); err != nil {
+	if err := os.WriteFile(msg, []byte(renewMessage(deviceID, norm, ts)), 0o600); err != nil {
 		return "", err
 	}
-	if _, err := sysexec.Run(ctx, 10*time.Second, "ssh-keygen", "-Y", "sign", "-f", sshHostKey, "-n", sshReenrollNS, msg); err != nil {
+	if _, err := sysexec.Run(ctx, 10*time.Second, "ssh-keygen", "-Y", "sign", "-f", sshHostKey, "-n", sshRenewNS, msg); err != nil {
 		return "", err
 	}
 	b, err := os.ReadFile(msg + ".sig")
 	return string(b), err
+}
+
+// renewMessage is exactly what ssh-ca verifies for a renewal.
+func renewMessage(deviceID, normPub string, ts int64) string {
+	return deviceID + "\n" + normPub + "\n" + strconv.FormatInt(ts, 10)
+}
+
+// Enrolled reports whether this gateway holds an SSH host certificate — i.e.
+// it was enrolled and renews with its host key rather than a code.
+func Enrolled() bool {
+	_, err := os.Stat(sshHostCert)
+	return err == nil
 }
 
 // sshdServing checks sshd is running, answering on its port, and using the
@@ -259,50 +283,148 @@ func waitServing(ctx context.Context) error {
 	return err
 }
 
+// ErrAlreadyEnrolled is the server refusing a first enrollment because it
+// already has a host key on record for this device.
+var ErrAlreadyEnrolled = errors.New("device already enrolled on the server: use Reset SSH enrollment in the UI after a reinstall")
+
 // SSHRefresh re-requests the SSH trust and host certificate from the ssh-ca
-// API (`enroll`) and installs them transactionally: sshd -t, reload (restart
-// as a fallback), verify sshd serves them, or restore every file and restart.
+// API and installs them transactionally: sshd -t, reload (restart as a
+// fallback), verify sshd serves them, or restore every file and restart.
+//
+// Enrolled (a host certificate is installed): `renew`, authenticated by the
+// host key (no code); skipped while the certificate is current unless force.
+// Not enrolled: `enroll`, which needs the operator's one-time code (otp).
 func (a *Agent) SSHRefresh(ctx context.Context, otp string, force bool, out func(string)) error {
 	cfg, err := LoadConfig(ctx, a.UCI)
 	if err != nil {
 		return err
 	}
-	if cfg.APIBase == "" || cfg.DeviceID == "" {
+	if !cfg.IdentityComplete() {
 		return errors.New("no device identity in /etc/config/iotgw (api_base, device_id)")
+	}
+	if !Enrolled() {
+		code, err := DeviceCode(cfg, otp)
+		if err != nil {
+			if errors.Is(err, ErrNoCode) {
+				return errors.New("this gateway is not enrolled yet (no host certificate): the first SSH enrollment needs a one-time code from the device page in the iotgw-ng UI (-otp CODE)")
+			}
+			return err
+		}
+		out("not enrolled yet (no host certificate): first enrollment with the operator code")
+		r, err := a.sshEnroll(ctx, cfg, code, out)
+		if err != nil {
+			return err
+		}
+		return a.installEnrollment(ctx, r, out)
 	}
 	need, why := needsRenewal(ctx)
 	if !need && !force {
 		out("nothing to do: the host certificate is current (" + why + "); use -force to re-request anyway")
 		return nil
 	}
-	out("renewing: " + why)
-	code, source, err := DeviceCode(cfg, otp)
-	if err != nil {
-		return err
+	if need {
+		out("renewing: " + why)
+	} else {
+		out("renewing (forced): " + why)
 	}
+	if strings.TrimSpace(otp) != "" {
+		out("note: a renewal is authenticated by the enrolled host key; the one-time code is only used if the server refuses it")
+	}
+	r, err := a.sshRenew(ctx, cfg, out)
+	if err != nil {
+		var ae *devapi.APIError
+		if strings.TrimSpace(otp) == "" || !errors.As(err, &ae) || ae.Status/100 != 4 {
+			return err
+		}
+		// The server no longer accepts this host key (e.g. its enrollment was
+		// reset in the UI): enroll afresh with the operator's code.
+		code, cerr := DeviceCode(cfg, otp)
+		if cerr != nil {
+			return errors.Join(err, cerr)
+		}
+		out("renewal refused (" + err.Error() + "); enrolling with the one-time code instead")
+		if r, err = a.sshEnroll(ctx, cfg, code, out); err != nil {
+			return err
+		}
+	}
+	return a.installEnrollment(ctx, r, out)
+}
+
+// SSHRenew renews the host certificate with the enrolled host key when
+// needsRenewal says so (the daemon's self-renewal, decision-033 §5). It
+// reports whether it did anything.
+func (a *Agent) SSHRenew(ctx context.Context, out func(string)) (bool, error) {
+	cfg, err := LoadConfig(ctx, a.UCI)
+	if err != nil {
+		return false, err
+	}
+	if !cfg.IdentityComplete() || !Enrolled() {
+		return false, nil
+	}
+	need, why := needsRenewal(ctx)
+	if !need {
+		return false, nil
+	}
+	out("renewing: " + why)
+	r, err := a.sshRenew(ctx, cfg, out)
+	if err != nil {
+		return true, err
+	}
+	return true, a.installEnrollment(ctx, r, out)
+}
+
+// sshEnroll is the first enrollment: code envelope, action enroll.
+func (a *Agent) sshEnroll(ctx context.Context, cfg Config, code string, out func(string)) (enrollReply, error) {
 	hostPub, err := ensureHostKey(ctx)
 	if err != nil {
-		return fmt.Errorf("host key: %w", err)
+		return enrollReply{}, fmt.Errorf("host key: %w", err)
 	}
 	req := map[string]string{"device_id": cfg.DeviceID, "action": "enroll", "host_pubkey": hostPub}
-	if _, err := os.Stat(sshHostCert); err == nil {
-		// Already enrolled: prove continuity with the current host key.
-		sig, err := continuitySig(ctx, cfg.DeviceID, hostPub, code)
-		if err != nil {
-			return fmt.Errorf("sign the re-enroll challenge: %w", err)
-		}
-		req["continuity_sig"] = sig
-	}
 	client := devapi.New(cfg.APIBase, cfg.DeviceID, code)
-	out(fmt.Sprintf("requesting SSH trust + host certificate from %s (action enroll, code: %s)", client.Endpoint("ssh-ca"), source))
+	out(fmt.Sprintf("requesting SSH trust + host certificate from %s (action enroll, operator code)", client.Endpoint("ssh-ca")))
 	raw, status, err := client.Call(ctx, "ssh-ca", req)
 	if err != nil {
-		return hint401(fmt.Errorf("ssh-ca API (HTTP %d): %w", status, err), source)
+		var ae *devapi.APIError
+		if errors.As(err, &ae) && ae.Status == 409 && strings.Contains(ae.Message, "already enrolled") {
+			return enrollReply{}, fmt.Errorf("ssh-ca API (HTTP 409): %w", ErrAlreadyEnrolled)
+		}
+		return enrollReply{}, fmt.Errorf("ssh-ca API (HTTP %d): %w", status, err)
 	}
+	return parseEnrollReply(raw)
+}
+
+// sshRenew is a renewal: plain JSON signed by the enrolled host key.
+func (a *Agent) sshRenew(ctx context.Context, cfg Config, out func(string)) (enrollReply, error) {
+	hostPub, err := ensureHostKey(ctx)
+	if err != nil {
+		return enrollReply{}, fmt.Errorf("host key: %w", err)
+	}
+	ts := time.Now().Unix()
+	sig, err := renewSig(ctx, cfg.DeviceID, hostPub, ts)
+	if err != nil {
+		return enrollReply{}, fmt.Errorf("sign the renewal with the host key: %w", err)
+	}
+	req := map[string]any{"device_id": cfg.DeviceID, "action": "renew", "host_pubkey": hostPub, "ts": ts, "sig": sig}
+	client := devapi.New(cfg.APIBase, cfg.DeviceID, "")
+	out(fmt.Sprintf("requesting a renewed host certificate from %s (action renew, signed by the host key)", client.Endpoint("ssh-ca")))
+	raw, status, err := client.CallPlain(ctx, "ssh-ca", req)
+	if err != nil {
+		return enrollReply{}, fmt.Errorf("ssh-ca API (HTTP %d): %w", status, err)
+	}
+	return parseEnrollReply(raw)
+}
+
+func parseEnrollReply(raw []byte) (enrollReply, error) {
 	var r enrollReply
 	if err := json.Unmarshal(raw, &r); err != nil {
-		return fmt.Errorf("ssh-ca reply is not JSON: %w", err)
+		return r, fmt.Errorf("ssh-ca reply is not JSON: %w", err)
 	}
+	return r, nil
+}
+
+// installEnrollment validates an enroll/renew reply and installs it
+// transactionally.
+func (a *Agent) installEnrollment(ctx context.Context, r enrollReply, out func(string)) error {
 	if strings.TrimSpace(r.HostCert) == "" || strings.TrimSpace(r.UserCA) == "" {
 		return errors.New("ssh-ca returned no host_cert/user_ca — refusing to touch sshd")
 	}

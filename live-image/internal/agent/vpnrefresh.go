@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/i40sys/iotgw-ng/live-image/internal/devapi"
-	"github.com/i40sys/iotgw-ng/live-image/internal/totp"
 	"github.com/i40sys/iotgw-ng/live-image/internal/uci"
 	"github.com/i40sys/iotgw-ng/live-image/internal/wgconf"
 )
@@ -21,29 +20,24 @@ import (
 // re-derived at any time.
 const ServerConfPath = "/etc/iotgw/wg0.server.conf"
 
-// DeviceCode returns the code to authenticate with: the operator's one-time
-// code when given, else the code derived from the identity in
-// /etc/config/iotgw (decision-032 "Refresh authentication").
-func DeviceCode(cfg Config, override string) (string, string, error) {
-	if override != "" {
-		return override, "operator code", nil
-	}
-	if !cfg.TOTPIdentity().Complete() {
-		return "", "", errors.New("no one-time code: pass -otp CODE (from the UI), or install the device identity in /etc/config/iotgw")
-	}
-	return totp.Code(cfg.TOTPIdentity(), time.Now()), "derived from the device identity", nil
-}
+// otpRe is a one-time code as the UI shows it.
+var otpRe = regexp.MustCompile(`^[0-9]{6}$`)
 
-// hint401 explains the usual cause of a rejected derived code.
-func hint401(err error, source string) error {
-	var ae *devapi.APIError
-	if errors.As(err, &ae) && ae.Status == 401 && strings.Contains(ae.Message, "re-enrollment requires proof") {
-		return fmt.Errorf("%w\n  this device was enrolled before with ANOTHER host key (e.g. it was reinstalled) and that key is gone:\n  its old SSH enrollment must be reset by an operator before it can enroll again", err)
+// ErrNoCode is returned when an operation needs a one-time code and none was
+// given: the gateway cannot compute one (decision-033).
+var ErrNoCode = errors.New("a one-time code from the iotgw-ng UI is required (-otp CODE)")
+
+// DeviceCode returns the operator's one-time code (decision-033): the only
+// source of a code on the gateway. Nothing derives one.
+func DeviceCode(_ Config, override string) (string, error) {
+	override = strings.TrimSpace(override)
+	if override == "" {
+		return "", ErrNoCode
 	}
-	if errors.As(err, &ae) && ae.Status == 401 && source != "operator code" {
-		return fmt.Errorf("%w\n  the derived code was rejected: the device's code counter was probably reset in the UI.\n  Update it (uci set iotgw.main.totp_counter=N; uci commit iotgw) or pass -otp CODE", err)
+	if !otpRe.MatchString(override) {
+		return "", errors.New("the one-time code must be 6 digits")
 	}
-	return err
+	return override, nil
 }
 
 // WGOps renders a vpn config into UCI changes for wg0 and its peer.
@@ -114,7 +108,7 @@ func (a *Agent) VPNRefresh(ctx context.Context, otp string, out func(string)) er
 	if cfg.APIBase == "" || cfg.DeviceID == "" {
 		return errors.New("no device identity in /etc/config/iotgw (api_base, device_id) — was the gateway installed by the iotgw install flow?")
 	}
-	code, source, err := DeviceCode(cfg, otp)
+	code, err := DeviceCode(cfg, otp)
 	if err != nil {
 		return err
 	}
@@ -125,11 +119,15 @@ func (a *Agent) VPNRefresh(ctx context.Context, otp string, out func(string)) er
 		body["gateway"], body["interface"] = up.Gateway, up.Device
 	}
 	client := devapi.New(cfg.APIBase, cfg.DeviceID, code)
-	out(fmt.Sprintf("requesting the VPN configuration from %s (code: %s)", client.Endpoint("vpn"), source))
-	reply, status, err := client.Call(ctx, "vpn", body)
+	out(fmt.Sprintf("requesting the VPN configuration from %s (operator code; reply sealed to a one-off key)", client.Endpoint("vpn")))
+	vr, status, err := client.CallVPN(ctx, body)
 	if err != nil {
-		return hint401(fmt.Errorf("vpn API (HTTP %d): %w", status, err), source)
+		return fmt.Errorf("vpn API (HTTP %d): %w", status, err)
 	}
+	if !vr.Sealed {
+		out("warning: the server answered with the deprecated code-encrypted reply (not sealed to this request's key) — update the vpn function")
+	}
+	reply := vr.Config
 	conf, err := wgconf.Parse(string(reply))
 	if err != nil {
 		return fmt.Errorf("the VPN configuration is invalid: %w", err)

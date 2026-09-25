@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/i40sys/iotgw-ng/live-image/internal/devapi"
 	"github.com/i40sys/iotgw-ng/live-image/internal/netinfo"
 	"github.com/i40sys/iotgw-ng/live-image/internal/state"
 	"github.com/i40sys/iotgw-ng/live-image/internal/sysexec"
@@ -100,11 +102,16 @@ func (r *Runner) vpnFetch(ctx context.Context, netOK bool) (string, bool) {
 			body["gateway"] = def.Gateway.String()
 		}
 	}
-	var reply []byte
+	// The reply is sealed to a fresh X25519 key sent inside the request
+	// (decision-033 §4); a server that predates it answers under the code.
+	// Each attempt sends a new key. A code is single-use: only transport
+	// errors and 5xx are retried, and if the server had already consumed the
+	// code the retry gets a 401, which ends the retries.
+	var reply devapi.VPNReply
 	status, err := withRetry(ctx, 3, func() (int, error) {
 		var st int
 		var e error
-		reply, st, e = r.api.Call(ctx, "vpn", body)
+		reply, st, e = r.api.CallVPN(ctx, body)
 		return st, e
 	})
 	s.HTTPStatus = status
@@ -112,7 +119,10 @@ func (r *Runner) vpnFetch(ctx context.Context, netOK bool) (string, bool) {
 		r.end(state.StepVPNFetch, state.Failed, "VPN configuration request failed", err)
 		return "", false
 	}
-	conf := string(reply)
+	if !reply.Sealed {
+		log.Printf("[%s] warning: deprecated code-encrypted vpn reply (server predates sealed replies)", state.StepVPNFetch)
+	}
+	conf := string(reply.Config)
 	sum, err := parseWGConf(conf)
 	if err != nil {
 		r.end(state.StepVPNFetch, state.Failed, "VPN configuration is invalid", err)

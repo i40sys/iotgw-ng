@@ -1,41 +1,49 @@
 // ssh-ca — the only bridge between an IoT gateway and pki-manager.
 //
-// decision-024 (target architecture), decision-026 (provisioning sequence).
+// decision-024 (target architecture), decision-026 (provisioning sequence),
+// decision-033 (one-time codes from a KMS-held seed; host-key renewal).
 //
-// A gateway generates its own SSH host key, proves it is that device with the
-// TOTP it already uses to fetch its WireGuard config (decision-009), and gets
-// back a host certificate signed by its *domain's* Host CA plus the public
-// trust material it needs. The gateway never talks to pki-manager, never sees
-// the fleet token, and never sends a private key anywhere.
+// A gateway generates its own SSH host key, proves it is that device with a
+// one-time code from the backend-held per-device seed (decision-033 — a
+// gateway can no longer derive this itself), and gets back a host
+// certificate signed by its *domain's* Host CA plus the public trust
+// material it needs. The gateway never talks to pki-manager, never sees the
+// fleet token, and never sends a private key anywhere.
 //
-// Three actions:
-//   trust        — public trust material only (User CA, Host CA, principals).
-//                  Safe to call before a host key exists; used by migrations
-//                  that only need to install trust.
-//   enroll       — the above plus: sign `host_pubkey` with the domain's Host CA,
-//                  return the certificate and the sshd drop-in, and record the
-//                  enrollment on the device row. The PERMANENT (OpenWRT) identity.
-//   live-enroll  — the trust bundle plus a SHORT-LIVED host certificate for the
-//                  live (PXE) provisioning image's per-boot host key, under a
-//                  separate `live-…` FQDN. It never reads or writes the device's
-//                  enrollment fields, so it cannot block or impersonate the
-//                  installed system's real enrollment (decision-031).
+// FOUR actions, dispatched on the request's Content-Type:
 //
-// Wire format (identical to the `vpn` function so a gateway needs only
-// busybox + openssl):
+//   Content-Type: application/octet-stream (the code envelope) — device_id is
+//   a query parameter, the body is `openssl enc -aes-256-cbc ...` of a JSON
+//   object naming one of:
+//     trust        — public trust material only (User CA, Host CA, principals).
+//                    Safe to call before a host key exists.
+//     enroll       — the above plus: sign `host_pubkey` with the domain's Host
+//                    CA, return the certificate + sshd drop-in, and record the
+//                    enrollment. FIRST enrollment only — refused (409) once
+//                    the device already has one; renew the existing key with
+//                    "renew" or use Reset SSH enrollment (in the UI) after a
+//                    reinstall.
+//     live-enroll  — the trust bundle plus a SHORT-LIVED host certificate for
+//                    the live (PXE) provisioning image's per-boot host key,
+//                    under a separate `live-…` FQDN. Never touches the
+//                    device's permanent enrollment (decision-031).
 //
-//   POST /functions/v1/ssh-ca?device_id=<name>@<networkPrefix>
-//   body = openssl enc -aes-256-cbc -pbkdf2 -iter 300000 -salt -pass pass:$TOTP
-//          of {"device_id":"...","action":"enroll","host_pubkey":"ecdsa-... "}
-//   response = the same envelope, JSON payload.
+//   Content-Type: application/json — plain, UNENCRYPTED, no one-time code:
+//     renew        — host-key-signed proof of possession (SSHSIG, namespace
+//                    `iotgw-renew`) replaces the code entirely. Only a
+//                    device that already holds the currently-enrolled host
+//                    private key can renew/rotate it (decision-033 §5).
 
 import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
 import {
-  authenticateAndDecrypt,
+  consumeDeviceOtp,
+  consumeDeviceRenew,
+  decryptDeviceRequest,
   encryptPayload,
   fetchDeviceRow,
   restHeaders,
-  validTotpCodes,
+  withinTimeWindow,
+  type DeviceAuthPurpose,
   type SupabaseRestConfig,
 } from "../_shared/device-auth.ts";
 import {
@@ -44,6 +52,7 @@ import {
   pkiConfigFromEnv,
   signHost,
   zoneTrustAnchors,
+  type PkiConfig,
 } from "../_shared/pki-manager.ts";
 import { verifySshSig } from "../_shared/sshsig.ts";
 
@@ -75,39 +84,45 @@ const HOST_CERT_VALID_SECONDS = 90 * 24 * 60 * 60;
  */
 const LIVE_HOST_CERT_VALID_SECONDS = 12 * 60 * 60;
 
+/** `|now - ts| <= this` for the "renew" action's freshness check (decision-033 §5). */
+const RENEW_TS_WINDOW_SECONDS = 300;
+
 /** The two principals every zone gets (decision-024 §5). */
 const PRINCIPALS = ["iotgw-admin", "iotgw-ops"];
 
 /** Private, deliberately non-resolvable namespace; clients pin it with HostKeyAlias. */
 const FQDN_SUFFIX = "iotgw";
 
+interface DomainRow {
+  id: string;
+  name: string;
+  pki_zone: string | null;
+  pki_user_ca_id: string | null;
+  pki_host_ca_id: string | null;
+}
+
+interface NetworkRow {
+  id: string;
+  name: string;
+  domain_id: string;
+  domain: DomainRow | null;
+}
+
 interface DeviceRow {
   id: string;
   network_id: string;
   name: string;
   ip_address: string | null;
-  totp_counter: number;
-  // Enrollment continuity (task-075): the currently-enrolled host key. Empty on a
-  // never-enrolled device (first enroll is one-shot); set means a re-enroll must
-  // prove possession of this key.
+  // Enrollment continuity: the currently-enrolled host key. Empty on a
+  // never-enrolled device (first enroll is one-shot); set means "enroll" is
+  // refused (409) — use "renew" (proves possession) or Reset SSH enrollment.
   ssh_host_key_fingerprint: string | null;
   ssh_host_pubkey: string | null;
-  network: {
-    id: string;
-    name: string;
-    domain_id: string;
-    domain: {
-      id: string;
-      name: string;
-      pki_zone: string | null;
-      pki_user_ca_id: string | null;
-      pki_host_ca_id: string | null;
-    } | null;
-  } | null;
+  network: NetworkRow | null;
 }
 
 const DEVICE_SELECT =
-  "id,network_id,name,ip_address,totp_counter,ssh_host_key_fingerprint,ssh_host_pubkey," +
+  "id,network_id,name,ip_address,ssh_host_key_fingerprint,ssh_host_pubkey," +
   "network:networks(id,name,domain_id,domain:domains(id,name,pki_zone,pki_user_ca_id,pki_host_ca_id))";
 
 const json = (body: unknown, status: number) =>
@@ -138,7 +153,7 @@ function label(value: string): string {
  */
 function normalizeHostPubkey(raw: unknown): { key: string; ecies: boolean } {
   if (typeof raw !== "string" || !raw.trim()) {
-    throw new Error("host_pubkey is required for actions 'enroll' and 'live-enroll'");
+    throw new Error("host_pubkey is required for actions 'enroll', 'live-enroll' and 'renew'");
   }
   const [type, b64] = raw.trim().split(/\s+/);
   const accepted = ["ecdsa-sha2-nistp256", "ssh-ed25519"];
@@ -196,7 +211,122 @@ async function recordEnrollment(
   }
 }
 
-serve(async (req: Request) => {
+/** The trust-bundle fields common to every action's reply. */
+async function buildTrustBundle(
+  pki: PkiConfig,
+  domain: DomainRow,
+): Promise<Record<string, unknown>> {
+  const zone = domain.pki_zone!;
+  // Zone-scoped anchors return the ACTIVE + any ROTATING CA of each type, so a
+  // gateway seeded here keeps trusting either half of a rotating CA pair for
+  // the whole overlap window (decision-028 §4) — the id-addressed ca.pub route
+  // returned only one CA and would have stranded a late-renewing gateway.
+  const { userCaKeys, hostCaKeys } = await zoneTrustAnchors(pki, zone);
+  return {
+    zone,
+    domain: domain.name,
+    principals: PRINCIPALS,
+    auth_principals: PRINCIPALS.join("\n") + "\n",
+    user_ca: userCaKeys.join("\n") + "\n",
+    host_ca: hostCaKeys.join("\n") + "\n",
+    // The operator-side trust lines — one @cert-authority per Host CA, so the
+    // same bundle can seed a known_hosts across a Host CA rotation too.
+    cert_authority:
+      hostCaKeys.map((k) => `@cert-authority *.${label(domain.name)}.${FQDN_SUFFIX} ${k}`).join(
+        "\n",
+      ) + "\n",
+  };
+}
+
+/**
+ * Sign `hostPubkey` with the domain's Host CA under the device's PERMANENT
+ * fqdn/addresses, render the sshd drop-in, and return the host-specific reply
+ * fields. Shared by "enroll" (first signing) and "renew" (rotation) — same
+ * fqdn/addresses/idempotency so a retry, an enroll-then-renew, or a renew
+ * that resends the same key all land on the SAME pki-manager host record.
+ */
+async function signPermanentHost(
+  pki: PkiConfig,
+  domain: DomainRow,
+  device: DeviceRow,
+  hostPubkey: string,
+  ecies: boolean,
+): Promise<Record<string, unknown>> {
+  const deviceLabel = label(device.name);
+  const networkLabel = label(device.network!.name);
+  const domainLabel = label(domain.name);
+
+  // The REGISTERED fqdn carries a slice of the device uuid because
+  // pki-manager's offboard is terminal and (zone, fqdn) stays unique
+  // forever — a recreated device with the same name would otherwise be
+  // permanently un-enrollable (decision-028 §10). The human-facing names
+  // are principals instead, which is what clients actually dial.
+  const fqdn = `${deviceLabel}-${device.id.slice(0, 8)}.${networkLabel}.${domainLabel}.${FQDN_SUFFIX}`;
+  const addresses = [
+    `${deviceLabel}.${networkLabel}.${domainLabel}.${FQDN_SUFFIX}`,
+    `${deviceLabel}.${domainLabel}.${FQDN_SUFFIX}`,
+  ];
+  const ip = device.ip_address?.trim().split("/")[0];
+  if (ip) addresses.push(ip);
+
+  const signed = await signHost(pki, domain.pki_zone!, {
+    fqdn,
+    addresses,
+    opensshHostPubkey: hostPubkey,
+    // Same device + same key ⇒ a retry (or an idempotent renew of an
+    // unchanged key) returns the existing certificate instead of burning a
+    // serial.
+    idempotencyKey: `${device.id}-${(await sha256Hex(hostPubkey)).slice(0, 32)}`,
+    validForSeconds: HOST_CERT_VALID_SECONDS,
+  });
+
+  const result: Record<string, unknown> = {
+    fqdn,
+    host_principals: [fqdn, ...addresses],
+    host_cert: signed.certOpenssh.endsWith("\n") ? signed.certOpenssh : `${signed.certOpenssh}\n`,
+    host_cert_serial: signed.serial,
+    host_cert_valid_before: signed.validBefore,
+    host_id: signed.hostId,
+    sshd_config: await hostSshdConfig(pki, signed.hostId),
+    krl_supported: ecies,
+  };
+  if (!ecies) {
+    result.warnings = [
+      "host key is not ecdsa-sha2-nistp256: pki-manager's encrypted per-host " +
+        "KRL channel is P-256 only, so this gateway cannot receive revocations " +
+        "over it (decision-028 §6)",
+    ];
+  }
+  return result;
+}
+
+async function recordPermanentEnrollment(
+  device: DeviceRow,
+  hostPubkey: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  await recordEnrollment(device.id, {
+    ssh_host_id: payload.host_id as string,
+    ssh_host_fqdn: payload.fqdn as string,
+    ssh_host_key_fingerprint: await opensshFingerprint(hostPubkey),
+    // Retain the full pubkey so a future renew/re-enroll can prove possession
+    // of THIS key. On a key rotation this rolls forward to the new key.
+    ssh_host_pubkey: hostPubkey,
+    ssh_host_cert_serial: String(payload.host_cert_serial),
+    ssh_host_cert_valid_before: payload.host_cert_valid_before as string,
+    ssh_ca_enrolled_at: new Date().toISOString(),
+  });
+}
+
+// ── action → decision-033 §3 purpose ────────────────────────────────────────
+const ACTION_PURPOSE: Record<string, DeviceAuthPurpose> = {
+  trust: "ssh-trust",
+  enroll: "ssh-enroll",
+  "live-enroll": "ssh-live-enroll",
+};
+
+/** trust / enroll / live-enroll — the code-envelope path (unchanged wire format). */
+async function handleEnvelope(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const deviceId = url.searchParams.get("device_id") ?? "";
 
@@ -219,7 +349,8 @@ serve(async (req: Request) => {
     return json({ error: "Device network or domain information is missing" }, 400);
   }
 
-  // ── 2. authenticate: only the device can produce a usable ciphertext ─────
+  // ── 2. authenticate: only the device (which was given today's code by an
+  //      operator) can produce a usable ciphertext ──────────────────────────
   const body = new Uint8Array(await req.arrayBuffer());
   if (body.byteLength < 20) {
     return json(
@@ -228,30 +359,16 @@ serve(async (req: Request) => {
     );
   }
 
-  const codes = await validTotpCodes({
-    domainId: domain.id,
-    networkId: device.network.id,
-    deviceId: device.id,
-    totpCounter: device.totp_counter,
-  });
-
-  const authenticated = await authenticateAndDecrypt(body, codes);
-  if (!authenticated) {
-    console.warn(`TOTP authentication failed for device ${device.id}`);
-    // Deliberately terse: the vpn function echoes the candidate codes and the
-    // device's ids on failure, which is a gift to anyone probing. Not repeated.
-    return json({ error: "Authentication failed" }, 401);
-  }
-  const totp = authenticated.code;
+  const decrypted = await decryptDeviceRequest(body, device.id);
+  if (decrypted instanceof Response) return decrypted;
 
   let request: {
     device_id?: string;
     action?: string;
     host_pubkey?: string;
-    continuity_sig?: string;
   };
   try {
-    request = JSON.parse(authenticated.plaintext);
+    request = JSON.parse(decrypted.plaintext);
   } catch (error) {
     return json(
       {
@@ -262,14 +379,27 @@ serve(async (req: Request) => {
     );
   }
 
-  // The device_id is authenticated by the query parameter (it selected the
-  // TOTP secret); requiring the body to agree stops a caller from having one
-  // device's code applied to another device's row.
+  // The device_id is authenticated by the query parameter (it selected which
+  // device's candidate codes were fetched); requiring the body to agree stops
+  // a caller from having one device's code applied to another device's row.
   if (request.device_id && request.device_id !== deviceId) {
     return json({ error: "Device ID in payload does not match query parameter" }, 400);
   }
 
-  // ── 3. the domain must be linked to a pki-manager zone — fail closed ─────
+  const action = (request.action ?? "enroll").toLowerCase();
+  const purpose = ACTION_PURPOSE[action];
+  if (!purpose) {
+    return json({ error: "action must be 'enroll', 'trust' or 'live-enroll'" }, 400);
+  }
+
+  // ── 3. consume the code NOW, before any reply is built (fail closed) ─────
+  const consumed = await consumeDeviceOtp(device.id, decrypted.seedId, purpose, decrypted.step);
+  if (!consumed) {
+    return json({ error: "code already used — get a new code from the UI" }, 401);
+  }
+  const code = decrypted.code;
+
+  // ── 4. the domain must be linked to a pki-manager zone — fail closed ─────
   if (!domain.pki_zone || !domain.pki_user_ca_id || !domain.pki_host_ca_id) {
     return json(
       {
@@ -282,7 +412,7 @@ serve(async (req: Request) => {
     );
   }
 
-  let pki;
+  let pki: PkiConfig;
   try {
     pki = pkiConfigFromEnv(denoEnv);
   } catch (error) {
@@ -290,36 +420,10 @@ serve(async (req: Request) => {
     return json({ error: "PKI is not configured on this deployment" }, 503);
   }
 
-  const action = (request.action ?? "enroll").toLowerCase();
-  if (action !== "enroll" && action !== "trust" && action !== "live-enroll") {
-    return json({ error: "action must be 'enroll', 'trust' or 'live-enroll'" }, 400);
-  }
-
-  // ── 4. build the response bundle ─────────────────────────────────────────
-  const payload: Record<string, unknown> = {
-    action,
-    zone: domain.pki_zone,
-    domain: domain.name,
-    principals: PRINCIPALS,
-    auth_principals: PRINCIPALS.join("\n") + "\n",
-  };
-
+  // ── 5. build the response bundle ─────────────────────────────────────────
+  let payload: Record<string, unknown>;
   try {
-    // Zone-scoped anchors return the ACTIVE + any ROTATING CA of each type, so a
-    // gateway seeded here keeps trusting either half of a rotating CA pair for
-    // the whole overlap window (decision-028 §4) — the id-addressed ca.pub route
-    // returned only one CA and would have stranded a late-renewing gateway.
-    const { userCaKeys, hostCaKeys } = await zoneTrustAnchors(
-      pki,
-      domain.pki_zone,
-    );
-    payload.user_ca = userCaKeys.join("\n") + "\n";
-    payload.host_ca = hostCaKeys.join("\n") + "\n";
-    // The operator-side trust lines — one @cert-authority per Host CA, so the
-    // same bundle can seed a known_hosts across a Host CA rotation too.
-    payload.cert_authority = hostCaKeys
-      .map((k) => `@cert-authority *.${label(domain.name)}.${FQDN_SUFFIX} ${k}`)
-      .join("\n") + "\n";
+    payload = { action, ...(await buildTrustBundle(pki, domain)) };
 
     if (action === "live-enroll") {
       const { key: hostPubkey } = normalizeHostPubkey(request.host_pubkey);
@@ -334,8 +438,8 @@ serve(async (req: Request) => {
       // No IP principal: the VPN IP belongs to the permanent identity (task-102
       // offboards by it), and clients pin the FQDN with HostKeyAlias anyway.
       // No continuity proof: the live key is per-boot by design; possession of
-      // the device TOTP is the whole bar here, as for a first enroll on the
-      // isolated provisioning bench (decision-028 §5).
+      // a one-time operator code is the whole bar here, as for a first enroll
+      // on the isolated provisioning bench (decision-028 §5).
       const fqdn =
         `live-${deviceLabel}-${device.id.slice(0, 8)}.${networkLabel}.${domainLabel}.${FQDN_SUFFIX}`;
       const signed = await signHost(pki, domain.pki_zone, {
@@ -360,104 +464,24 @@ serve(async (req: Request) => {
     }
 
     if (action === "enroll") {
-      const { key: hostPubkey, ecies } = normalizeHostPubkey(request.host_pubkey);
-
-      // PROOF-OF-CONTINUITY (task-075 / decision-028 §12). Enrollment is
-      // authenticated only by the device TOTP, which is derived from non-secret
-      // identifiers — so a first enroll is one-shot (accepted on the isolated
-      // provisioning bench, §5). But once a device HAS an enrolled host key, a
-      // re-enroll (renewal or key rotation) MUST prove possession of that key,
-      // otherwise anyone who can read the identifiers could rotate the gateway's
-      // host key to one they control. The gateway signs `<device_id>\n<new
-      // host_pubkey>\n<current TOTP>` with its EXISTING host private key
-      // (ssh-keygen -Y sign -n iotgw-reenroll); we verify that SSHSIG against
-      // the previously-recorded host public key. Fails closed.
+      // First enrollment ONLY. A device that already has an enrolled host key
+      // must use "renew" (proves possession of that key) — or the operator
+      // uses Reset SSH enrollment in the UI after a reinstall (decision-033 §5).
       if (device.ssh_host_pubkey && device.ssh_host_pubkey.trim()) {
-        const challenge = new TextEncoder().encode(
-          `${deviceId}\n${hostPubkey}\n${totp}`,
+        return json(
+          {
+            error: "device already enrolled",
+            details:
+              "renew with the host key (action renew), or use Reset SSH enrollment " +
+              "in the UI after a reinstall",
+          },
+          409,
         );
-        const proven = typeof request.continuity_sig === "string" &&
-          request.continuity_sig.length > 0 &&
-          await verifySshSig({
-            armored: request.continuity_sig,
-            expectedPubkeyLine: device.ssh_host_pubkey,
-            namespace: "iotgw-reenroll",
-            message: challenge,
-          });
-        if (!proven) {
-          return json(
-            {
-              error: "re-enrollment requires proof of the existing host key",
-              details:
-                "This device is already enrolled; a re-enroll must include a " +
-                "continuity_sig — an SSHSIG (namespace iotgw-reenroll) over " +
-                "'<device_id>\\n<new host_pubkey>\\n<TOTP>' signed by the current " +
-                "host private key (decision-028 §12).",
-            },
-            401,
-          );
-        }
       }
 
-      const deviceLabel = label(device.name);
-      const networkLabel = label(device.network.name);
-      const domainLabel = label(domain.name);
-
-      // The REGISTERED fqdn carries a slice of the device uuid because
-      // pki-manager's offboard is terminal and (zone, fqdn) stays unique
-      // forever — a recreated device with the same name would otherwise be
-      // permanently un-enrollable (decision-028 §10). The human-facing names
-      // are principals instead, which is what clients actually dial.
-      const fqdn =
-        `${deviceLabel}-${device.id.slice(0, 8)}.${networkLabel}.${domainLabel}.${FQDN_SUFFIX}`;
-
-      const addresses = [
-        `${deviceLabel}.${networkLabel}.${domainLabel}.${FQDN_SUFFIX}`,
-        `${deviceLabel}.${domainLabel}.${FQDN_SUFFIX}`,
-      ];
-      const ip = device.ip_address?.trim().split("/")[0];
-      if (ip) addresses.push(ip);
-
-      const signed = await signHost(pki, domain.pki_zone, {
-        fqdn,
-        addresses,
-        opensshHostPubkey: hostPubkey,
-        // Same device + same key ⇒ same key ⇒ a retry returns the existing
-        // certificate instead of burning a serial.
-        idempotencyKey: `${device.id}-${(await sha256Hex(hostPubkey)).slice(0, 32)}`,
-        validForSeconds: HOST_CERT_VALID_SECONDS,
-      });
-
-      payload.fqdn = fqdn;
-      payload.host_principals = [fqdn, ...addresses];
-      payload.host_cert = signed.certOpenssh.endsWith("\n")
-        ? signed.certOpenssh
-        : `${signed.certOpenssh}\n`;
-      payload.host_cert_serial = signed.serial;
-      payload.host_cert_valid_before = signed.validBefore;
-      payload.host_id = signed.hostId;
-      payload.sshd_config = await hostSshdConfig(pki, signed.hostId);
-      payload.krl_supported = ecies;
-      if (!ecies) {
-        payload.warnings = [
-          "host key is not ecdsa-sha2-nistp256: pki-manager's encrypted per-host " +
-            "KRL channel is P-256 only, so this gateway cannot receive revocations " +
-            "over it (decision-028 §6)",
-        ];
-      }
-
-      await recordEnrollment(device.id, {
-        ssh_host_id: signed.hostId,
-        ssh_host_fqdn: fqdn,
-        ssh_host_key_fingerprint: await opensshFingerprint(hostPubkey),
-        // Retain the full pubkey so the NEXT enroll can be proven a continuation
-        // of this key (task-075). On a re-enroll this rolls forward to the new
-        // key, which the proof we just verified authorised.
-        ssh_host_pubkey: hostPubkey,
-        ssh_host_cert_serial: String(signed.serial),
-        ssh_host_cert_valid_before: signed.validBefore,
-        ssh_ca_enrolled_at: new Date().toISOString(),
-      });
+      const { key: hostPubkey, ecies } = normalizeHostPubkey(request.host_pubkey);
+      Object.assign(payload, await signPermanentHost(pki, domain, device, hostPubkey, ecies));
+      await recordPermanentEnrollment(device, hostPubkey, payload);
     }
   } catch (error) {
     const details = error instanceof Error ? error.message : String(error);
@@ -468,12 +492,164 @@ serve(async (req: Request) => {
     );
   }
 
-  // ── 5. reply through the same TOTP envelope ──────────────────────────────
-  const encrypted = await encryptPayload(JSON.stringify(payload), totp);
+  // ── 6. reply through the same code envelope ──────────────────────────────
+  const encrypted = await encryptPayload(JSON.stringify(payload), code);
   return new Response(encrypted as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/octet-stream",
       "Content-Length": encrypted.byteLength.toString(),
     },
   });
+}
+
+interface RenewRequest {
+  device_id?: string;
+  action?: string;
+  host_pubkey?: string;
+  ts?: number;
+  sig?: string;
+}
+
+/**
+ * "renew" — plain JSON, no one-time code. The gateway proves possession of
+ * the CURRENTLY enrolled host private key by signing
+ * `<device_id>\n<normalized host_pubkey>\n<ts>` (SSHSIG, namespace
+ * `iotgw-renew`); we verify it against `devices.ssh_host_pubkey` and require
+ * `ts` fresh and monotonically increasing (`consume_device_renew`). The
+ * reply is public certificate material only, so it is not encrypted
+ * (decision-033 §5).
+ */
+async function handleRenew(req: Request): Promise<Response> {
+  let body: RenewRequest;
+  try {
+    body = (await req.json()) as RenewRequest;
+  } catch (error) {
+    return json(
+      {
+        error: "Request body is not valid JSON",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      400,
+    );
+  }
+
+  if ((body.action ?? "").toLowerCase() !== "renew") {
+    return json({ error: "action must be 'renew' for an application/json request" }, 400);
+  }
+  const deviceId = (body.device_id ?? "").trim();
+  if (!deviceId) {
+    return json({ error: "device_id is required" }, 400);
+  }
+  if (typeof body.ts !== "number" || !Number.isFinite(body.ts)) {
+    return json({ error: "ts (unix seconds) is required" }, 400);
+  }
+  if (typeof body.sig !== "string" || !body.sig.trim()) {
+    return json({ error: "sig is required" }, 400);
+  }
+
+  let device: DeviceRow;
+  try {
+    device = await fetchDeviceRow<DeviceRow>(REST, deviceId, DEVICE_SELECT);
+  } catch (error) {
+    const details = error instanceof Error ? error.message : String(error);
+    console.error(`Device lookup failed for ${deviceId}: ${details}`);
+    return json({ error: "Unable to resolve device", details }, 400);
+  }
+
+  const domain = device.network?.domain;
+  if (!device.network || !domain) {
+    return json({ error: "Device network or domain information is missing" }, 400);
+  }
+
+  if (!device.ssh_host_pubkey || !device.ssh_host_pubkey.trim()) {
+    return json(
+      {
+        error: "device is not enrolled",
+        details: "use action 'enroll' with an operator one-time code first",
+      },
+      409,
+    );
+  }
+
+  let hostPubkey: string;
+  let ecies: boolean;
+  try {
+    ({ key: hostPubkey, ecies } = normalizeHostPubkey(body.host_pubkey));
+  } catch (error) {
+    return json({ error: error instanceof Error ? error.message : String(error) }, 400);
+  }
+
+  if (!withinTimeWindow(body.ts, RENEW_TS_WINDOW_SECONDS)) {
+    return json({ error: "renew timestamp is outside the acceptable window" }, 401);
+  }
+
+  const message = new TextEncoder().encode(`${deviceId}\n${hostPubkey}\n${body.ts}`);
+  const validSig = await verifySshSig({
+    armored: body.sig,
+    expectedPubkeyLine: device.ssh_host_pubkey,
+    namespace: "iotgw-renew",
+    message,
+  });
+  if (!validSig) {
+    return json({ error: "invalid renew signature" }, 401);
+  }
+
+  // Replay guard — consumed only after the signature verifies, so a probe
+  // with a garbage signature never burns a legitimate future renewal window.
+  const consumed = await consumeDeviceRenew(device.id, body.ts);
+  if (!consumed) {
+    return json({ error: "stale or replayed renew" }, 401);
+  }
+
+  if (!domain.pki_zone || !domain.pki_user_ca_id || !domain.pki_host_ca_id) {
+    return json(
+      {
+        error: "Domain is not linked to a pki-manager zone",
+        details:
+          `Domain '${domain.name}' has no pki_zone/CA ids. Link it before enrolling ` +
+          `gateways (decision-026 phase 0).`,
+      },
+      409,
+    );
+  }
+
+  let pki: PkiConfig;
+  try {
+    pki = pkiConfigFromEnv(denoEnv);
+  } catch (error) {
+    console.error(error);
+    return json({ error: "PKI is not configured on this deployment" }, 503);
+  }
+
+  try {
+    const payload: Record<string, unknown> = {
+      action: "renew",
+      ...(await buildTrustBundle(pki, domain)),
+    };
+    Object.assign(payload, await signPermanentHost(pki, domain, device, hostPubkey, ecies));
+    await recordPermanentEnrollment(device, hostPubkey, payload);
+
+    return json(payload, 200);
+  } catch (error) {
+    const details = error instanceof Error ? error.message : String(error);
+    console.error(`ssh-ca renew failed for device ${device.id}: ${details}`);
+    return json(
+      { error: "SSH CA renew failed", details },
+      error instanceof PkiError ? 502 : 400,
+    );
+  }
+}
+
+serve(async (req: Request) => {
+  try {
+    const contentType = (req.headers.get("content-type") ?? "").toLowerCase();
+    if (contentType.includes("application/json")) {
+      return await handleRenew(req);
+    }
+    return await handleEnvelope(req);
+  } catch (error) {
+    const details = error instanceof Error ? error.message : String(error);
+    console.error("ssh-ca request failed:", details);
+    return json({ error: "Failed to process request", details }, 500);
+  }
 });
