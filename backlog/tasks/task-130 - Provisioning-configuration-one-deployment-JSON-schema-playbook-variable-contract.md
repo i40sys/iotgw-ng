@@ -3,10 +3,10 @@ id: TASK-130
 title: >-
   Provisioning configuration: one deployment JSON schema + playbook variable
   contract
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-09-24 19:39'
-updated_date: '2026-09-25 05:07'
+updated_date: '2026-09-25 05:19'
 labels:
   - kestra
   - ansible
@@ -142,4 +142,40 @@ The Kestra `provisioning` flow (i11_provisioning_iotgw.yaml) failed on gw-c3 (ex
 - The example's placeholder values (`examples`) show as input placeholders; the page still auto-adds legacy `name`/`version` keys on deploy (old zod schema) — harmless, deprecated in the schema.
 
 **Decision (user, 2026-09-25): secrets stay in the deployment JSON** (`deployments.configuration`, copied to `deployment_jobs.configuration_json`), not in Cosmian KMS. Mitigations already in place: password inputs, no secret values in logs/toasts/validation messages, tRPC helper redaction.
+
+**Merge + deploy (2026-09-25)**
+
+**UI fix before the merge (`967caf4`)**
+- The deployments page is a viewport-height column: the form scrolls in its own region (`data-slot=deployments-scroll`, `overscroll-contain`) and `DeploymentActionsPanel` is an in-flow footer row, no longer `fixed` over the content — it cannot cover "Stacks to run" (or anything else) while scrolling.
+- Dev only: the bar reserves the bottom corners (`pl-44 pr-16`) where the TanStack Router/Query devtools toggles sit, so they cover neither its buttons nor the form.
+- Provisioning "Load from file" input: `hidden` instead of `sr-only` (Input's `w-full` beat sr-only's 1px width → ~100px horizontal page overflow).
+- Verified headless with agent-browser on the dev stack (comforsa / c3 / gw-c3, Provisioning step, scrolled; 1440x900 and 1024x700): scroll region ends exactly at the bar's top, the last content row is fully visible, no document scroll or horizontal overflow. Screenshot `/tmp/t130-ui-fix-provisioning-scrolled.png`. Nothing saved or deployed.
+
+**Secret scan**
+- gitleaks `generic-api-key` matched a prose COMMENT in `utils/redact.ts` ("client secrets, EMQX/GLPI/Influx …" — words, no value); the first push made `secret-scan` fail (run 36097741922). Fixed by exact fingerprints in a new `.gitleaksignore` (`2ec072b`, `65d8b1d`) + rewording the comment (`65d8b1d`, `f66034a`). `secret-scan` green on `f66034a` (run 36097937202).
+- iotgw-kestra (PUBLIC) `main..task-130-provisioning-schema`: gitleaks clean + manual grep of every added line — only variable references and placeholders, no client values.
+
+**Checks (monorepo branch)**
+- Typecheck backend / app / supabase-contract OK; contract `tsdown` build OK.
+- vitest: backend 16/16, app 22/22 (`pnpm exec vitest run`); app `vite build` OK.
+- iotgw-kestra: `ansible-playbook --syntax-check` OK for `i11_provisioning_iotgw.yaml` and `d01_install_owrt.yml` in `cytopia/ansible:2.18-tools@sha256:da5e5a60…` (ansible-core 2.18.19, gekmihesg.openwrt @01fda612).
+- Kestra `/flows/validate`: provisioning, install, connectivity-check → `constraints: null`, no warnings.
+
+**Merges + pushes**
+- Monorepo: `--no-ff` merge `0e7c888` into main (+ `f66034a` secret-scan follow-up); pushed to gitea and GitHub i40sys/iotgw-ng.
+- iotgw-kestra: `--no-ff` merge `2cd5e9f` into main (branch already contained main's task-129 pins — runner image digest + role commit verified in Flow/install/connectivity-check); pushed `main` + `task-130-provisioning-schema` to GitHub i40sys/iotgw-kestra.
+
+**Deploy**
+- Kestra `iotgw-ng/provisioning` → **revision 8** (live source = Flow.yaml). `install` (rev 7) and `connectivity-check` (rev 8) unchanged by this task — not re-deployed.
+- kind (`kind-iotgw`): `iotgw-ui-backend:local` / `iotgw-ui-frontend:local` rebuilt, loaded, rolled out (backend healthy, frontend serves the in-flow bar).
+- `just dev` backend on :52174 restarted by `tsx watch` on the merged tree.
+
+**CI (i40sys/iotgw-ng)**
+- `0e7c888`: frontend-image 36097742123 success, backend-image 36097742126 success, secret-scan 36097741922 failure (fixed above).
+- `f66034a`: secret-scan 36097937202 success, backend-image 36097937431 success.
+- live-image not triggered (path filter `live-image/**`).
+
+**Follow-ups (outside this task's ACs)**
+- Lab-gateway provisioning re-run = task-129 AC#1 (another session). No flow or playbook was run against any gateway here.
+- `files/stacks/uptime/env.j2` is client-specific and defaults two passwords to a shared literal in the PUBLIC repo; nodered not provisionable from the public repo; `firewall.j2` hard-codes ManagementIPs 10.2.0.47/32; rotate the client credentials the operator pasted.
 <!-- SECTION:NOTES:END -->
