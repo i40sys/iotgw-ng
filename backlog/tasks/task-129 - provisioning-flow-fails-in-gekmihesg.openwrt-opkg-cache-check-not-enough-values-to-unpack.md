@@ -6,11 +6,13 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-09-24 15:28'
+updated_date: '2026-09-25 03:42'
 labels:
   - kestra
   - ansible
   - provisioning
-dependencies: []
+dependencies:
+  - TASK-130
 priority: medium
 ---
 
@@ -27,3 +29,11 @@ The runner is `cytopia/ansible:latest-tools` (unpinned; ansible-core 2.17 locall
 - [ ] #1 The provisioning flow completes on a freshly installed gateway
 - [ ] #2 The runner image and the Galaxy role are pinned
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Blocked on task-130 (2026-09-25)**
+- AC#2 (pinning) is done; AC#1 (provisioning completes on a fresh gateway) is now blocked on the deployment configuration: the gw-c3 re-run (exec IeBFGp5yquThkwufsKKSp) passed the role + packages, then failed on `'primary_ntp' is undefined` because the UI only sends placeholder keys.
+- task-130 defines the variable contract + JSON Schema and adds a preflight to the playbook (iotgw-kestra branch `task-130-provisioning-schema`); re-test AC#1 once that branch is merged and the UI produces a real config.
+<!-- SECTION:NOTES:END -->

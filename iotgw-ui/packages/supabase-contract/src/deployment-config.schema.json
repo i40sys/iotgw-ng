@@ -1,0 +1,1266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/i40sys/iotgw-ng/iotgw-ui/packages/supabase-contract/src/deployment-config.schema.json",
+  "title": "IoT gateway deployment configuration",
+  "description": "The ONE deployment configuration (deployments.configuration) shared by the UI wizard steps and sent to Kestra as json_data. Render by `x-step` (os-installation | provisioning) and `x-group` (section); `x-secret` fields must be masked and never logged; `x-step: backend` keys are injected by the backend at execution time; `x-step: legacy` keys are ignored placeholders. Validate a single wizard step against the properties of its x-step; the whole document validates once every step is complete. Stack enable flags are required so the stored config is explicit (the playbook treats an ABSENT flag as enabled). Playbook-side contract: iotgw-kestra tasks/preflight.yaml (iotgw-ng task-130).",
+  "type": "object",
+  "x-steps": [
+    {
+      "id": "os-installation",
+      "title": "O.S. Installation"
+    },
+    {
+      "id": "provisioning",
+      "title": "Provisioning"
+    }
+  ],
+  "x-groups": [
+    {
+      "id": "os",
+      "title": "O.S. Installation",
+      "x-step": "os-installation"
+    },
+    {
+      "id": "routing",
+      "title": "Stacks to run",
+      "x-step": "provisioning"
+    },
+    {
+      "id": "system",
+      "title": "System",
+      "x-step": "provisioning"
+    },
+    {
+      "id": "firewall",
+      "title": "Firewall",
+      "x-step": "provisioning"
+    },
+    {
+      "id": "credentials",
+      "title": "Credentials",
+      "x-step": "provisioning"
+    },
+    {
+      "id": "observability",
+      "title": "Observability",
+      "x-step": "provisioning"
+    },
+    {
+      "id": "mqtt",
+      "title": "MQTT",
+      "x-step": "provisioning"
+    },
+    {
+      "id": "users",
+      "title": "MQTT users",
+      "x-step": "provisioning"
+    },
+    {
+      "id": "glpi",
+      "title": "GLPI agent",
+      "x-step": "provisioning"
+    },
+    {
+      "id": "duplicati",
+      "title": "Duplicati",
+      "x-step": "provisioning"
+    },
+    {
+      "id": "telegraf",
+      "title": "Telegraf",
+      "x-step": "provisioning"
+    },
+    {
+      "id": "nodered",
+      "title": "Node-RED",
+      "x-step": "provisioning"
+    },
+    {
+      "id": "netxms",
+      "title": "NetXMS",
+      "x-step": "provisioning"
+    }
+  ],
+  "required": [
+    "osInstallation",
+    "iotgw_hostname",
+    "root_password",
+    "local_ip_address",
+    "local_domain",
+    "main_local_dns",
+    "primary_ntp",
+    "firewall",
+    "credentials",
+    "obs",
+    "mqtt",
+    "glpi-agent",
+    "duplicati",
+    "telegraf",
+    "nodered",
+    "netxms"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "osInstallation": {
+      "type": "object",
+      "title": "O.S. Installation",
+      "description": "Used only by the Kestra `install` flow. The backend lifts these two keys to top-level `target_disk` / `openwrt_version` in json_data.",
+      "additionalProperties": false,
+      "required": [
+        "openwrt_version",
+        "target_disk"
+      ],
+      "properties": {
+        "openwrt_version": {
+          "type": "string",
+          "title": "OpenWRT version",
+          "description": "OpenWRT release written to the disk (x86_64).",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "default": "23.05.4",
+          "examples": [
+            "23.05.4"
+          ],
+          "x-step": "os-installation",
+          "x-group": "os"
+        },
+        "target_disk": {
+          "type": "string",
+          "title": "Target disk",
+          "description": "Block device on the gateway that is WIPED and receives OpenWRT.",
+          "pattern": "^/dev/[A-Za-z0-9/_-]+$",
+          "default": "/dev/nvme0n1",
+          "examples": [
+            "/dev/nvme0n1",
+            "/dev/sda"
+          ],
+          "x-step": "os-installation",
+          "x-group": "os"
+        }
+      },
+      "x-step": "os-installation",
+      "x-group": "os"
+    },
+    "__tags__": {
+      "type": "array",
+      "title": "Stacks to run (tags)",
+      "description": "Ansible tags passed to the provisioning run as `--tags`. Empty = every stack (still subject to the enable flags). `ntp` re-renders only /etc/config/system (hostname + NTP). `ssh_ca` must be included (or the list left empty) for SSH-CA enrollment.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "system",
+          "ntp",
+          "ssh_ca",
+          "firewall",
+          "syslog",
+          "shell",
+          "credentials",
+          "dockge",
+          "vscode",
+          "observability",
+          "mosquitto",
+          "glpi-agent",
+          "telegraf",
+          "duplicati",
+          "nodered",
+          "bugfixing",
+          "netxms",
+          "lldpd",
+          "plc_sniffer"
+        ]
+      },
+      "uniqueItems": true,
+      "default": [],
+      "x-step": "provisioning",
+      "x-group": "routing"
+    },
+    "iotgw_hostname": {
+      "type": "string",
+      "title": "Hostname",
+      "description": "Gateway hostname (/etc/config/system, /etc/machine-id; also the Node-RED flows repo name and the MQTT bridge client id).",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$",
+      "examples": [
+        "iotgw-maq5"
+      ],
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "num_maquina": {
+      "type": "integer",
+      "title": "Machine number",
+      "description": "Machine index used by the uptime-kuma monitors (LOCAL_PREFIX 10.121.10<n>, so only 0–9 produce valid addresses).",
+      "minimum": 0,
+      "maximum": 9,
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "root_password": {
+      "type": "string",
+      "title": "Root password",
+      "description": "Gateway root password (hashed sha512 on the device). ALSO the code-server (vscode stack) password.",
+      "minLength": 8,
+      "x-step": "provisioning",
+      "x-group": "system",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "local_ip_address": {
+      "type": "string",
+      "title": "LAN IP address",
+      "description": "Gateway address on br-lan (netmask /26 is fixed in templates/network.j2); also DHCP DNS option, MQTT DNAT target, mosquitto listener, plc_sniffer destination.",
+      "format": "ipv4",
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "local_domain": {
+      "type": "string",
+      "title": "Local domain",
+      "description": "dnsmasq local domain + LAN dns_search.",
+      "format": "hostname",
+      "default": "localdomain",
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "main_local_dns": {
+      "type": "string",
+      "title": "Main local DNS",
+      "description": "Upstream DNS server for `*.<local_domain>` (dnsmasq); also monitored by uptime-kuma.",
+      "format": "ipv4",
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "backup_local_dns": {
+      "type": "string",
+      "title": "Backup local DNS",
+      "description": "Only consumed by the uptime-kuma monitors (observability).",
+      "format": "ipv4",
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "primary_ntp": {
+      "type": "string",
+      "title": "Primary NTP server",
+      "description": "First NTP server (/etc/config/system).",
+      "anyOf": [
+        {
+          "format": "ipv4"
+        },
+        {
+          "format": "hostname"
+        }
+      ],
+      "default": "0.openwrt.pool.ntp.org",
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "secundary_ntp": {
+      "type": "string",
+      "title": "Secondary NTP server",
+      "description": "Second NTP server (optional). The key keeps its historical spelling; the playbook also accepts `secondary_ntp`.",
+      "anyOf": [
+        {
+          "format": "ipv4"
+        },
+        {
+          "format": "hostname"
+        }
+      ],
+      "default": "1.openwrt.pool.ntp.org",
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "zerotier_network_id": {
+      "type": "string",
+      "title": "ZeroTier network id",
+      "description": "NOT consumed by any provisioning task today (templates/zerotier.j2 is orphaned; the play's old `zeroter_network_id` default was removed). Kept so existing configs round-trip.",
+      "pattern": "^([0-9a-fA-F]{16})?$",
+      "x-unused": true,
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "zerotier_secret": {
+      "type": "string",
+      "title": "ZeroTier secret",
+      "description": "NOT consumed by any provisioning task today (see zerotier_network_id).",
+      "x-unused": true,
+      "x-step": "provisioning",
+      "x-group": "system",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "dhcp_hosts": {
+      "type": "array",
+      "title": "DHCP static leases",
+      "description": "Static DHCP leases on the LAN (uci dhcp host, leasetime 24h).",
+      "default": [],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "ip",
+          "mac"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+          },
+          "ip": {
+            "type": "string",
+            "title": "IP",
+            "format": "ipv4"
+          },
+          "mac": {
+            "type": "string",
+            "title": "MAC",
+            "pattern": "^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$"
+          }
+        }
+      },
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "deploy_shared_ssh_key": {
+      "type": "boolean",
+      "title": "Deploy shared SSH key (break-glass)",
+      "description": "Copies credentials/id_rsa to /root/.ssh (task-073: break-glass only). Keep false.",
+      "default": false,
+      "x-advanced": true,
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "firewall": {
+      "type": "boolean",
+      "title": "Firewall",
+      "description": "Rewrites /etc/config/firewall (zones lan/wan/docker/vpn, ManagementIPs + AllowedInternet ipsets) and installs bridge-nft. Enables the `firewall` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "default": true,
+      "x-step": "provisioning",
+      "x-group": "firewall",
+      "x-stack-tag": "firewall"
+    },
+    "allowed_internet": {
+      "type": "array",
+      "title": "LAN hosts allowed to reach the Internet",
+      "description": "Entries added to the AllowedInternet ipset (match src_ip).",
+      "default": [],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ip"
+        ],
+        "properties": {
+          "ip": {
+            "type": "string",
+            "title": "IP or CIDR",
+            "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}(/[0-9]{1,2})?$"
+          }
+        }
+      },
+      "x-step": "provisioning",
+      "x-group": "firewall"
+    },
+    "management_cidrs": {
+      "type": "array",
+      "title": "Management networks",
+      "description": "Entries added to the ManagementIPs ipset (web UIs: LuCI, Dockge, Node-RED, Duplicati, VSCode, Alloy, GLPI, ttyd).",
+      "default": [],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cidr"
+        ],
+        "properties": {
+          "cidr": {
+            "type": "string",
+            "title": "CIDR",
+            "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$"
+          }
+        }
+      },
+      "x-step": "provisioning",
+      "x-group": "firewall"
+    },
+    "credentials": {
+      "type": "boolean",
+      "title": "Credentials",
+      "description": "Writes /etc/config/credentials (uci) with the GHCR PAT and Notion API key. Enables the `credentials` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "default": false,
+      "x-step": "provisioning",
+      "x-group": "credentials",
+      "x-stack-tag": "credentials"
+    },
+    "ghcr_pat": {
+      "type": "string",
+      "title": "GHCR personal access token",
+      "description": "ghcr.io token (uci credentials.ghcr; also the `docker login ghcr.io` of the glpi-agent stack).",
+      "x-step": "provisioning",
+      "x-group": "credentials",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "notion_api_key": {
+      "type": "string",
+      "title": "Notion API key",
+      "description": "uci credentials.notion.api_key.",
+      "x-step": "provisioning",
+      "x-group": "credentials",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "obs": {
+      "type": "boolean",
+      "title": "Observability",
+      "description": "Grafana Alloy (metrics+logs via OAuth2 remote write), containers exporter and uptime-kuma/autokuma. Enables the `observability` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "default": false,
+      "x-step": "provisioning",
+      "x-group": "observability",
+      "x-stack-tag": "observability"
+    },
+    "alloy_log_level": {
+      "type": "string",
+      "title": "Alloy log level",
+      "description": "Grafana Alloy logging level.",
+      "enum": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ],
+      "default": "warn",
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "prometheus_url": {
+      "type": "string",
+      "title": "Prometheus remote-write URL",
+      "format": "uri",
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "prometheus_oauth2_token_url": {
+      "type": "string",
+      "title": "Prometheus OAuth2 token URL",
+      "format": "uri",
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "prometheus_oauth2_client_id": {
+      "type": "string",
+      "title": "Prometheus OAuth2 client id",
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "prometheus_oauth2_client_secret": {
+      "type": "string",
+      "title": "Prometheus OAuth2 client secret",
+      "x-step": "provisioning",
+      "x-group": "observability",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "loki_url": {
+      "type": "string",
+      "title": "Loki push URL",
+      "format": "uri",
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "loki_oauth2_token_url": {
+      "type": "string",
+      "title": "Loki OAuth2 token URL",
+      "format": "uri",
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "loki_oauth2_client_id": {
+      "type": "string",
+      "title": "Loki OAuth2 client id",
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "loki_oauth2_client_secret": {
+      "type": "string",
+      "title": "Loki OAuth2 client secret",
+      "x-step": "provisioning",
+      "x-group": "observability",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "kuma_exporter_username": {
+      "type": "string",
+      "title": "Uptime-kuma exporter username",
+      "description": "Alloy scrapes uptime-kuma /metrics with these credentials.",
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "kuma_exporter_password": {
+      "type": "string",
+      "title": "Uptime-kuma exporter password",
+      "x-step": "provisioning",
+      "x-group": "observability",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "containers_exporter_port": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "title": "Containers exporter port",
+      "pattern": "^[0-9]{1,5}$",
+      "minimum": 1,
+      "maximum": 65535,
+      "default": 9100,
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "uptime_kuma_port": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "title": "Uptime-kuma port",
+      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
+      "pattern": "^[0-9]{1,5}$",
+      "minimum": 1,
+      "maximum": 65535,
+      "default": 3003,
+      "x-advanced": true,
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "autokuma_username": {
+      "type": "string",
+      "title": "Uptime-kuma admin user",
+      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly. Must match the admin account inside the stack's pre-seeded data_clean.tar.gz.",
+      "x-advanced": true,
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "autokuma_password": {
+      "type": "string",
+      "title": "Uptime-kuma admin password",
+      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly. Must match the pre-seeded data_clean.tar.gz admin account.",
+      "x-advanced": true,
+      "x-step": "provisioning",
+      "x-group": "observability",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "mqtt_username": {
+      "type": "string",
+      "title": "MQTT monitor username",
+      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly. Used by the MQTT monitors (local mosquitto + factory broker).",
+      "x-advanced": true,
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "mqtt_password": {
+      "type": "string",
+      "title": "MQTT monitor password",
+      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
+      "x-advanced": true,
+      "x-step": "provisioning",
+      "x-group": "observability",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "mqtt_hostname": {
+      "type": "string",
+      "title": "MQTT hostname (DNS monitors)",
+      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
+      "format": "hostname",
+      "x-advanced": true,
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "mqtt_port": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "title": "MQTT port (monitors)",
+      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
+      "pattern": "^[0-9]{1,5}$",
+      "minimum": 1,
+      "maximum": 65535,
+      "default": 1883,
+      "x-advanced": true,
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "factory_mqtt_host": {
+      "type": "string",
+      "title": "Factory MQTT host (monitor)",
+      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
+      "anyOf": [
+        {
+          "format": "ipv4"
+        },
+        {
+          "format": "hostname"
+        }
+      ],
+      "x-advanced": true,
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "factory_gw_host": {
+      "type": "string",
+      "title": "Factory gateway host (ping monitor)",
+      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
+      "anyOf": [
+        {
+          "format": "ipv4"
+        },
+        {
+          "format": "hostname"
+        }
+      ],
+      "x-advanced": true,
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "iiot_server_host": {
+      "type": "string",
+      "title": "IIoT server host (ping monitor)",
+      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
+      "anyOf": [
+        {
+          "format": "ipv4"
+        },
+        {
+          "format": "hostname"
+        }
+      ],
+      "x-advanced": true,
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "internet_dns": {
+      "type": "string",
+      "title": "Internet DNS (monitor)",
+      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
+      "format": "ipv4",
+      "default": "8.8.8.8",
+      "x-advanced": true,
+      "x-step": "provisioning",
+      "x-group": "observability"
+    },
+    "mqtt": {
+      "type": "boolean",
+      "title": "MQTT (mosquitto + EMQX bridge)",
+      "description": "Local mosquitto broker bridged to the IIoT EMQX broker; ensures the bridge user exists in EMQX. Enables the `mosquitto` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "default": false,
+      "x-step": "provisioning",
+      "x-group": "mqtt",
+      "x-stack-tag": "mosquitto"
+    },
+    "emqx_api_url": {
+      "type": "string",
+      "title": "EMQX API URL",
+      "description": "EMQX REST base, e.g. https://emqx.example.com/api/v5.",
+      "format": "uri",
+      "x-step": "provisioning",
+      "x-group": "mqtt"
+    },
+    "emqx_api_key": {
+      "type": "string",
+      "title": "EMQX API key",
+      "description": "EMQX API key id (Basic auth user).",
+      "x-step": "provisioning",
+      "x-group": "mqtt"
+    },
+    "emqx_api_secret": {
+      "type": "string",
+      "title": "EMQX API secret",
+      "x-step": "provisioning",
+      "x-group": "mqtt",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "iiot_host": {
+      "type": "string",
+      "title": "IIoT broker address",
+      "description": "Bridge `address` (host[:port]) of the upstream EMQX broker.",
+      "pattern": "^[A-Za-z0-9.-]+(:[0-9]{1,5})?$",
+      "x-step": "provisioning",
+      "x-group": "mqtt"
+    },
+    "iiot_mqtt_user": {
+      "type": "string",
+      "title": "IIoT bridge user",
+      "description": "Created/updated in EMQX's built-in database; used as the bridge remote_username.",
+      "x-step": "provisioning",
+      "x-group": "mqtt"
+    },
+    "iiot_mqtt_password": {
+      "type": "string",
+      "title": "IIoT bridge password",
+      "x-step": "provisioning",
+      "x-group": "mqtt",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "mqtt_bridge_topics": {
+      "type": "array",
+      "title": "Bridge topics",
+      "description": "Full mosquitto `topic` directive arguments, one per entry (pattern direction qos), e.g. `site/line/5/# both 0`.",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "x-step": "provisioning",
+      "x-group": "mqtt"
+    },
+    "users": {
+      "type": "array",
+      "title": "Local MQTT users",
+      "description": "Users added to the local mosquitto password file (mqtt stack).",
+      "default": [],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username",
+            "minLength": 1,
+            "pattern": "^\\S+$"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "minLength": 1,
+            "writeOnly": true,
+            "x-secret": true
+          }
+        }
+      },
+      "x-step": "provisioning",
+      "x-group": "users"
+    },
+    "glpi-agent": {
+      "type": "boolean",
+      "title": "GLPI agent",
+      "description": "GLPI inventory agent container (pulled from ghcr.io with ghcr_pat). The key is hyphenated like the tag; `glpi_agent` is accepted by the playbook as an alias. Enables the `glpi-agent` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "default": false,
+      "x-step": "provisioning",
+      "x-group": "glpi",
+      "x-stack-tag": "glpi-agent"
+    },
+    "glpi_server": {
+      "type": "string",
+      "title": "GLPI server URL",
+      "format": "uri",
+      "x-step": "provisioning",
+      "x-group": "glpi"
+    },
+    "glpi_user": {
+      "type": "string",
+      "title": "GLPI user",
+      "x-step": "provisioning",
+      "x-group": "glpi"
+    },
+    "glpi_password": {
+      "type": "string",
+      "title": "GLPI password",
+      "x-step": "provisioning",
+      "x-group": "glpi",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "duplicati": {
+      "type": "boolean",
+      "title": "Duplicati backups",
+      "description": "Duplicati container with two imported backup jobs (Docker data, system). Enables the `duplicati` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "default": false,
+      "x-step": "provisioning",
+      "x-group": "duplicati",
+      "x-stack-tag": "duplicati"
+    },
+    "duplicati_access_password": {
+      "type": "string",
+      "title": "Duplicati UI password",
+      "x-step": "provisioning",
+      "x-group": "duplicati",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "duplicati_docker_target_url": {
+      "type": "string",
+      "title": "Docker backup target URL",
+      "description": "Duplicati target URL — embeds the backup backend credentials, hence secret.",
+      "format": "uri",
+      "x-step": "provisioning",
+      "x-group": "duplicati",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "duplicati_system_target_url": {
+      "type": "string",
+      "title": "System backup target URL",
+      "description": "Duplicati target URL — embeds the backup backend credentials, hence secret.",
+      "format": "uri",
+      "x-step": "provisioning",
+      "x-group": "duplicati",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "telegraf": {
+      "type": "boolean",
+      "title": "Telegraf",
+      "description": "Telegraf container that loads its config from InfluxDB. Enables the `telegraf` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "default": false,
+      "x-step": "provisioning",
+      "x-group": "telegraf",
+      "x-stack-tag": "telegraf"
+    },
+    "telegraf_config_url": {
+      "type": "string",
+      "title": "Telegraf config URL",
+      "format": "uri",
+      "x-step": "provisioning",
+      "x-group": "telegraf"
+    },
+    "influx_token": {
+      "type": "string",
+      "title": "InfluxDB token",
+      "x-step": "provisioning",
+      "x-group": "telegraf",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "nodered": {
+      "type": "boolean",
+      "title": "Node-RED",
+      "description": "Node-RED with a per-gateway flows repo (github.com/<github_org>/flows.<iotgw_hostname>). KNOWN BROKEN: the stack's data/.config.projects.json.j2 and SSH deploy key are not vendored in iotgw-kestra, so preflight fails while this is on. Enables the `nodered` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "default": false,
+      "x-step": "provisioning",
+      "x-group": "nodered",
+      "x-stack-tag": "nodered"
+    },
+    "nodered_user": {
+      "type": "string",
+      "title": "Node-RED admin user",
+      "x-step": "provisioning",
+      "x-group": "nodered"
+    },
+    "nodered_password": {
+      "type": "string",
+      "title": "Node-RED admin password",
+      "description": "Hashed with bcrypt on the gateway.",
+      "x-step": "provisioning",
+      "x-group": "nodered",
+      "writeOnly": true,
+      "x-secret": true
+    },
+    "github_org": {
+      "type": "string",
+      "title": "GitHub org of the flows repo",
+      "description": "Clones git@github.com:<github_org>/flows.<iotgw_hostname>.git.",
+      "pattern": "^[A-Za-z0-9-]+$",
+      "x-step": "provisioning",
+      "x-group": "nodered"
+    },
+    "netxms": {
+      "type": "boolean",
+      "title": "NetXMS agent",
+      "description": "NetXMS agent container; also opens tcp/4700 from netxms_server_ip in the firewall. Enables the `netxms` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "default": false,
+      "x-step": "provisioning",
+      "x-group": "netxms",
+      "x-stack-tag": "netxms"
+    },
+    "netxms_server_port": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "title": "NetXMS server port",
+      "pattern": "^[0-9]{1,5}$",
+      "minimum": 1,
+      "maximum": 65535,
+      "default": 4701,
+      "x-step": "provisioning",
+      "x-group": "netxms"
+    },
+    "netxms_web_port": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "title": "NetXMS tunnel port",
+      "description": "Rendered as NETXMS_TUNNEL_PORT.",
+      "pattern": "^[0-9]{1,5}$",
+      "minimum": 1,
+      "maximum": 65535,
+      "default": 4703,
+      "x-step": "provisioning",
+      "x-group": "netxms"
+    },
+    "netxms_server_ip": {
+      "type": "string",
+      "title": "NetXMS server address",
+      "anyOf": [
+        {
+          "format": "ipv4"
+        },
+        {
+          "format": "hostname"
+        }
+      ],
+      "x-step": "provisioning",
+      "x-group": "netxms"
+    },
+    "netxms_master_servers": {
+      "type": "string",
+      "title": "NetXMS master servers",
+      "description": "Comma-separated addresses allowed to control the agent.",
+      "x-step": "provisioning",
+      "x-group": "netxms"
+    },
+    "netxms_debug_level": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "title": "NetXMS debug level",
+      "pattern": "^[0-9]$",
+      "minimum": 0,
+      "maximum": 9,
+      "default": 0,
+      "x-step": "provisioning",
+      "x-group": "netxms"
+    },
+    "proxy_agent": {
+      "type": "string",
+      "title": "Proxy agent",
+      "description": "Enable agent proxying.",
+      "enum": [
+        "yes",
+        "no"
+      ],
+      "default": "no",
+      "x-step": "provisioning",
+      "x-group": "netxms"
+    },
+    "proxy_snmp": {
+      "type": "string",
+      "title": "Proxy SNMP",
+      "description": "Enable SNMP proxying.",
+      "enum": [
+        "yes",
+        "no"
+      ],
+      "default": "no",
+      "x-step": "provisioning",
+      "x-group": "netxms"
+    },
+    "iotgw_ip": {
+      "type": "string",
+      "title": "Gateway management IP (informational)",
+      "description": "From the Ansible-Forms era (inventory host). NOT used by the provisioning flow: the target is the device's Netmaker address, injected by the backend as `target_ip`.",
+      "format": "ipv4",
+      "x-unused": true,
+      "x-step": "provisioning",
+      "x-group": "system"
+    },
+    "target_ip": {
+      "type": "string",
+      "title": "target_ip",
+      "description": "INJECTED BY THE BACKEND at execution time (executeKestraDeployment) — never stored in or edited through the deployment configuration. Device address the runner connects to (devices.ip_address).",
+      "readOnly": true,
+      "x-step": "backend",
+      "x-injected": true
+    },
+    "target_disk": {
+      "type": "string",
+      "title": "target_disk",
+      "description": "INJECTED BY THE BACKEND at execution time (executeKestraDeployment) — never stored in or edited through the deployment configuration. Lifted from osInstallation.target_disk.",
+      "readOnly": true,
+      "x-step": "backend",
+      "x-injected": true
+    },
+    "openwrt_version": {
+      "type": "string",
+      "title": "openwrt_version",
+      "description": "INJECTED BY THE BACKEND at execution time (executeKestraDeployment) — never stored in or edited through the deployment configuration. Lifted from osInstallation.openwrt_version.",
+      "readOnly": true,
+      "x-step": "backend",
+      "x-injected": true
+    },
+    "ssh_key_id": {
+      "type": "string",
+      "title": "ssh_key_id",
+      "description": "INJECTED BY THE BACKEND at execution time (executeKestraDeployment) — never stored in or edited through the deployment configuration. KMS id of the device SSH key.",
+      "readOnly": true,
+      "x-step": "backend",
+      "x-injected": true
+    },
+    "device_id": {
+      "type": "string",
+      "title": "device_id",
+      "description": "INJECTED BY THE BACKEND at execution time (executeKestraDeployment) — never stored in or edited through the deployment configuration. <device name>@<network id prefix> — selects the device TOTP secret (ssh_ca).",
+      "readOnly": true,
+      "x-step": "backend",
+      "x-injected": true
+    },
+    "device_uuid": {
+      "type": "string",
+      "title": "device_uuid",
+      "description": "INJECTED BY THE BACKEND at execution time (executeKestraDeployment) — never stored in or edited through the deployment configuration. devices.id",
+      "readOnly": true,
+      "x-step": "backend",
+      "x-injected": true
+    },
+    "network_id": {
+      "type": "string",
+      "title": "network_id",
+      "description": "INJECTED BY THE BACKEND at execution time (executeKestraDeployment) — never stored in or edited through the deployment configuration. networks.id",
+      "readOnly": true,
+      "x-step": "backend",
+      "x-injected": true
+    },
+    "domain_id": {
+      "type": "string",
+      "title": "domain_id",
+      "description": "INJECTED BY THE BACKEND at execution time (executeKestraDeployment) — never stored in or edited through the deployment configuration. domains.id",
+      "readOnly": true,
+      "x-step": "backend",
+      "x-injected": true
+    },
+    "totp_counter": {
+      "type": "integer",
+      "title": "totp_counter",
+      "description": "INJECTED BY THE BACKEND at execution time (executeKestraDeployment) — never stored in or edited through the deployment configuration. Device TOTP counter (ssh_ca enrollment).",
+      "readOnly": true,
+      "x-step": "backend",
+      "x-injected": true
+    },
+    "pki_zone": {
+      "type": "string",
+      "title": "pki_zone",
+      "description": "INJECTED BY THE BACKEND at execution time (executeKestraDeployment) — never stored in or edited through the deployment configuration. Domain pki-manager zone (runner iotgw-ops cert mint).",
+      "readOnly": true,
+      "x-step": "backend",
+      "x-injected": true
+    },
+    "iotgw_ssh_ca_base_url": {
+      "type": "string",
+      "title": "iotgw_ssh_ca_base_url",
+      "description": "INJECTED BY THE BACKEND at execution time (executeKestraDeployment) — never stored in or edited through the deployment configuration. Kong base URL of the ssh-ca edge function.",
+      "readOnly": true,
+      "x-step": "backend",
+      "x-injected": true
+    },
+    "name": {
+      "title": "name",
+      "description": "LEGACY placeholder key from the early deployment mock-up. Ignored by every flow; drop it from stored configurations.",
+      "deprecated": true,
+      "x-step": "legacy"
+    },
+    "version": {
+      "title": "version",
+      "description": "LEGACY placeholder key from the early deployment mock-up. Ignored by every flow; drop it from stored configurations.",
+      "deprecated": true,
+      "x-step": "legacy"
+    },
+    "services": {
+      "title": "services",
+      "description": "LEGACY placeholder key from the early deployment mock-up. Ignored by every flow; drop it from stored configurations.",
+      "deprecated": true,
+      "x-step": "legacy"
+    },
+    "networks": {
+      "title": "networks",
+      "description": "LEGACY placeholder key from the early deployment mock-up. Ignored by every flow; drop it from stored configurations.",
+      "deprecated": true,
+      "x-step": "legacy"
+    },
+    "resources": {
+      "title": "resources",
+      "description": "LEGACY placeholder key from the early deployment mock-up. Ignored by every flow; drop it from stored configurations.",
+      "deprecated": true,
+      "x-step": "legacy"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "credentials": {
+            "const": true
+          }
+        },
+        "required": [
+          "credentials"
+        ]
+      },
+      "then": {
+        "required": [
+          "ghcr_pat",
+          "notion_api_key"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "obs": {
+            "const": true
+          }
+        },
+        "required": [
+          "obs"
+        ]
+      },
+      "then": {
+        "required": [
+          "alloy_log_level",
+          "prometheus_url",
+          "prometheus_oauth2_token_url",
+          "prometheus_oauth2_client_id",
+          "prometheus_oauth2_client_secret",
+          "loki_url",
+          "loki_oauth2_token_url",
+          "loki_oauth2_client_id",
+          "loki_oauth2_client_secret",
+          "kuma_exporter_username",
+          "kuma_exporter_password",
+          "containers_exporter_port"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mqtt": {
+            "const": true
+          }
+        },
+        "required": [
+          "mqtt"
+        ]
+      },
+      "then": {
+        "required": [
+          "iiot_host",
+          "iiot_mqtt_user",
+          "iiot_mqtt_password",
+          "mqtt_bridge_topics",
+          "emqx_api_url",
+          "emqx_api_key",
+          "emqx_api_secret"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "glpi-agent": {
+            "const": true
+          }
+        },
+        "required": [
+          "glpi-agent"
+        ]
+      },
+      "then": {
+        "required": [
+          "glpi_server",
+          "glpi_user",
+          "glpi_password",
+          "ghcr_pat"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "telegraf": {
+            "const": true
+          }
+        },
+        "required": [
+          "telegraf"
+        ]
+      },
+      "then": {
+        "required": [
+          "telegraf_config_url",
+          "influx_token"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "duplicati": {
+            "const": true
+          }
+        },
+        "required": [
+          "duplicati"
+        ]
+      },
+      "then": {
+        "required": [
+          "duplicati_access_password",
+          "duplicati_docker_target_url",
+          "duplicati_system_target_url"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "nodered": {
+            "const": true
+          }
+        },
+        "required": [
+          "nodered"
+        ]
+      },
+      "then": {
+        "required": [
+          "nodered_user",
+          "nodered_password",
+          "github_org"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "netxms": {
+            "const": true
+          }
+        },
+        "required": [
+          "netxms"
+        ]
+      },
+      "then": {
+        "required": [
+          "netxms_server_port",
+          "netxms_web_port",
+          "netxms_server_ip",
+          "netxms_master_servers",
+          "netxms_debug_level",
+          "proxy_agent",
+          "proxy_snmp"
+        ]
+      }
+    }
+  ]
+}
