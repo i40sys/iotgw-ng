@@ -16,3 +16,9 @@ export type { Database as DatabaseWithOverrides } from "./database-overrides.typ
 export * from "./devices.types";
 export * from "./domain.types";
 export * from "./network.types";
+
+// Deployment configuration contract (task-130): the ONE JSON Schema (draft
+// 2020-12) the UI wizard renders per step (`x-step`) and section (`x-group`),
+// and that the Kestra provisioning playbook enforces (iotgw-kestra
+// tasks/preflight.yaml). `x-secret` fields must be masked and never logged.
+export { default as deploymentConfigSchema } from "./deployment-config.schema.json";

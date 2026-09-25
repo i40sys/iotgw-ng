@@ -1,0 +1,77 @@
+{
+  "osInstallation": {
+    "openwrt_version": "23.05.4",
+    "target_disk": "/dev/nvme0n1"
+  },
+  "__tags__": [],
+
+  "iotgw_hostname": "iotgw-maq5",
+  "num_maquina": 5,
+  "root_password": "CHANGE_ME",
+  "local_ip_address": "10.121.105.1",
+  "local_domain": "plant.example.com",
+  "main_local_dns": "10.0.0.53",
+  "backup_local_dns": "10.0.1.53",
+  "primary_ntp": "0.openwrt.pool.ntp.org",
+  "secundary_ntp": "1.openwrt.pool.ntp.org",
+  "dhcp_hosts": [
+    { "name": "plc-press", "ip": "10.121.105.12", "mac": "00:00:5E:00:53:01" }
+  ],
+
+  "firewall": true,
+  "allowed_internet": [{ "ip": "10.121.105.20" }],
+  "management_cidrs": [{ "cidr": "10.2.0.0/24" }],
+
+  "credentials": true,
+  "ghcr_pat": "CHANGE_ME",
+  "notion_api_key": "CHANGE_ME",
+
+  "obs": true,
+  "alloy_log_level": "warn",
+  "prometheus_url": "https://prometheus.example.com/api/v1/write",
+  "prometheus_oauth2_token_url": "https://auth.example.com/realms/example/protocol/openid-connect/token",
+  "prometheus_oauth2_client_id": "iotgw-metrics",
+  "prometheus_oauth2_client_secret": "CHANGE_ME",
+  "loki_url": "https://loki.example.com/loki/api/v1/push",
+  "loki_oauth2_token_url": "https://auth.example.com/realms/example/protocol/openid-connect/token",
+  "loki_oauth2_client_id": "iotgw-logs",
+  "loki_oauth2_client_secret": "CHANGE_ME",
+  "kuma_exporter_username": "exporter",
+  "kuma_exporter_password": "CHANGE_ME",
+  "containers_exporter_port": 9100,
+
+  "mqtt": true,
+  "emqx_api_url": "https://emqx.example.com/api/v5",
+  "emqx_api_key": "iotgw-provisioner",
+  "emqx_api_secret": "CHANGE_ME",
+  "iiot_host": "mqtt.example.com:1883",
+  "iiot_mqtt_user": "iotgw-maq5",
+  "iiot_mqtt_password": "CHANGE_ME",
+  "mqtt_bridge_topics": ["site/line/5/# both 0"],
+  "users": [{ "username": "hmi", "password": "CHANGE_ME" }],
+
+  "glpi-agent": false,
+  "glpi_server": "https://glpi.example.com",
+  "glpi_user": "glpi-agent",
+  "glpi_password": "CHANGE_ME",
+
+  "duplicati": false,
+  "duplicati_access_password": "CHANGE_ME",
+  "duplicati_docker_target_url": "ftp://backup.example.com/iotgw-maq5/docker",
+  "duplicati_system_target_url": "ftp://backup.example.com/iotgw-maq5/system",
+
+  "telegraf": false,
+  "telegraf_config_url": "https://influx.example.com/api/v2/telegrafs/0000000000000000",
+  "influx_token": "CHANGE_ME",
+
+  "nodered": false,
+
+  "netxms": false,
+  "netxms_server_port": 4701,
+  "netxms_web_port": 4703,
+  "netxms_server_ip": "10.0.0.60",
+  "netxms_master_servers": "10.0.0.60",
+  "netxms_debug_level": 0,
+  "proxy_agent": "no",
+  "proxy_snmp": "no"
+}

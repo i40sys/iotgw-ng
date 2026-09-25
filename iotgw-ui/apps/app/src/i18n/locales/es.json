@@ -325,7 +325,35 @@
       "rebootInstruction2": "Reinicie el dispositivo y permita que arranque desde el disco interno",
       "rebootInstruction3": "Espere a que el dispositivo se conecte con el sistema recién instalado",
       "checkSystemOnline": "Verificar Estado del Sistema",
-      "checkSystemOnlineButton": "Verificar Sistema En Línea"
+      "checkSystemOnlineButton": "Verificar Sistema En Línea",
+      "config": {
+        "enabled": "Activado",
+        "disabled": "Desactivado",
+        "stackDisabled_one": "Este stack está desactivado: su {{count}} campo está oculto y no es obligatorio.",
+        "stackDisabled_other": "Este stack está desactivado: sus {{count}} campos están ocultos y no son obligatorios.",
+        "showAdvanced_one": "Mostrar {{count}} campo avanzado",
+        "showAdvanced_other": "Mostrar {{count}} campos avanzados",
+        "hideAdvanced": "Ocultar campos avanzados",
+        "unused": "no lo usa el playbook",
+        "unset": "— sin valor —",
+        "addRow": "Añadir",
+        "removeRow": "Eliminar",
+        "noItems": "Sin entradas",
+        "showSecret": "Mostrar valor",
+        "hideSecret": "Ocultar valor",
+        "toggleJson": "Cambiar entre formulario y JSON",
+        "jsonWholeDocument": "Esta es la configuración de despliegue completa, compartida por todos los pasos; el formulario edita el mismo documento. Aquí los valores secretos se ven en texto plano.",
+        "invalidJson": "La configuración no es un objeto JSON válido. Corrígela en modo JSON.",
+        "stepComplete": "Este paso está completo.",
+        "problems_one": "{{count}} problema: la ejecución se rechazará hasta corregirlo (clic para ver detalles)",
+        "problems_other": "{{count}} problemas: la ejecución se rechazará hasta corregirlos (clic para ver detalles)",
+        "defaultsPending": "Algunos campos muestran valores por defecto del esquema que aún no están guardados; se guardan con tu primera edición.",
+        "applyDefaults": "Aplicar valores por defecto",
+        "loadFromFile": "Cargar desde archivo",
+        "provisioningDescription": "Variables del playbook de aprovisionamiento, agrupadas por stack. Desactiva un stack para omitirlo; entonces sus campos no son obligatorios.",
+        "deployBlocked_one": "La configuración de aprovisionamiento tiene {{count}} problema: {{fields}}",
+        "deployBlocked_other": "La configuración de aprovisionamiento tiene {{count}} problemas: {{fields}}"
+      }
     }
   },
   "deploymentJobs": {

@@ -5,6 +5,12 @@ import { createQueryProcedure } from "../utils/query-helper";
 import { createMutationProcedure } from "../utils/mutation-helper";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@iotgw/supabase-contract";
+// Relative on purpose: the contract's dist/ is not shipped in the backend image
+// and `esbuild --packages=external` must inline the schema (task-130).
+import {
+  summarizeConfigIssues,
+  validateDeploymentConfigStep,
+} from "../../../../packages/supabase-contract/src/deployment-config.validate";
 
 // Kestra REST API base. Kestra runs in its own namespace (decision-020); default
 // to the in-cluster Service FQDN, overridable via KESTRA_API_URL (set on the
@@ -860,6 +866,24 @@ export const deploymentsRouter = {
             message:
               "Deployment configuration is missing osInstallation.target_disk / osInstallation.openwrt_version. Complete the OS Installation step first.",
           });
+        }
+
+        // Provisioning: the configuration's provisioning part must satisfy the
+        // deployment-config JSON Schema (task-130) BEFORE Kestra runs anything
+        // on the gateway — otherwise Ansible dies halfway (gw-c3:
+        // `'primary_ntp' is undefined`). Issues name fields, never values
+        // (many are secrets), so the message is safe to return and log.
+        if (input.flow_type === "provisioning") {
+          const issues = validateDeploymentConfigStep(
+            configToUse,
+            "provisioning",
+          );
+          if (issues.length > 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Provisioning configuration is invalid (${issues.length} problem${issues.length === 1 ? "" : "s"}): ${summarizeConfigIssues(issues)}. Complete the Provisioning step first.`,
+            });
+          }
         }
 
         const configWithTargetIp = isConfigObject

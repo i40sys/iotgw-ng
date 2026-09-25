@@ -325,7 +325,35 @@
       "rebootInstruction2": "Reboot the device and allow it to boot from the internal disk",
       "rebootInstruction3": "Wait for the device to come online with the newly installed system",
       "checkSystemOnline": "Verify System Status",
-      "checkSystemOnlineButton": "Check System Online"
+      "checkSystemOnlineButton": "Check System Online",
+      "config": {
+        "enabled": "On",
+        "disabled": "Off",
+        "stackDisabled_one": "This stack is off — its {{count}} field is hidden and not required.",
+        "stackDisabled_other": "This stack is off — its {{count}} fields are hidden and not required.",
+        "showAdvanced_one": "Show {{count}} advanced field",
+        "showAdvanced_other": "Show {{count}} advanced fields",
+        "hideAdvanced": "Hide advanced fields",
+        "unused": "not used by the playbook",
+        "unset": "— not set —",
+        "addRow": "Add",
+        "removeRow": "Remove",
+        "noItems": "No entries",
+        "showSecret": "Show value",
+        "hideSecret": "Hide value",
+        "toggleJson": "Switch between form and JSON",
+        "jsonWholeDocument": "This is the whole deployment configuration shared by every step; the form edits the same document. Secret values are visible here in plain text.",
+        "invalidJson": "The configuration is not a valid JSON object. Fix it in JSON mode.",
+        "stepComplete": "This step is complete.",
+        "problems_one": "{{count}} problem — the run will be refused until it is fixed (click for details)",
+        "problems_other": "{{count}} problems — the run will be refused until they are fixed (click for details)",
+        "defaultsPending": "Some fields show schema defaults that are not stored yet; they are saved with your first edit.",
+        "applyDefaults": "Apply defaults",
+        "loadFromFile": "Load from file",
+        "provisioningDescription": "Variables of the provisioning playbook, grouped by stack. Turn a stack off to skip it; its fields are then not required.",
+        "deployBlocked_one": "Provisioning configuration has {{count}} problem: {{fields}}",
+        "deployBlocked_other": "Provisioning configuration has {{count}} problems: {{fields}}"
+      }
     }
   },
   "deploymentJobs": {

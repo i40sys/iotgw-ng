@@ -120,7 +120,13 @@ export function DeploymentActionsPanel({
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-50",
+        // In-flow footer (the page reserves its row): it never overlays the
+        // scrolling form content above it.
+        "z-30 w-full shrink-0",
+        // Dev only: the TanStack Router/Query devtools toggles are fixed to the
+        // viewport's bottom-left/right corners, i.e. inside this row. Reserve
+        // their space so they cover neither the bar's buttons nor the form.
+        process.env.NODE_ENV === "development" && "pr-16 pl-44",
         "bg-background/95 supports-[backdrop-filter]:bg-background/60 backdrop-blur",
         "border-border border-t shadow-lg",
         className,
