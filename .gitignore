@@ -125,3 +125,6 @@ secrets/rendered/
 /wiki/.obsidian/workspace-mobile.json
 /wiki/.obsidian/workspace.json.bak
 /wiki/.trash/
+# decision-035: the device-API CA *certificate* is public and pinned by the
+# gateways (its key is in secrets/device-api-tls.enc.yaml).
+!live-image/overlay/etc/iotgw/api-ca.pem
