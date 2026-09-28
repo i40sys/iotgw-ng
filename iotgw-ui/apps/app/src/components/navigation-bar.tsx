@@ -145,7 +145,7 @@ function OperatorMenu() {
     <div className="flex items-center gap-1">
       {email && (
         <span
-          className="text-muted-foreground hidden max-w-56 truncate text-sm sm:inline"
+          className="text-muted-foreground hidden max-w-56 truncate text-sm lg:inline"
           title={email}
           data-testid="operator-email"
         >

@@ -358,6 +358,26 @@
     }
   },
   "deploymentJobs": {
+    "logsAction": "Logs",
+    "configAction": "Config",
+    "executionId": "Execution ID",
+    "networkDomain": "Network / domain",
+    "timing": "Timing",
+    "notCompleted": "Not completed",
+    "allStatuses": "All statuses",
+    "clearFilters": "Clear filters",
+    "refresh": "Refresh",
+    "noMatches": "No jobs match your filters",
+    "adjustFilters": "Try a different search or clear the filters to see more jobs.",
+    "resultRange_one": "Showing {{from}}–{{to}} of {{count}} job",
+    "resultRange_other": "Showing {{from}}–{{to}} of {{count}} jobs",
+    "recentLimit": "Search and filters apply to the latest {{count}} jobs.",
+    "viewAll": "View all {{count}} deployment jobs",
+    "search": {
+      "label": "Search jobs",
+      "placeholder": "Device, deployment, network…",
+      "help": "Search by device, IP, deployment, network, domain or execution ID."
+    },
     "title": "Deployment Jobs",
     "description": "Historical deployment job executions",
     "pageDescription": "View and monitor all deployment job executions across your infrastructure",
@@ -376,6 +396,7 @@
     "noJobsForDevice": "No deployment jobs found for the selected device",
     "filteredByDevice": "Filtered by device",
     "pagination": {
+      "label": "Deployment jobs pagination",
       "showing": "Showing",
       "to": "to",
       "of": "of",

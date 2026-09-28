@@ -358,6 +358,26 @@
     }
   },
   "deploymentJobs": {
+    "logsAction": "Registros",
+    "configAction": "Config.",
+    "executionId": "ID de ejecución",
+    "networkDomain": "Red / dominio",
+    "timing": "Fechas",
+    "notCompleted": "Sin completar",
+    "allStatuses": "Todos los estados",
+    "clearFilters": "Limpiar filtros",
+    "refresh": "Actualizar",
+    "noMatches": "Ningún trabajo coincide con los filtros",
+    "adjustFilters": "Prueba otra búsqueda o limpia los filtros para ver más trabajos.",
+    "resultRange_one": "Mostrando {{from}}–{{to}} de {{count}} trabajo",
+    "resultRange_other": "Mostrando {{from}}–{{to}} de {{count}} trabajos",
+    "recentLimit": "La búsqueda y los filtros se aplican a los últimos {{count}} trabajos.",
+    "viewAll": "Ver los {{count}} trabajos de despliegue",
+    "search": {
+      "label": "Buscar trabajos",
+      "placeholder": "Dispositivo, despliegue, red…",
+      "help": "Busca por dispositivo, IP, despliegue, red, dominio o ID de ejecución."
+    },
     "title": "Trabajos de Despliegue",
     "description": "Historial de ejecuciones de trabajos de despliegue",
     "pageDescription": "Visualice y monitoree todas las ejecuciones de trabajos de despliegue en su infraestructura",
@@ -376,6 +396,7 @@
     "noJobsForDevice": "No se encontraron trabajos de despliegue para el dispositivo seleccionado",
     "filteredByDevice": "Filtrado por dispositivo",
     "pagination": {
+      "label": "Paginación de trabajos de despliegue",
       "showing": "Mostrando",
       "to": "a",
       "of": "de",
