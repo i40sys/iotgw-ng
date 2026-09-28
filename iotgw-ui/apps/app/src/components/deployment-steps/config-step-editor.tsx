@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
+  applyFieldChange,
   issuesByField,
   parseConfig,
-  setIn,
   stringifyConfig,
   validateDeploymentConfigStep,
   withStepDefaults,
@@ -98,7 +98,7 @@ export function ConfigStepEditor({
   const handleFieldChange = useCallback(
     (path: ConfigPath, value: unknown) => {
       const base = withStepDefaults(config ?? {}, step);
-      onConfigurationChange(stringifyConfig(setIn(base, path, value)));
+      onConfigurationChange(stringifyConfig(applyFieldChange(base, path, value)));
     },
     [config, step, onConfigurationChange],
   );

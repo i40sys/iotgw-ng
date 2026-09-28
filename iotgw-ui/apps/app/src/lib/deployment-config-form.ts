@@ -191,6 +191,65 @@ export function setIn<T>(obj: T, path: ConfigPath, value: unknown): T {
   return next as T;
 }
 
+const TAGS_KEY = "__tags__";
+
+/** Stack flag key → its Ansible tag (`x-stack-tag`), e.g. credentials → credentials. */
+function stackTagsByFlag(): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const [key, node] of Object.entries(deploymentConfigJsonSchema.properties)) {
+    const tag = node["x-stack-tag"];
+    if (typeof tag === "string") map.set(key, tag);
+  }
+  return map;
+}
+
+/**
+ * Set `value` at `path` and keep a stack's on/off flag and its `__tags__`
+ * entry in step — the playbook runs a stack only when BOTH say so, so
+ * ticking a tag turns the stack on, and switching a stack on/off adds/removes
+ * its tag (added only when the list is non-empty: empty = every stack).
+ */
+export function applyFieldChange(
+  config: ConfigObject,
+  path: ConfigPath,
+  value: unknown,
+): ConfigObject {
+  let next = setIn(config, path, value);
+  if (path.length !== 1) return next;
+  const [key] = path;
+  const tagsByFlag = stackTagsByFlag();
+  const currentTags = (value: unknown) =>
+    Array.isArray(value) ? value.map(String) : [];
+
+  if (key === TAGS_KEY) {
+    const before = new Set(currentTags(getIn(config, path)));
+    const after = new Set(currentTags(value));
+    for (const [flag, tag] of tagsByFlag) {
+      if (after.has(tag) && !before.has(tag)) next = setIn(next, [flag], true);
+      if (before.has(tag) && !after.has(tag)) next = setIn(next, [flag], false);
+    }
+    return next;
+  }
+
+  const tag = tagsByFlag.get(String(key));
+  if (tag === undefined || typeof value !== "boolean") return next;
+  const tags = currentTags(getIn(config, [TAGS_KEY]));
+  if (value && tags.length > 0 && !tags.includes(tag)) {
+    // Keep the schema's enum order so the JSON stays stable.
+    const order = (
+      deploymentConfigJsonSchema.properties[TAGS_KEY]?.items?.enum ?? []
+    ).map(String);
+    const wanted = new Set([...tags, tag]);
+    next = setIn(next, [TAGS_KEY], [
+      ...order.filter((t) => wanted.has(t)),
+      ...tags.filter((t) => !order.includes(t)),
+    ]);
+  } else if (!value && tags.includes(tag)) {
+    next = setIn(next, [TAGS_KEY], tags.filter((t) => t !== tag));
+  }
+  return next;
+}
+
 /**
  * Fill in the schema `default` of every field of `step` that is absent. Done
  * on the first edit, so what the form showed is exactly what gets stored and
