@@ -35,6 +35,6 @@ Found while validating decision-033 (2026-09-25): the iotgw-ui backend has NO us
 - /internal/* refused (403) when it arrives through the ingress (X-Forwarded-For); in-cluster callers unchanged.
 - UI: /login, token on every call, sign-out, redirect on 401/403.
 - Verified on kind: no token/forged → 401; user without role → 403 (even after writing user_metadata); signup → 422 signup_disabled; `just e2e` 10/10 signs in; UI login via orca.
-- Credentials: SOPS secrets/iotgw-ui-backend.enc.env (OWNER_OPERATOR_PASSWORD for finances@ymbi.eu; E2E_OPERATOR_*).
+- Credentials: SOPS secrets/iotgw-ui-backend.enc.env (OWNER_OPERATOR_EMAIL + OWNER_OPERATOR_PASSWORD for the owner admin account; E2E_OPERATOR_*).
 - Note: the backend NodePort (4444) is not host-mapped on this cluster; if it ever is, /internal would bypass the ingress guard (bearer still required).
 <!-- SECTION:NOTES:END -->
