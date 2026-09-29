@@ -15,7 +15,7 @@ variable "ingress_ip" {
 }
 
 locals {
-  iotgw_hosts = ["iotgw", "backend.iotgw", "api.iotgw", "device.iotgw"]
+  iotgw_hosts = ["iotgw", "backend.iotgw", "api.iotgw", "device.iotgw", "netboot.iotgw"]
 }
 
 resource "cloudflare_dns_record" "iotgw" {

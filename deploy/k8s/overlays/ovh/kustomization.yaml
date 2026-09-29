@@ -22,6 +22,7 @@ resources:
   - ../../base/supabase-db-stackgres
   - ../../base/supabase-app
   - ../../base/iotgw-ui
+  - ../../base/netboot
   - gateway.yaml
 
 # Frontend bakes VITE_API_URL / VITE_SUPABASE_URL: it must be the OVH build
@@ -38,6 +39,13 @@ images:
     digest: sha256:432c29a5dbd9ecfcfe1bd159200747fcb0b463053d8094f5290b09702dee4393
 
 patches:
+  # CI-built live image served by the netboot (task-149.02): the OCI artifact
+  # of a release, BY DIGEST (release asset live-image-oci.txt).
+  - target: { kind: Deployment, name: netboot }
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/initContainers/0/env/0/value
+        value: ghcr.io/i40sys/iotgw-live-image@sha256:91408278f22b66e7c24defb25e05fbcac1c5f4a651dabeb3c7603e3640d8b00e # v0.6.0
   # Baked-in /home/deno/functions instead of the base emptyDir placeholder.
   - target:
       kind: Deployment

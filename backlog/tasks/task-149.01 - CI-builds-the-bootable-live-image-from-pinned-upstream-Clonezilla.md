@@ -1,11 +1,11 @@
 ---
 id: TASK-149.01
 title: CI builds the bootable live image from pinned upstream Clonezilla
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-29 14:18'
-updated_date: '2026-09-29 17:43'
+updated_date: '2026-09-29 17:59'
 labels:
   - ci
   - live-image
@@ -27,8 +27,8 @@ priority: high
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 Inventory of y0 tree vs upstream differences, each resolved (overlay / scripted step / dropped)
-- [ ] #2 Tagged release publishes vmlinuz, initrd, filesystem.squashfs + SHA256SUMS + provenance
-- [ ] #3 Artifact is immutable and referenced by digest
+- [x] #2 Tagged release publishes vmlinuz, initrd, filesystem.squashfs + SHA256SUMS + provenance
+- [x] #3 Artifact is immutable and referenced by digest
 - [x] #4 Image boots under QEMU in CI (decision-029) and reaches iotgw-bootstrap
 - [x] #5 CI gate fails the build if the image (squashfs + initrd) contains any SSH private key, ssh_host_* key or authorized_keys; the gate is green on the release
 <!-- AC:END -->
@@ -50,4 +50,6 @@ priority: high
 - Upstream itself ships no SSH keys (host keys generated at boot by live-config 1160-openssh-server).
 
 **Build:** `live-image/image/` (pins.env, build.sh, check-no-keys.sh, test-boot.sh), `just image` / `just image-test`, builder pinned by digest. Local + CI (`image` job, run 36602053507) green: QEMU boot fetches the squashfs, `iotgw-bootstrap.service` finishes, `ssh.service` starts. Key gate clean on rootfs and initrd.
+
+**Published (v0.6.0):** `ghcr.io/i40sys/iotgw-live-image@sha256:91408278f22b66e7c24defb25e05fbcac1c5f4a651dabeb3c7603e3640d8b00e` (release asset `live-image-oci.txt` + `live-image-SHA256SUMS`); `gh attestation verify oci://…` OK; anonymous pull 200 (public).
 <!-- SECTION:NOTES:END -->

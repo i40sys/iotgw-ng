@@ -16,10 +16,12 @@ on:
     tags: ["v*"] # path filters are not evaluated for tag pushes: every release builds
     paths:
       - "live-image/**"
+      - "deploy/k8s/base/netboot/**"
       - ".github/workflows/live-image.yml"
   pull_request:
     paths:
       - "live-image/**"
+      - "deploy/k8s/base/netboot/**"
       - ".github/workflows/live-image.yml"
   workflow_dispatch:
 
@@ -149,6 +151,8 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - name: Boot test
         run: just image-test amd64
+      - name: No SSH key material in what the netboot serves (menu + config)
+        run: image/check-no-keys.sh ../deploy/k8s/base/netboot
       - name: Boot log
         if: failure()
         uses: actions/upload-artifact@v4

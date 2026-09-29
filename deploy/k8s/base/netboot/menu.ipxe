@@ -1,0 +1,96 @@
+#!ipxe
+# iotgw-ng netboot menu, served by the OVH netboot (task-149.02). Reached
+# through the CI-built chainloader (netboot/chainloader, task-149.03) over
+# HTTPS. Every image here is the CI-built live image pinned by digest
+# (task-149.01) — nothing hand-maintained, no SSH keys.
+set site_name netboot.iotgw.i40sys.com
+set live_endpoint https://${site_name}
+set path /iotgw-live/
+set url ${live_endpoint}${path}
+set boot_timeout 300000
+isset ${ip} || dhcp
+
+:main_menu
+menu iotgw-ng netboot (${site_name})
+item --gap Provisioning:
+item iotgw-live ${space} IoT gateway live provisioning (iotgw-live)
+item --gap Default:
+item local ${space} Boot from local disk
+item --gap Clonezilla (resources pending, DRAFT-001):
+item backup ${space} Clone disk
+item restore ${space} Restore disk
+item clonezilla-debian ${space} Clonezilla (Debian based)
+item --gap Tools:
+item shell ${space} iPXE shell
+item netinfo ${space} Network card info
+choose --default local --timeout ${boot_timeout} target && goto ${target} || goto local
+
+:iotgw-live
+# decision-031: the device identity typed here is read by iotgw-bootstrap
+# (VPN via the vpn API, SSH PKI via ssh-ca live-enroll) against the OVH
+# device API, TLS pinned to the device-API CA baked into the image.
+echo IoT gateway live provisioning
+echo Device username (as shown in the UI, e.g. gw-c3@88b97bd9):
+read device_id
+echo One-time code (6 digits, from the UI):
+read otp
+imgfree
+kernel ${url}vmlinuz boot=live username=user union=overlay config components noswap edd=on nomodeset keyboard-layouts=es locales=en_US.UTF-8 device_id=${device_id} otp=${otp} iotgw_api=https://device.iotgw.i40sys.com ocs_live_batch=no ocs_screen_blank="no" net.ifnames=0 nosplash noprompt fetch=${url}filesystem.squashfs initrd=initrd.magic loglevel=3
+initrd ${url}initrd
+boot || goto error
+
+:local
+# UEFI: sanboot is unsupported and falls through to `exit` (status 0), handing
+# control back to the firmware's next boot entry (infra-kb netboot.md).
+echo Booting from local disk ...
+sanboot --no-describe --drive 0x80 || exit
+
+:backup
+set clonezilla clonezilla=backup
+goto clonezilla-boot
+
+:restore
+menu *** WARNING *** This will erase ALL disk data and restore from image. Continue? [y/n]
+item --key y yes Proceed with disk restore.
+item --key n no Cancel and return to main menu.
+choose --default no --timeout 60000 confirmed && iseq ${confirmed} yes || goto main_menu
+set clonezilla clonezilla=restore
+goto clonezilla-boot
+
+:clonezilla-debian
+imgfree
+kernel ${url}vmlinuz boot=live username=user union=overlay config components noswap edd=on nomodeset keyboard-layouts=es locales=en_US.UTF-8 ocs_live_batch=no ocs_screen_blank="no" net.ifnames=0 nosplash noprompt fetch=${url}filesystem.squashfs initrd=initrd.magic loglevel=7
+initrd ${url}initrd
+boot || goto error
+
+:clonezilla-boot
+# DEFERRED (DRAFT-001): the Clonezilla resources on the old netboot host —
+# boot.tgz, the per-machine <maquina_id>.tgz, the image-repository mounts and
+# the /etc/rc.local run — are NOT migrated yet. Their wiring is commented out,
+# so backup/restore boot Clonezilla without them and are EXPECTED TO FAIL.
+imgfree
+echo Please, tell the machine name: (ex. m5)
+read maquina_id
+#set ocs_params ocs_live_run="sudo /etc/rc.local"
+#set extra_params maquina_id=${maquina_id}
+#set ocs_preload1 ocs_preload1=${live_endpoint}/boot.tgz
+#set ocs_preload2 ocs_preload2=${live_endpoint}/${maquina_id}.tgz
+kernel ${url}vmlinuz boot=live username=user union=overlay config components noswap edd=on nomodeset keyboard-layouts=es locales=en_US.UTF-8 ${clonezilla} ocs_live_batch=no ocs_screen_blank="no" net.ifnames=0 nosplash noprompt fetch=${url}filesystem.squashfs initrd=initrd.magic loglevel=3
+initrd ${url}initrd
+boot || goto error
+
+:shell
+echo Type 'exit' to return to the menu
+shell
+goto main_menu
+
+:netinfo
+ifstat
+echo IP ${net0/ip} netmask ${net0/netmask} gateway ${net0/gateway} dns ${dns}
+prompt Press any key to return to the menu
+goto main_menu
+
+:error
+echo Boot failed; returning to the menu in 10 s
+sleep 10
+goto main_menu
