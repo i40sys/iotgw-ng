@@ -7,6 +7,10 @@
 # prod needs a release-tag REBUILD with the prod backend URL rather than promoting
 # one image across environments. We source it from the repo variable
 # vars.PROD_VITE_API_URL (NOT the kind hostname, NOT the localhost default).
+# Operator login (decision-034) bakes the Supabase Auth URL and the public anon
+# key the same way: vars.PROD_VITE_SUPABASE_URL / vars.PROD_VITE_SUPABASE_ANON_KEY
+# (the anon key is a public client key shipped to every browser, so a repo
+# variable is enough). Without them the SPA builds but login is disabled.
 name: frontend-image
 
 on:
@@ -56,6 +60,8 @@ jobs:
       # to the localhost default only if the variable is unset.
       build-args: |
         VITE_API_URL=${{ vars.PROD_VITE_API_URL }}
+        VITE_SUPABASE_URL=${{ vars.PROD_VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY=${{ vars.PROD_VITE_SUPABASE_ANON_KEY }}
       push: ${{ github.event_name != 'pull_request' }}
     secrets: inherit
 
