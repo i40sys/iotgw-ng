@@ -1,10 +1,11 @@
 ---
 id: TASK-149.02
 title: 'Netboot service on OVH (k8s, Terraform, DNS, iPXE menu)'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-09-29 14:18'
-updated_date: '2026-09-29 15:06'
+updated_date: '2026-09-29 18:15'
 labels:
   - ovh
   - netboot
@@ -29,10 +30,23 @@ priority: high
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 netboot.iotgw.i40sys.com serves menu.ipxe and the pinned vmlinuz/initrd/squashfs with a valid certificate
-- [ ] #2 Artifact version/digest is pinned in the overlay and bumped by the release flow (deploy/RELEASE.md)
-- [ ] #3 Menu contains the agreed entries and iotgw-live passes the OVH device API
-- [ ] #4 live-boot fetch of the squashfs verified (HTTPS, or HTTP + hash check documented)
-- [ ] #5 Clonezilla backup/restore/clonezilla-debian entries present with the resource wiring (ocs_preload boot.tgz / <id>.tgz, rc.local run, repository mounts) commented out and pointing to DRAFT-001 (was TASK-149.04) — failing on purpose until then
-- [ ] #6 No SSH key material in anything the netboot serves (menu, preloads, image) — checked in CI
+- [x] #1 netboot.iotgw.i40sys.com serves menu.ipxe and the pinned vmlinuz/initrd/squashfs with a valid certificate
+- [x] #2 Artifact version/digest is pinned in the overlay and bumped by the release flow (deploy/RELEASE.md)
+- [x] #3 Menu contains the agreed entries and iotgw-live passes the OVH device API
+- [x] #4 live-boot fetch of the squashfs verified (HTTPS, or HTTP + hash check documented)
+- [x] #5 Clonezilla backup/restore/clonezilla-debian entries present with the resource wiring (ocs_preload boot.tgz / <id>.tgz, rc.local run, repository mounts) commented out and pointing to DRAFT-001 (was TASK-149.04) — failing on purpose until then
+- [x] #6 No SSH key material in anything the netboot serves (menu, preloads, image) — checked in CI
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Netboot live on OVH (2026-09-29).** `https://netboot.iotgw.i40sys.com` serves `menu.ipxe` + the v0.6.0 live image.
+
+**What changed:** `deploy/k8s/base/netboot` (nginx + oras init container pulling `ghcr.io/i40sys/iotgw-live-image@sha256:91408278…` by digest and checking `SHA256SUMS`; menu ConfigMap), ovh overlay (netboot component, Gateway listener + HTTPRoute + LE SAN), infra DNS, live-image CI key gate over the netboot dir, `deploy/RELEASE.md` (pin the digest from `live-image-oci.txt`).
+
+**Verified end to end (no local server):**
+- (A) The **published v0.6.0 `ipxe-usb.img`** under OVMF/QEMU with internet: DHCP → `chain https://netboot.iotgw.i40sys.com/menu.ipxe ... ok` (real LE chain validated by the pinned ISRG anchors) → OVH menu rendered with every entry.
+- (B) Kernel + initrd **downloaded from the netboot**, `fetch=https://netboot.iotgw.i40sys.com/iotgw-live/filesystem.squashfs`: the initrd's curl fetched over HTTPS, squashfs mounted, `iotgw-bootstrap.service` finished, `ssh.service` started.
+- All files 200 with valid TLS; HTTP → HTTPS 301; menu `iotgw_api=https://device.iotgw.i40sys.com`; Clonezilla wiring commented (DRAFT-001).
+<!-- SECTION:NOTES:END -->

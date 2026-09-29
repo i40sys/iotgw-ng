@@ -99,6 +99,29 @@ kubectl apply -k deploy/k8s/overlays/prod
 > `dockerconfigjson` imagePullSecret (from the SOPS store, `decision-014`) in the
 > `iotgw-ui` and `supabase-app` namespaces and reference it on the Deployments.
 
+## Live image + chainloader (netboot, task-149)
+
+Every `v*` tag also publishes the provisioning boot chain:
+
+- **Live image** — `live-image.yml` (`image` job) pushes the bootable image to
+  `ghcr.io/i40sys/iotgw-live-image:<X.Y.Z>` as an OCI artifact (public) with
+  build provenance, and attaches `live-image-oci.txt` (`ref@digest`) and
+  `live-image-SHA256SUMS` to the release.
+- **Chainloader** — `netboot-chainloader.yml` attaches `ipxe.efi`,
+  `undionly.kpxe`, `ipxe-usb.img` and `chainloader-SHA256SUMS`.
+
+To serve a new live image from the OVH netboot, pin its digest (never a tag):
+
+```bash
+ref="$(gh release download vX.Y.Z -R i40sys/iotgw-ng -p live-image-oci.txt -O -)"
+gh attestation verify "oci://$ref" -R i40sys/iotgw-ng
+# deploy/k8s/overlays/ovh/kustomization.yaml -> netboot patch value: "$ref"
+deploy/terraform/ovh/tf.sh platform apply
+```
+
+The netboot's init container pulls that digest and checks every file against
+the artifact's `SHA256SUMS` before nginx serves it.
+
 ## Where the supply-chain evidence lives
 
 - **Trivy CVEs** → GitHub repo **Security → Code scanning** (per-image category;
