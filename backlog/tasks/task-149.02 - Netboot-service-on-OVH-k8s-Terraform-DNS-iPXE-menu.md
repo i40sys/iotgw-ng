@@ -4,6 +4,7 @@ title: 'Netboot service on OVH (k8s, Terraform, DNS, iPXE menu)'
 status: To Do
 assignee: []
 created_date: '2026-09-29 14:18'
+updated_date: '2026-09-29 14:40'
 labels:
   - ovh
   - netboot
@@ -31,4 +32,6 @@ priority: high
 - [ ] #2 Artifact version/digest is pinned in the overlay and bumped by the release flow (deploy/RELEASE.md)
 - [ ] #3 Menu contains the agreed entries and iotgw-live passes the OVH device API
 - [ ] #4 live-boot fetch of the squashfs verified (HTTPS, or HTTP + hash check documented)
+- [ ] #5 Clonezilla backup/restore/clonezilla-debian entries present with the resource wiring (ocs_preload boot.tgz / <id>.tgz, rc.local run, repository mounts) commented out and pointing to TASK-149.04 — failing on purpose until then
+- [ ] #6 No SSH key material in anything the netboot serves (menu, preloads, image) — checked in CI
 <!-- AC:END -->

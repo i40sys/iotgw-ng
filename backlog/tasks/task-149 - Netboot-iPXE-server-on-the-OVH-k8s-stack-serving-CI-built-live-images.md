@@ -4,6 +4,7 @@ title: 'Netboot iPXE server on the OVH k8s stack, serving CI-built live images'
 status: To Do
 assignee: []
 created_date: '2026-09-29 14:18'
+updated_date: '2026-09-29 14:40'
 labels:
   - ovh
   - netboot
@@ -36,3 +37,9 @@ priority: high
 - [ ] #1 All subtasks Done; a gateway is provisioned end-to-end from the OVH netboot (iPXE chainloader -> menu -> iotgw-live -> VPN + SSH PKI against device.iotgw.i40sys.com)
 - [ ] #2 y0's iotgw-live entry retired or redirected; infra-kb netboot.md updated
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**2026-09-29 user updates:** no SSH keys anywhere in the served images (gate in 149.01 / 149.02); Clonezilla resources (boot.tgz, per-machine tgz, mounts) deferred — menu wiring commented, entries fail on purpose (149.04, low).
+<!-- SECTION:NOTES:END -->
