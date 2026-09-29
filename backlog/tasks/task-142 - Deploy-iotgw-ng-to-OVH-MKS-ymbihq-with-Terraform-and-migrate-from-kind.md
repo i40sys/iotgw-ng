@@ -4,7 +4,7 @@ title: Deploy iotgw-ng to OVH MKS (ymbihq) with Terraform and migrate from kind
 status: In Progress
 assignee: []
 created_date: '2026-09-29 07:49'
-updated_date: '2026-09-29 10:30'
+updated_date: '2026-09-29 10:37'
 labels:
   - deploy
   - ovh
@@ -35,7 +35,7 @@ priority: high
 - [x] #3 Gateway API: HTTPS listeners + HTTPRoutes for app/backend/api/device hostnames with valid certs
 - [x] #4 Data migrated from kind: app DB, KMS objects, Kestra DB
 - [x] #5 Frontend image rebuilt with the OVH URLs and digests pinned
-- [ ] #6 Smoke: UI login + Kong->PostgREST read + device API TLS with pinned CA on OVH
+- [x] #6 Smoke: UI login + Kong->PostgREST read + device API TLS with pinned CA on OVH
 - [x] #7 Docs: deploy/terraform/ovh/README.md + infra-kb ovh-ymbihq-k8s.md updated
 <!-- AC:END -->
 
