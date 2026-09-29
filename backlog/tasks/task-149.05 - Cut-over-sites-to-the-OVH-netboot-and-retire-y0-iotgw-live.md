@@ -1,10 +1,11 @@
 ---
 id: TASK-149.05
 title: Cut over sites to the OVH netboot and retire y0 iotgw-live
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-09-29 14:18'
-updated_date: '2026-09-29 15:06'
+updated_date: '2026-09-29 18:25'
 labels:
   - netboot
   - migration
@@ -28,5 +29,16 @@ priority: medium
 <!-- AC:BEGIN -->
 - [ ] #1 Office PXE path uses the chainloader and lands on the OVH menu
 - [ ] #2 One gateway provisioned end-to-end from OVH
-- [ ] #3 y0 iotgw-live retired or chained to OVH; docs updated
+- [x] #3 y0 iotgw-live retired or chained to OVH; docs updated
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Office cutover (2026-09-29):**
+- The UDM (`ymbihq` LAN) hands iPXE clients `http://netboot.joor.net/config/menu.ipxe` (no TFTP on the UDM). Unchanged.
+- y0 `config/menu.ipxe` is now a **stub** that chains the CI-built chainloader served from y0 (release v0.6.0, SHA256-verified): `ipxe.efi` on UEFI, `undionly.kpxe` on BIOS → HTTPS to the OVH menu. Backup `menu.ipxe.bak-20260929-pre-chainloader`; old tree `iotgw-live.retired-20260929` (404 now).
+- **Simulated in QEMU**: BIOS iPXE client with the UDM boot file URL → stub → chainloader → `https://netboot.iotgw.i40sys.com/menu.ipxe ... ok` → OVH menu.
+- Docs: `scripts/live-image/README.md` (superseded banner), infra-kb `netboot.md` (with rollback).
+- Pending: the same on real hardware + one gateway provisioned end-to-end from OVH (needs an operator at the console to type the device code).
+<!-- SECTION:NOTES:END -->

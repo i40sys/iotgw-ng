@@ -1,5 +1,13 @@
 # Live-image (Clonezilla) rebuild tooling — `task-094`
 
+> **SUPERSEDED (2026-09-29, task-149).** The bootable image is now built by CI
+> from pinned upstream Clonezilla (`live-image/image/`, `just image`) and served
+> from the OVH netboot (`https://netboot.iotgw.i40sys.com`, pinned by OCI
+> digest). y0's `iotgw-live` tree is retired (`iotgw-live.retired-20260929`);
+> y0 only hands out the CI-built chainloader (`config/menu.ipxe` stub ->
+> `ipxe.efi` / `undionly.kpxe`). The notes below describe the old hand-repack
+> flow and are kept for history.
+
 Scripted, reviewable rebuild of the PXE live image, replacing the hand-run
 `mksquashfs` on the netboot host. See `decision-023`/`decision-025` for the
 layer this touches and `task-095` for the trust-material content that will be
