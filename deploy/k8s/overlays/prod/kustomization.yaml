@@ -1,5 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+configMapGenerator:
+  - name: iotgw-release
+    namespace: iotgw-ui
+    files:
+      - manifest.json=release-manifest.json
+    options:
+      disableNameSuffixHash: true
 
 # NO global namespace transformer (decision-020): each base component sets its
 # own namespace. The TLS Secret must be created in EVERY Ingress namespace

@@ -1,13 +1,13 @@
 {
   "name": "@iotgw/backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "type": "module",
   "packageManager": "pnpm@10.6.3",
   "scripts": {
     "dev": "tsx watch --env-file=.env src/server.ts",
     "start": "tsx src/server.ts",
-    "build": "esbuild src/server.ts --bundle --packages=external --platform=node --format=esm --outdir=dist --sourcemap",
+    "build": "node build.mjs",
     "test": "vitest",
     "test:run": "vitest run",
     "test:watch": "vitest watch",

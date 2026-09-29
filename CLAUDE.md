@@ -106,6 +106,8 @@ the operator runbook: [`scripts/ssh-ca/README.md`](scripts/ssh-ca/README.md).
 
 ## Critical Validated Docs (in `backlog/`)
 
+Product version and deployment diagnostics: [decision-036](backlog/decisions/decision-036%20-%20Product-release-identity-build-provenance-and-deployment-diagnostics.md). The header uses a declared release plus immutable frontend/backend build identities; package versions are component details. Release metadata is owned by each deployment overlay; see `deploy/RELEASE.md`.
+
 Source of truth for cross-project behavior — read before modifying an
 integration point:
 

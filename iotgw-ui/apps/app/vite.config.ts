@@ -4,9 +4,15 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import path from "node:path";
+import { getBuildInfo } from "../../build-metadata/build-info.mjs";
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  define: {
+    __FRONTEND_BUILD_INFO__: JSON.stringify(
+      getBuildInfo("frontend", { development: command === "serve" }),
+    ),
+  },
   plugins: [
     TanStackRouterVite({ target: "react", autoCodeSplitting: true }),
     react(),
@@ -36,4 +42,4 @@ export default defineConfig({
     // e2e/ runs under Playwright (pnpm test:e2e), not vitest.
     exclude: [...configDefaults.exclude, "e2e/**"],
   },
-});
+}));

@@ -107,10 +107,10 @@ export function DeploymentStatusDialog({
   const getStatusBadge = () => {
     const variant = {
       RUNNING: "default",
-      SUCCESS: "success",
+      SUCCESS: "secondary",
       FAILED: "destructive",
       PENDING: "secondary",
-    }[status] as "default" | "success" | "destructive" | "secondary";
+    }[status] as "default" | "destructive" | "secondary";
 
     const label = {
       RUNNING: t("deployments.status.running"),
@@ -148,7 +148,7 @@ export function DeploymentStatusDialog({
             {t("deployments.executionStatus")}
           </DialogTitle>
           <DialogDescription>
-            {message || t("deployments.executionStatusDescription")}
+            {message ?? t("deployments.executionStatusDescription")}
           </DialogDescription>
         </DialogHeader>
 
@@ -160,7 +160,7 @@ export function DeploymentStatusDialog({
               <span className="text-muted-foreground text-sm font-medium">
                 {t("deployments.executionId")}:
               </span>
-              <span className="font-mono text-sm">{executionId || "N/A"}</span>
+              <span className="font-mono text-sm">{executionId ?? "N/A"}</span>
             </div>
 
             {/* Flow ID */}
@@ -168,13 +168,13 @@ export function DeploymentStatusDialog({
               <span className="text-muted-foreground text-sm font-medium">
                 {t("deployments.flowId")}:
               </span>
-              <span className="font-mono text-sm">{flowId || "N/A"}</span>
+              <span className="font-mono text-sm">{flowId ?? "N/A"}</span>
             </div>
 
             {/* Status */}
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground text-sm font-medium">
-                {t("deployments.status")}:
+                {t("deployments.workspace.operationStatus")}:
               </span>
               {getStatusBadge()}
             </div>
@@ -223,7 +223,7 @@ export function DeploymentStatusDialog({
           {status === "FAILED" && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/20">
               <p className="text-sm text-red-800 dark:text-red-200">
-                {message || t("deployments.executionFailed")}
+                {message ?? t("deployments.executionFailed")}
               </p>
             </div>
           )}
@@ -248,7 +248,7 @@ export function DeploymentStatusDialog({
                     className="h-3 w-3 animate-spin"
                     aria-hidden="true"
                   />
-                  <span>Refreshing every 1s</span>
+                  <span>{t("deployments.workspace.monitoringContinues")}</span>
                 </div>
               </div>
             </div>
@@ -256,11 +256,7 @@ export function DeploymentStatusDialog({
         </div>
 
         <DialogFooter className="flex gap-2 sm:justify-between">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={status === "RUNNING"}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             {status === "RUNNING" ? t("buttons.close") : t("buttons.done")}
           </Button>
 

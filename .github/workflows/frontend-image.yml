@@ -19,6 +19,7 @@ on:
     tags: ["v*"]
     paths:
       - iotgw-ui/apps/app/**
+      - iotgw-ui/build-metadata/**
       - iotgw-ui/packages/supabase-contract/**
       - iotgw-ui/pnpm-lock.yaml
       - iotgw-ui/pnpm-workspace.yaml
@@ -31,6 +32,7 @@ on:
   pull_request:
     paths:
       - iotgw-ui/apps/app/**
+      - iotgw-ui/build-metadata/**
       - iotgw-ui/packages/supabase-contract/**
       - iotgw-ui/pnpm-lock.yaml
       - iotgw-ui/pnpm-workspace.yaml

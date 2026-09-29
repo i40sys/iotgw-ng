@@ -326,6 +326,10 @@ build_functions() {
 }
 
 build_iotgw_ui() {
+  local build_revision build_dirty
+  build_revision="$(git rev-parse HEAD)"
+  build_dirty=false
+  [ -z "$(git status --porcelain --untracked-files=normal -- iotgw-ui)" ] || build_dirty=true
   # Build the iotgw-ui frontend and backend images and load them into kind.
   # Build context is iotgw-ui/ (the pnpm workspace root) for both images.
   # VITE_API_URL is baked into the frontend JS bundle at build time: the SPA
@@ -334,6 +338,8 @@ build_iotgw_ui() {
   # maps to host :4444 (cluster.yaml).
   echo "==> building iotgw-ui-backend:local"
   docker build -t iotgw-ui-backend:local \
+    --build-arg IOTGW_BUILD_REVISION="$build_revision" \
+    --build-arg IOTGW_BUILD_DIRTY="$build_dirty" \
     -f iotgw-ui/apps/backend/.docker/Dockerfile \
     iotgw-ui/
   # Operator login (decision-034): the SPA signs in against Supabase Auth through
@@ -347,6 +353,8 @@ build_iotgw_ui() {
   [ -n "$anon" ] || echo "  WARN: ANON_KEY not found in SOPS store — the SPA login will be disabled"
   echo "==> building iotgw-ui-frontend:local (VITE_API_URL=http://iotgw-ui-backend.wsl.ymbihq.local, VITE_SUPABASE_URL=http://wsl.ymbihq.local:8000)"
   docker build -t iotgw-ui-frontend:local \
+    --build-arg IOTGW_BUILD_REVISION="$build_revision" \
+    --build-arg IOTGW_BUILD_DIRTY="$build_dirty" \
     --build-arg VITE_API_URL=http://iotgw-ui-backend.wsl.ymbihq.local \
     --build-arg VITE_SUPABASE_URL=http://wsl.ymbihq.local:8000 \
     --build-arg VITE_SUPABASE_ANON_KEY="$anon" \

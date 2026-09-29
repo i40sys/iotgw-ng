@@ -32,6 +32,7 @@
   "include": [
     "src",
     "../../packages/supabase-contract/src",
-    "../backend/src/routers/router.ts"
+    "../backend/src/routers/router.ts",
+    "../backend/src/services/deployment-info.ts"
   ]
 }

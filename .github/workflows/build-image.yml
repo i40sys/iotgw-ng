@@ -103,7 +103,11 @@ jobs:
           push: ${{ inputs.push }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: ${{ inputs.build-args }}
+          build-args: |
+            ${{ inputs.build-args }}
+            IOTGW_BUILD_REVISION=${{ github.sha }}
+            IOTGW_BUILD_RELEASE=${{ github.ref_type == 'tag' && github.ref_name || '' }}
+            IOTGW_BUILD_DIRTY=false
           cache-from: type=gha
           cache-to: type=gha,mode=max
           # BuildKit-native attestations: fast, inline, but UNSIGNED. The

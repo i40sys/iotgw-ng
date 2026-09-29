@@ -89,8 +89,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release view "$TAG" >/dev/null 2>&1 \
-            || gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+          release_notes="../deploy/releases/${TAG}.md"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            if [ -f "$release_notes" ]; then
+              gh release edit "$TAG" --notes-file "$release_notes"
+            fi
+          elif [ -f "$release_notes" ]; then
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$release_notes"
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+          fi
           gh release upload "$TAG" --clobber \
             dist/iotgw-linux-* \
             dist/iotgw-live-overlay-linux-*.tar.gz dist/iotgw-openwrt-linux-*.tar.gz dist/remove.list dist/SHA256SUMS

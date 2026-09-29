@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { getAppVersion } from "@/utils/version";
 import { Activity, Server, Shield, Wifi } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -17,7 +16,6 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const { t } = useTranslation();
-  const version = getAppVersion();
 
   const features = [
     {
@@ -55,9 +53,6 @@ function HomePage() {
             <p className="mx-auto mt-6 max-w-3xl text-lg text-gray-500 dark:text-gray-400">
               {t("home.description")}
             </p>
-            <div className="mt-8 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <span>{t("home.version", { version })}</span>
-            </div>
           </div>
 
           {/* Features Section */}

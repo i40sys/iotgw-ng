@@ -22,6 +22,8 @@ const INGRESS_IP = process.env.E2E_INGRESS_ADDR ?? "127.0.0.1";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Fixture-based workspace tests use playwright.deployments.config.ts.
+  testIgnore: "**/deployments-workspace.spec.ts",
   timeout: 60_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
