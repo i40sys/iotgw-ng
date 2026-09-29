@@ -22,7 +22,7 @@ spec:
       # is root-writable, which is what the SQLite backend needs.
       containers:
         - name: kms
-          image: ghcr.io/cosmian/kms:5.20.0   # pinned (was :latest)
+          image: ghcr.io/cosmian/kms:5.27.1   # pinned; 5.20.0 broke on containerd 2.2 (Nix /etc/passwd symlinks, task-142)
           # No command override — the image's default entrypoint serves the KMS,
           # configured via COSMIAN_KMS_CONF (same as the compose deployment).
           env:

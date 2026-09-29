@@ -81,7 +81,7 @@ cluster_up() {
 # rejected by strict decoding — TASK-062.16 finding); 1.17.4 installs clean.
 # The operator is cluster-scoped (ns `stackgres`) and watches all namespaces, so
 # it reconciles the SGCluster wherever it lands (now `supabase-db`).
-SG_OPERATOR_VERSION="1.17.4"
+SG_OPERATOR_VERSION="1.19.1"  # same as OVH (k8s 1.25-1.37; 1.17.x stops at 1.34)
 install_stackgres() {
   echo "==> installing StackGres operator $SG_OPERATOR_VERSION (pinned)"
   helm repo add stackgres-charts https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/ >/dev/null 2>&1 || true

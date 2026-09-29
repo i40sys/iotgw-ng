@@ -1,0 +1,166 @@
+# Public edge for iotgw-ng on OVH (task-142). The cluster's Traefik (managed in
+# ~/k8s, Gateway API only, LB 145.239.127.187) serves this dedicated Gateway next
+# to its own `traefik/default-gateway`; iotgw owns only what is in this file.
+#
+#   iotgw.i40sys.com          -> iotgw-ui-frontend:80   (SPA)
+#   backend.iotgw.i40sys.com  -> iotgw-ui-backend:4444  (tRPC + WS)
+#   api.iotgw.i40sys.com      -> kong:8000              (Supabase API, operator login)
+#   device.iotgw.i40sys.com   -> kong:8000 /functions/v1/{vpn,ssh-ca} only
+#
+# The first three use Let's Encrypt (HTTP-01 solved through default-gateway's
+# port-80 listener). The DEVICE host is served with a certificate from the
+# device-API CA that gateways pin (decision-035) — Terraform issues it into the
+# `device-api-tls` Secret here, so it is not a cert-manager Certificate.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: iotgw-gateway
+  labels:
+    app.kubernetes.io/part-of: iotgw-ng
+---
+# No ACME contact email on purpose (optional for Let's Encrypt).
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-iotgw
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-iotgw-account-key
+    solvers:
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+              - group: gateway.networking.k8s.io
+                kind: Gateway
+                name: default-gateway
+                namespace: traefik
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: iotgw-public
+  namespace: iotgw-gateway
+spec:
+  secretName: iotgw-public-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-iotgw
+  dnsNames:
+    - iotgw.i40sys.com
+    - backend.iotgw.i40sys.com
+    - api.iotgw.i40sys.com
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: iotgw
+  namespace: iotgw-gateway
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: app
+      hostname: iotgw.i40sys.com
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs: [{ kind: Secret, name: iotgw-public-tls }]
+      allowedRoutes: { namespaces: { from: All } }
+    - name: backend
+      hostname: backend.iotgw.i40sys.com
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs: [{ kind: Secret, name: iotgw-public-tls }]
+      allowedRoutes: { namespaces: { from: All } }
+    - name: api
+      hostname: api.iotgw.i40sys.com
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs: [{ kind: Secret, name: iotgw-public-tls }]
+      allowedRoutes: { namespaces: { from: All } }
+    - name: device
+      hostname: device.iotgw.i40sys.com
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs: [{ kind: Secret, name: device-api-tls }]
+      allowedRoutes: { namespaces: { from: All } }
+---
+# Plain HTTP on iotgw hosts -> HTTPS (on default-gateway's shared :80 listener;
+# the more specific ACME solver routes still win for /.well-known/acme-challenge).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: iotgw-https-redirect
+  namespace: iotgw-gateway
+spec:
+  parentRefs:
+    - { name: default-gateway, namespace: traefik, sectionName: http }
+  hostnames:
+    - iotgw.i40sys.com
+    - backend.iotgw.i40sys.com
+    - api.iotgw.i40sys.com
+    - device.iotgw.i40sys.com
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect: { scheme: https, statusCode: 301 }
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: iotgw-ui-frontend
+  namespace: iotgw-ui
+spec:
+  parentRefs:
+    - { name: iotgw, namespace: iotgw-gateway, sectionName: app }
+  hostnames: [iotgw.i40sys.com]
+  rules:
+    - backendRefs: [{ name: iotgw-ui-frontend, port: 80 }]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: iotgw-ui-backend
+  namespace: iotgw-ui
+spec:
+  parentRefs:
+    - { name: iotgw, namespace: iotgw-gateway, sectionName: backend }
+  hostnames: [backend.iotgw.i40sys.com]
+  rules:
+    - backendRefs: [{ name: iotgw-ui-backend, port: 4444 }]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kong
+  namespace: supabase-app
+spec:
+  parentRefs:
+    - { name: iotgw, namespace: iotgw-gateway, sectionName: api }
+  hostnames: [api.iotgw.i40sys.com]
+  rules:
+    - backendRefs: [{ name: kong, port: 8000 }]
+---
+# Only the two device endpoints (decision-035), as the kind device-api Ingress.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: device-api
+  namespace: supabase-app
+spec:
+  parentRefs:
+    - { name: iotgw, namespace: iotgw-gateway, sectionName: device }
+  hostnames: [device.iotgw.i40sys.com]
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /functions/v1/vpn }
+        - path: { type: PathPrefix, value: /functions/v1/ssh-ca }
+      backendRefs: [{ name: kong, port: 8000 }]

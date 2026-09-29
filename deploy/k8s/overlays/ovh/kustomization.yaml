@@ -1,0 +1,99 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# OVH Managed Kubernetes `ymbihq` (GRA9) — the real environment (task-142).
+# Applied by Terraform (deploy/terraform/ovh/platform), never by hand.
+# Differences from kind:
+#   - public hostnames under iotgw.i40sys.com, served by the cluster's existing
+#     Traefik (Gateway API, LB 145.239.127.187) — the base ingress-nginx Ingresses
+#     are dropped and replaced by gateway.yaml (own Gateway + HTTPRoutes);
+#   - custom images pulled from ghcr.io/i40sys pinned by digest (decision-021);
+#   - PVCs use the cluster default class (csi-cinder-high-speed-gen2).
+# NO global namespace transformer (decision-020).
+resources:
+  - ../../base
+  - ../../base/supabase-db-stackgres
+  - ../../base/supabase-app
+  - ../../base/iotgw-ui
+  - gateway.yaml
+
+# Frontend bakes VITE_API_URL / VITE_SUPABASE_URL: it must be the OVH build
+# (backend.iotgw.i40sys.com / api.iotgw.i40sys.com), not the prod-sketch one.
+images:
+  - name: supabase/edge-runtime:v1.74.0
+    newName: ghcr.io/i40sys/iotgw-functions
+    digest: sha256:742d38f50237b41e5b52c26540bde768961a38d9c7f2833e8a2281d01ca7ef81
+  - name: iotgw-ui-backend
+    newName: ghcr.io/i40sys/iotgw-ui-backend
+    digest: sha256:2757d82a25eb0229641654defab0890d96d4aa68d5a4ab2bf5baf6d19f13e911
+  - name: iotgw-ui-frontend
+    newName: ghcr.io/i40sys/iotgw-ui-frontend
+    digest: sha256:8cae26dab10046fa2db0c8f63ef69b2c6736ec3ba487796965f0c7eaf2ec85f7
+
+patches:
+  # Baked-in /home/deno/functions instead of the base emptyDir placeholder.
+  - target:
+      kind: Deployment
+      name: functions
+    patch: |-
+      - op: remove
+        path: /spec/template/spec/volumes
+      - op: remove
+        path: /spec/template/spec/containers/0/volumeMounts
+  - target:
+      kind: Deployment
+      name: iotgw-ui-backend
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target:
+      kind: Deployment
+      name: iotgw-ui-frontend
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+
+  # GoTrue's public URLs (password login only, but keep redirects/links right).
+  - target: { kind: Deployment, name: auth }
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata: { name: auth }
+      spec:
+        template:
+          spec:
+            containers:
+              - name: auth
+                env:
+                  - name: API_EXTERNAL_URL
+                    value: https://api.iotgw.i40sys.com
+                  - name: GOTRUE_SITE_URL
+                    value: https://iotgw.i40sys.com
+
+  # No ingress-nginx on this cluster: Traefik HTTPRoutes (gateway.yaml) instead.
+  - target: { kind: Ingress, name: kong }
+    patch: |-
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata: { name: kong }
+  - target: { kind: Ingress, name: device-api }
+    patch: |-
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata: { name: device-api }
+  - target: { kind: Ingress, name: iotgw-ui-frontend }
+    patch: |-
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata: { name: iotgw-ui-frontend }
+  - target: { kind: Ingress, name: iotgw-ui-backend }
+    patch: |-
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata: { name: iotgw-ui-backend }
