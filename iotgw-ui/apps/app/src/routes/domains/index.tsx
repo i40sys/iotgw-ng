@@ -2,9 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useState, useMemo } from "react";
-import type { Domain } from "@iotgw/supabase-contract";
+import type { Tables } from "@iotgw/supabase-contract";
 import { ErrorDisplay } from "@/components/ui/error-display";
-import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import {
+  InventoryActions,
+  InventoryDate,
+  InventoryList,
+  InventoryToolbar,
+  type InventoryColumn,
+} from "@/components/inventory-list";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { matchesInventorySearch } from "@/lib/inventory";
 import { useTableSort } from "@/hooks/use-table-sort";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
@@ -30,16 +38,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Search, X } from "lucide-react";
+import { Pencil, Trash2, Plus, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { DomainErrorBoundary } from "@/components/domains";
 import { useDomainErrorHandling } from "@/hooks/use-domain-validation";
 
@@ -71,6 +71,8 @@ export const Route = createFileRoute("/domains/")({
   component: DomainsPage,
 });
 
+type Domain = Tables<"domains">;
+
 interface DomainFormData {
   name: string;
   display_name: string;
@@ -99,21 +101,18 @@ function DomainsPage() {
   const domainsQuery = useQuery(trpc.getDomains.queryOptions());
   const networkCountsQuery = useQuery(trpc.getNetworkCounts.queryOptions());
 
-  // Filter domains based on search query
-  const filteredDomains = useMemo(() => {
-    if (!domainsQuery.data) return [];
-    if (!filterQuery.trim()) return domainsQuery.data;
-
-    const searchLower = filterQuery.toLowerCase().trim();
-    return domainsQuery.data.filter((domain) => {
-      const domainName = domain.name.toLowerCase();
-      const domainDisplayName = domain.display_name.toLowerCase();
-      return (
-        domainName.includes(searchLower) ||
-        domainDisplayName.includes(searchLower)
-      );
-    });
-  }, [domainsQuery.data, filterQuery]);
+  const filteredDomains = useMemo(
+    () =>
+      (domainsQuery.data ?? []).filter((domain) =>
+        matchesInventorySearch(
+          filterQuery,
+          domain.name,
+          domain.display_name,
+          domain.id,
+        ),
+      ),
+    [domainsQuery.data, filterQuery],
+  );
 
   const sortAccessors = useMemo(
     () => ({
@@ -122,13 +121,13 @@ function DomainsPage() {
       networks: (d: (typeof filteredDomains)[number]) =>
         networkCountsQuery.data?.[d.id] ?? 0,
       created: (d: (typeof filteredDomains)[number]) =>
-        new Date(d.created_at).getTime(),
+        d.created_at ? new Date(d.created_at).getTime() : null,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [networkCountsQuery.data],
   );
   const {
     sort,
+    setSort,
     toggleSort,
     sortedRows: sortedDomains,
   } = useTableSort(filteredDomains, sortAccessors);
@@ -250,52 +249,81 @@ function DomainsPage() {
     deleteDomainMutation.mutate({ id: selectedDomain.id });
   };
 
+  const columns: InventoryColumn<Domain, keyof typeof sortAccessors>[] = [
+    {
+      key: "domain",
+      label: t("domains.domain"),
+      sortKey: "name",
+      render: (domain) => (
+        <div className="space-y-1.5">
+          <Link
+            to="/domains/$id"
+            params={{ id: domain.id }}
+            className="text-primary font-semibold hover:underline"
+          >
+            {domain.name}
+          </Link>
+          <p className="text-sm">{domain.display_name}</p>
+          <p className="text-muted-foreground font-mono text-xs">{domain.id}</p>
+        </div>
+      ),
+    },
+    {
+      key: "networks",
+      label: t("networks.title"),
+      sortKey: "networks",
+      className: "w-32",
+      render: (domain) => (
+        <Badge variant="secondary" className="font-mono">
+          {networkCountsQuery.data?.[domain.id] ?? 0}
+        </Badge>
+      ),
+    },
+    {
+      key: "created",
+      label: t("inventory.created"),
+      sortKey: "created",
+      className: "w-40",
+      render: (domain) => <InventoryDate value={domain.created_at} />,
+    },
+  ];
+
   return (
     <DomainErrorBoundary>
       <div className="container mx-auto px-4 py-8">
-        <div className="mx-auto max-w-7xl">
-          {/* Filter Section (left) and Create Button (right) - Same Row */}
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="relative max-w-md">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-              <Input
-                type="text"
-                placeholder="Filter domains by name..."
-                value={filterQuery}
-                onChange={(e) => setFilterQuery(e.target.value)}
-                className="pl-9"
-              />
-              {filterQuery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-1/2 right-1 h-7 -translate-y-1/2 px-2"
-                  onClick={() => setFilterQuery("")}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
+        <div className="@container mx-auto max-w-7xl space-y-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-1">
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {t("domains.title")}
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                {t("domains.description")}
+              </p>
             </div>
             <Dialog
               open={isCreateDialogOpen}
               onOpenChange={setIsCreateDialogOpen}
             >
               <DialogTrigger asChild>
-                <Button onClick={handleCreateClick}>
+                <Button
+                  onClick={handleCreateClick}
+                  className="min-h-11 w-full sm:w-auto"
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   {t("domains.createDomain")}
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-h-[90dvh] overflow-y-auto [overflow-wrap:anywhere]">
                 <DialogHeader>
                   <DialogTitle>{t("domains.createDomain")}</DialogTitle>
                   <DialogDescription>
-                    Create a new domain with a unique name and display name.
+                    {t("inventory.createDomainDescription")}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="create-name" className="text-right">
+                  <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                    <Label htmlFor="create-name" className="sm:text-right">
                       {t("domains.name")}
                     </Label>
                     <Input
@@ -305,11 +333,14 @@ function DomainsPage() {
                         setFormData({ ...formData, name: e.target.value })
                       }
                       placeholder={t("domains.namePlaceholder")}
-                      className="col-span-3"
+                      className="min-w-0 sm:col-span-3"
                     />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="create-display-name" className="text-right">
+                  <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                    <Label
+                      htmlFor="create-display-name"
+                      className="sm:text-right"
+                    >
                       {t("domains.displayName")}
                     </Label>
                     <Input
@@ -322,7 +353,7 @@ function DomainsPage() {
                         })
                       }
                       placeholder={t("domains.displayNamePlaceholder")}
-                      className="col-span-3"
+                      className="min-w-0 sm:col-span-3"
                     />
                   </div>
                 </div>
@@ -342,123 +373,93 @@ function DomainsPage() {
               </DialogContent>
             </Dialog>
           </div>
-
-          {/* Display filter info */}
-          {filterQuery && (
-            <div className="text-muted-foreground mb-4 text-sm">
-              Showing {filteredDomains.length} of{" "}
-              {domainsQuery.data?.length || 0} domains
-              {filteredDomains.length === 0 && (
-                <span className="ml-2 text-amber-600 dark:text-amber-400">
-                  No domains found matching "{filterQuery}"
-                </span>
-              )}
-            </div>
-          )}
-
-          <div className="border-border bg-card overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <SortableTableHead
-                    sortKey="name"
-                    sort={sort}
-                    onSort={toggleSort}
-                  >
-                    {t("domains.name")}
-                  </SortableTableHead>
-                  <SortableTableHead
-                    sortKey="displayName"
-                    sort={sort}
-                    onSort={toggleSort}
-                  >
-                    {t("domains.displayName")}
-                  </SortableTableHead>
-                  <SortableTableHead
-                    sortKey="networks"
-                    sort={sort}
-                    onSort={toggleSort}
-                  >
-                    Networks
-                  </SortableTableHead>
-                  <SortableTableHead
-                    sortKey="created"
-                    sort={sort}
-                    onSort={toggleSort}
-                  >
-                    Created At
-                  </SortableTableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedDomains.map((domain) => (
-                  <TableRow key={domain.id}>
-                    <TableCell className="font-medium">
-                      <Link
-                        to="/domains/$id"
-                        params={{ id: domain.id }}
-                        className="hover:text-primary hover:underline"
-                      >
-                        {domain.name}
+          <section
+            className="bg-card overflow-hidden rounded-lg border"
+            aria-label={t("domains.title")}
+          >
+            <InventoryToolbar
+              searches={[
+                {
+                  label: t("inventory.searchDomains"),
+                  placeholder: t("inventory.domainSearchPlaceholder"),
+                  value: filterQuery,
+                  onChange: setFilterQuery,
+                },
+              ]}
+              sort={sort}
+              onSortChange={setSort}
+              sortOptions={[
+                { key: "name", label: t("domains.name") },
+                { key: "displayName", label: t("domains.displayName") },
+                { key: "networks", label: t("networks.title") },
+                { key: "created", label: t("inventory.created") },
+              ]}
+              count={filteredDomains.length}
+              total={domainsQuery.data?.length ?? 0}
+              onRefresh={() => {
+                void domainsQuery.refetch();
+                void networkCountsQuery.refetch();
+              }}
+              isRefreshing={
+                domainsQuery.isFetching || networkCountsQuery.isFetching
+              }
+            />
+            <InventoryList
+              rows={sortedDomains}
+              columns={columns}
+              sort={sort}
+              onSort={toggleSort}
+              label={t("domains.title")}
+              emptyMessage={
+                filterQuery.trim()
+                  ? t("inventory.noMatches")
+                  : t("domains.noDomains")
+              }
+              actions={(domain) => (
+                <InventoryActions
+                  name={domain.name}
+                  disabled={
+                    updateDomainMutation.isPending ||
+                    deleteDomainMutation.isPending
+                  }
+                  primary={
+                    <Button variant="secondary" size="sm" asChild>
+                      <Link to="/domains/$id" params={{ id: domain.id }}>
+                        <ArrowRight aria-hidden="true" className="size-4" />
+                        {t("inventory.details")}
                       </Link>
-                    </TableCell>
-                    <TableCell>{domain.display_name}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="font-mono">
-                        {networkCountsQuery.data?.[domain.id] ?? 0}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(domain.created_at).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditClick(domain)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(domain)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredDomains.length === 0 && !filterQuery && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-muted-foreground text-center"
-                    >
-                      {t("domains.noDomains")}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                    </Button>
+                  }
+                >
+                  <DropdownMenuItem onSelect={() => handleEditClick(domain)}>
+                    <Pencil aria-hidden="true" />
+                    {t("domains.editDomain")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => handleDeleteClick(domain)}
+                  >
+                    <Trash2 aria-hidden="true" />
+                    {t("domains.deleteDomain")}
+                  </DropdownMenuItem>
+                </InventoryActions>
+              )}
+            />
+          </section>
         </div>
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[90dvh] overflow-y-auto [overflow-wrap:anywhere]">
             <DialogHeader>
               <DialogTitle>{t("domains.editDomain")}</DialogTitle>
               <DialogDescription>
-                Update the domain name and display name.
+                {t("inventory.editDomainDescription")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-name" className="text-right">
+              <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                <Label htmlFor="edit-name" className="sm:text-right">
                   {t("domains.name")}
                 </Label>
                 <Input
@@ -468,11 +469,11 @@ function DomainsPage() {
                     setFormData({ ...formData, name: e.target.value })
                   }
                   placeholder={t("domains.namePlaceholder")}
-                  className="col-span-3"
+                  className="min-w-0 sm:col-span-3"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-display-name" className="text-right">
+              <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                <Label htmlFor="edit-display-name" className="sm:text-right">
                   {t("domains.displayName")}
                 </Label>
                 <Input
@@ -482,7 +483,7 @@ function DomainsPage() {
                     setFormData({ ...formData, display_name: e.target.value })
                   }
                   placeholder={t("domains.displayNamePlaceholder")}
-                  className="col-span-3"
+                  className="min-w-0 sm:col-span-3"
                 />
               </div>
             </div>
@@ -507,7 +508,7 @@ function DomainsPage() {
           open={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}
         >
-          <AlertDialogContent>
+          <AlertDialogContent className="max-h-[90dvh] overflow-y-auto [overflow-wrap:anywhere]">
             <AlertDialogHeader>
               <AlertDialogTitle>{t("domains.deleteDomain")}</AlertDialogTitle>
               <AlertDialogDescription>

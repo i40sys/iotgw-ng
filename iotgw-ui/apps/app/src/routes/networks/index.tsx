@@ -5,7 +5,18 @@ import { useState, useMemo } from "react";
 import { z } from "zod";
 import type { Network } from "@iotgw/supabase-contract";
 import { ErrorDisplay } from "@/components/ui/error-display";
-import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import {
+  InventoryActions,
+  InventoryDate,
+  InventoryList,
+  InventoryToolbar,
+  type InventoryColumn,
+} from "@/components/inventory-list";
+import {
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { matchesInventorySearch } from "@/lib/inventory";
 import { ipSortValue, useTableSort } from "@/hooks/use-table-sort";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
@@ -35,24 +46,9 @@ import {
   Pencil,
   Trash2,
   Plus,
+  ListChecks,
   Network as NetworkIcon,
-  Search,
-  Bug,
-  X,
 } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 
 const networksSearchSchema = z.object({
@@ -104,7 +100,7 @@ function NetworksPage() {
     useState<NetworkWithDomain | null>(null);
   const [domainSearchQuery, setDomainSearchQuery] = useState("");
   const [networkSearchQuery, setNetworkSearchQuery] = useState(
-    networkName || "",
+    networkName ?? "",
   );
   const [formData, setFormData] = useState<NetworkFormData>({
     name: "",
@@ -113,44 +109,29 @@ function NetworksPage() {
     domain_id: "",
   });
 
-  const shortenUUID = (uuid: string) => {
-    // Show first 8 characters of UUID
-    return uuid.slice(0, 8);
-  };
-
   const networksQuery = useQuery(trpc.getNetworks.queryOptions());
   const domainsQuery = useQuery(trpc.getDomains.queryOptions());
 
-  // Filter networks based on domain and network name search
-  const filteredNetworks = useMemo(() => {
-    if (!networksQuery.data) return [];
-
-    let filtered = networksQuery.data as NetworkWithDomain[];
-
-    // Filter by network name
-    if (networkSearchQuery.trim()) {
-      const networkLower = networkSearchQuery.toLowerCase().trim();
-      filtered = filtered.filter((network) =>
-        network.name.toLowerCase().includes(networkLower),
-      );
-    }
-
-    // Filter by domain
-    if (domainSearchQuery.trim()) {
-      const domainLower = domainSearchQuery.toLowerCase().trim();
-      filtered = filtered.filter((network) => {
-        const domainName = network.domain?.name?.toLowerCase() || "";
-        const domainDisplayName =
-          network.domain?.display_name?.toLowerCase() || "";
-        return (
-          domainName.includes(domainLower) ||
-          domainDisplayName.includes(domainLower)
-        );
-      });
-    }
-
-    return filtered;
-  }, [networksQuery.data, networkSearchQuery, domainSearchQuery]);
+  const filteredNetworks = useMemo(
+    () =>
+      ((networksQuery.data ?? []) as NetworkWithDomain[]).filter(
+        (network) =>
+          matchesInventorySearch(
+            networkSearchQuery,
+            network.name,
+            network.id,
+            network.ipv4_cidr,
+            network.ipv6_cidr,
+          ) &&
+          matchesInventorySearch(
+            domainSearchQuery,
+            network.domain?.name,
+            network.domain?.display_name,
+            network.domain_id,
+          ),
+      ),
+    [networksQuery.data, networkSearchQuery, domainSearchQuery],
+  );
 
   const sortAccessors = useMemo(
     () => ({
@@ -161,13 +142,13 @@ function NetworksPage() {
         ipSortValue(n.ipv4_cidr?.split("/")[0]),
       ipv6: (n: (typeof filteredNetworks)[number]) => n.ipv6_cidr,
       created: (n: (typeof filteredNetworks)[number]) =>
-        new Date(n.created_at).getTime(),
+        n.created_at ? new Date(n.created_at).getTime() : null,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
   const {
     sort,
+    setSort,
     toggleSort,
     sortedRows: sortedNetworks,
   } = useTableSort(filteredNetworks, sortAccessors);
@@ -230,7 +211,7 @@ function NetworksPage() {
       name: "",
       ipv4_cidr: "",
       ipv6_cidr: "",
-      domain_id: firstDomain?.id || "",
+      domain_id: firstDomain?.id ?? "",
     });
     setIsCreateDialogOpen(true);
   };
@@ -263,8 +244,8 @@ function NetworksPage() {
     createNetworkMutation.mutate({
       name: formData.name,
       domain_id: formData.domain_id,
-      ipv4_cidr: formData.ipv4_cidr || undefined,
-      ipv6_cidr: formData.ipv6_cidr || undefined,
+      ipv4_cidr: formData.ipv4_cidr === "" ? undefined : formData.ipv4_cidr,
+      ipv6_cidr: formData.ipv6_cidr === "" ? undefined : formData.ipv6_cidr,
     });
   };
 
@@ -306,70 +287,111 @@ function NetworksPage() {
     );
   }
 
+  const columns: InventoryColumn<
+    NetworkWithDomain,
+    keyof typeof sortAccessors
+  >[] = [
+    {
+      key: "network",
+      label: t("networks.network"),
+      sortKey: "name",
+      render: (network) => (
+        <div className="space-y-1.5">
+          <Link
+            to="/devices"
+            search={{ networkName: network.name }}
+            className="text-primary font-semibold hover:underline"
+          >
+            {network.name}
+          </Link>
+          <p className="text-muted-foreground font-mono text-xs">
+            {network.id}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: "domain",
+      label: t("domains.domain"),
+      sortKey: "domain",
+      className: "w-[22%]",
+      render: (network) =>
+        network.domain ? (
+          <div className="space-y-1.5">
+            <Link
+              to="/domains/$id"
+              params={{ id: network.domain.id }}
+              className="text-primary font-medium hover:underline"
+            >
+              {network.domain.display_name}
+            </Link>
+            <p className="text-muted-foreground text-xs">
+              {network.domain.name}
+            </p>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">
+            {t("inventory.notAvailable")}
+          </span>
+        ),
+    },
+    {
+      key: "addresses",
+      label: t("inventory.addressRanges"),
+      sortKey: "ipv4",
+      className: "w-[24%]",
+      render: (network) => (
+        <dl className="space-y-2 text-xs">
+          <div>
+            <dt className="text-muted-foreground">IPv4</dt>
+            <dd className="mt-1 font-mono">
+              {network.ipv4_cidr ?? t("inventory.notAssigned")}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">IPv6</dt>
+            <dd className="mt-1 font-mono">
+              {network.ipv6_cidr ?? t("inventory.notAssigned")}
+            </dd>
+          </div>
+        </dl>
+      ),
+    },
+    {
+      key: "created",
+      label: t("inventory.created"),
+      sortKey: "created",
+      className: "w-32",
+      render: (network) => <InventoryDate value={network.created_at} />,
+    },
+  ];
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mx-auto max-w-7xl">
-        {/* Search Boxes and Create Button */}
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex gap-3">
-            {/* Network Name Search */}
-            <div className="relative w-64">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-              <Input
-                type="text"
-                placeholder="Filter by network name..."
-                value={networkSearchQuery}
-                onChange={(e) => setNetworkSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-              {networkSearchQuery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-1/2 right-1 h-7 -translate-y-1/2 px-2"
-                  onClick={() => setNetworkSearchQuery("")}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
-            {/* Domain Search */}
-            <div className="relative w-64">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-              <Input
-                type="text"
-                placeholder={
-                  t("networks.filterByDomain") || "Filter by domain name..."
-                }
-                value={domainSearchQuery}
-                onChange={(e) => setDomainSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-              {domainSearchQuery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-1/2 right-1 h-7 -translate-y-1/2 px-2"
-                  onClick={() => setDomainSearchQuery("")}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+      <div className="@container mx-auto max-w-7xl space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {t("networks.title")}
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {t("networks.description")}
+            </p>
           </div>
-
           <Dialog
             open={isCreateDialogOpen}
             onOpenChange={setIsCreateDialogOpen}
           >
             <DialogTrigger asChild>
-              <Button onClick={handleCreateClick} className="shrink-0">
+              <Button
+                onClick={handleCreateClick}
+                className="min-h-11 w-full sm:w-auto"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 {t("networks.createNetwork")}
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90dvh] overflow-y-auto [overflow-wrap:anywhere]">
               <DialogHeader>
                 <DialogTitle>{t("networks.createNetwork")}</DialogTitle>
                 <DialogDescription>
@@ -377,8 +399,8 @@ function NetworksPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="create-domain" className="text-right">
+                <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="create-domain" className="sm:text-right">
                     {t("domains.domain")}
                   </Label>
                   <select
@@ -387,9 +409,9 @@ function NetworksPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, domain_id: e.target.value })
                     }
-                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring col-span-3 flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full min-w-0 rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-3"
                   >
-                    <option value="">Select a domain</option>
+                    <option value="">{t("domains.selectDomain")}</option>
                     {domainsQuery.data?.map((domain) => (
                       <option key={domain.id} value={domain.id}>
                         {domain.display_name} ({domain.name})
@@ -397,8 +419,8 @@ function NetworksPage() {
                     ))}
                   </select>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="create-name" className="text-right">
+                <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="create-name" className="sm:text-right">
                     {t("networks.name")}
                   </Label>
                   <Input
@@ -408,7 +430,7 @@ function NetworksPage() {
                       setFormData({ ...formData, name: e.target.value })
                     }
                     placeholder={t("networks.namePlaceholder")}
-                    className="col-span-3"
+                    className="min-w-0 sm:col-span-3"
                   />
                 </div>
 
@@ -431,19 +453,17 @@ function NetworksPage() {
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-                        Important: Network ranges cannot be changed
+                        {t("inventory.immutableRangesTitle")}
                       </h3>
                       <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-                        Once created, IPv4 and IPv6 CIDR ranges cannot be
-                        modified. Please ensure the network configuration is
-                        correct before creating.
+                        {t("inventory.immutableRangesDescription")}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="create-ipv4" className="text-right">
+                <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="create-ipv4" className="sm:text-right">
                     {t("networks.ipv4Cidr")}
                   </Label>
                   <Input
@@ -453,11 +473,11 @@ function NetworksPage() {
                       setFormData({ ...formData, ipv4_cidr: e.target.value })
                     }
                     placeholder="10.0.0.0/24"
-                    className="col-span-3"
+                    className="min-w-0 sm:col-span-3"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="create-ipv6" className="text-right">
+                <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="create-ipv6" className="sm:text-right">
                     {t("networks.ipv6Cidr")}
                   </Label>
                   <Input
@@ -467,7 +487,7 @@ function NetworksPage() {
                       setFormData({ ...formData, ipv6_cidr: e.target.value })
                     }
                     placeholder="2001:db8::/32"
-                    className="col-span-3"
+                    className="min-w-0 sm:col-span-3"
                   />
                 </div>
               </div>
@@ -487,208 +507,100 @@ function NetworksPage() {
             </DialogContent>
           </Dialog>
         </div>
-
-        {/* Display filter info */}
-        {(networkSearchQuery || domainSearchQuery) && (
-          <div className="text-muted-foreground mb-4 text-sm">
-            Showing {filteredNetworks.length} of{" "}
-            {networksQuery.data?.length || 0} networks
-            {filteredNetworks.length === 0 && (
-              <span className="ml-2 text-amber-600 dark:text-amber-400">
-                No networks found matching your filters
-              </span>
-            )}
-          </div>
-        )}
-
-        <div className="border-border bg-card overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <SortableTableHead
-                  sortKey="name"
-                  sort={sort}
-                  onSort={toggleSort}
-                >
-                  {t("networks.name")}
-                </SortableTableHead>
-                <SortableTableHead sortKey="id" sort={sort} onSort={toggleSort}>
-                  Network ID
-                </SortableTableHead>
-                <SortableTableHead
-                  sortKey="domain"
-                  sort={sort}
-                  onSort={toggleSort}
-                >
-                  {t("domains.domain")}
-                </SortableTableHead>
-                <SortableTableHead
-                  sortKey="ipv4"
-                  sort={sort}
-                  onSort={toggleSort}
-                >
-                  {t("networks.ipv4Cidr")}
-                </SortableTableHead>
-                <SortableTableHead
-                  sortKey="ipv6"
-                  sort={sort}
-                  onSort={toggleSort}
-                >
-                  {t("networks.ipv6Cidr")}
-                </SortableTableHead>
-                <SortableTableHead
-                  sortKey="created"
-                  sort={sort}
-                  onSort={toggleSort}
-                >
-                  {t("common.createdAt")}
-                </SortableTableHead>
-                <TableHead className="text-right">
-                  {t("common.actions")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedNetworks.map((network) => (
-                <TableRow key={network.id} className="hover:bg-muted/50">
-                  <TableCell className="font-medium">
-                    <Link
-                      to="/devices"
-                      search={{ networkName: network.name }}
-                      className="text-blue-600 hover:underline dark:text-blue-400"
-                    >
-                      {network.name}
+        <section
+          className="bg-card overflow-hidden rounded-lg border"
+          aria-label={t("networks.title")}
+        >
+          <InventoryToolbar
+            searches={[
+              {
+                label: t("inventory.searchNetworks"),
+                placeholder: t("inventory.networkSearchPlaceholder"),
+                value: networkSearchQuery,
+                onChange: setNetworkSearchQuery,
+              },
+              {
+                label: t("inventory.filterDomain"),
+                placeholder: t("inventory.domainFilterPlaceholder"),
+                value: domainSearchQuery,
+                onChange: setDomainSearchQuery,
+              },
+            ]}
+            sort={sort}
+            onSortChange={setSort}
+            sortOptions={[
+              { key: "name", label: t("networks.name") },
+              { key: "id", label: t("inventory.networkId") },
+              { key: "domain", label: t("domains.domain") },
+              { key: "ipv4", label: t("networks.ipv4Cidr") },
+              { key: "ipv6", label: t("networks.ipv6Cidr") },
+              { key: "created", label: t("inventory.created") },
+            ]}
+            count={filteredNetworks.length}
+            total={networksQuery.data?.length ?? 0}
+            onRefresh={() => {
+              void networksQuery.refetch();
+              void domainsQuery.refetch();
+            }}
+            isRefreshing={networksQuery.isFetching || domainsQuery.isFetching}
+          />
+          <InventoryList
+            rows={sortedNetworks}
+            columns={columns}
+            sort={sort}
+            onSort={toggleSort}
+            label={t("networks.title")}
+            emptyMessage={
+              networkSearchQuery.trim() || domainSearchQuery.trim()
+                ? t("inventory.noMatches")
+                : t("networks.noNetworks")
+            }
+            actions={(network) => (
+              <InventoryActions
+                name={network.name}
+                disabled={
+                  updateNetworkMutation.isPending ||
+                  deleteNetworkMutation.isPending
+                }
+                primary={
+                  <Button variant="secondary" size="sm" asChild>
+                    <Link to="/devices" search={{ networkName: network.name }}>
+                      <NetworkIcon aria-hidden="true" className="size-4" />
+                      {t("devices.title")}
                     </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="text-muted-foreground hover:text-foreground cursor-help font-mono text-sm transition-colors">
-                          {shortenUUID(network.id)}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="font-mono text-xs">{network.id}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell>
-                    {(network as NetworkWithDomain).domain ? (
-                      <Link
-                        to="/domains/$id"
-                        params={{
-                          id: (network as NetworkWithDomain).domain!.id,
-                        }}
-                        className="inline-block transition-opacity hover:opacity-70"
-                      >
-                        <Badge
-                          variant="outline"
-                          className="cursor-pointer font-mono"
-                        >
-                          {(network as NetworkWithDomain).domain?.display_name}
-                        </Badge>
-                      </Link>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground font-mono text-sm">
-                    {network.ipv4_cidr ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground font-mono text-sm">
-                    {network.ipv6_cidr ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {new Date(network.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link
-                              to="/debug/network-jobs"
-                              search={{ networkName: network.name }}
-                            >
-                              <Bug className="h-4 w-4" />
-                              <span className="sr-only">
-                                Debug {network.name}
-                              </span>
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Debug</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              handleEditClick(network as NetworkWithDomain)
-                            }
-                            disabled={
-                              updateNetworkMutation.isPending ||
-                              deleteNetworkMutation.isPending
-                            }
-                          >
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">
-                              {t("networks.editNetwork")} {network.name}
-                            </span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Edit</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              handleDeleteClick(network as NetworkWithDomain)
-                            }
-                            disabled={
-                              updateNetworkMutation.isPending ||
-                              deleteNetworkMutation.isPending
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">
-                              {t("networks.deleteNetwork")} {network.name}
-                            </span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Delete</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredNetworks.length === 0 && !domainSearchQuery && (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-muted-foreground py-8 text-center"
+                  </Button>
+                }
+              >
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/debug/network-jobs"
+                    search={{ networkName: network.name }}
                   >
-                    {t("networks.noNetworks")}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                    <ListChecks aria-hidden="true" />
+                    {t("inventory.viewJobs")}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => handleEditClick(network)}>
+                  <Pencil aria-hidden="true" />
+                  {t("networks.editNetwork")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={() => handleDeleteClick(network)}
+                >
+                  <Trash2 aria-hidden="true" />
+                  {t("networks.deleteNetwork")}
+                </DropdownMenuItem>
+              </InventoryActions>
+            )}
+          />
+        </section>
       </div>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto [overflow-wrap:anywhere]">
           <DialogHeader>
             <DialogTitle>{t("networks.editNetwork")}</DialogTitle>
             <DialogDescription>
@@ -696,18 +608,21 @@ function NetworksPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-domain" className="text-right">
+            <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="edit-domain" className="sm:text-right">
                 {t("domains.domain")}
               </Label>
-              <div className="col-span-3">
-                <Badge variant="secondary" className="font-mono">
-                  {selectedNetwork?.domain?.display_name || "—"}
+              <div className="min-w-0 sm:col-span-3">
+                <Badge
+                  variant="secondary"
+                  className="max-w-full font-mono [overflow-wrap:anywhere] whitespace-normal"
+                >
+                  {selectedNetwork?.domain?.display_name ?? "—"}
                 </Badge>
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-name" className="text-right">
+            <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="edit-name" className="sm:text-right">
                 {t("networks.name")}
               </Label>
               <Input
@@ -717,14 +632,14 @@ function NetworksPage() {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 placeholder={t("networks.namePlaceholder")}
-                className="col-span-3"
+                className="min-w-0 sm:col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-ipv4" className="text-right">
+            <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="edit-ipv4" className="sm:text-right">
                 {t("networks.ipv4Cidr")}
               </Label>
-              <div className="col-span-3">
+              <div className="min-w-0 sm:col-span-3">
                 <Input
                   id="edit-ipv4"
                   value={formData.ipv4_cidr}
@@ -733,15 +648,15 @@ function NetworksPage() {
                   className="cursor-not-allowed opacity-60"
                 />
                 <p className="text-muted-foreground mt-1 text-xs">
-                  Network CIDR cannot be changed after creation
+                  {t("inventory.immutableRange")}
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-ipv6" className="text-right">
+            <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="edit-ipv6" className="sm:text-right">
                 {t("networks.ipv6Cidr")}
               </Label>
-              <div className="col-span-3">
+              <div className="min-w-0 sm:col-span-3">
                 <Input
                   id="edit-ipv6"
                   value={formData.ipv6_cidr}
@@ -750,7 +665,7 @@ function NetworksPage() {
                   className="cursor-not-allowed opacity-60"
                 />
                 <p className="text-muted-foreground mt-1 text-xs">
-                  Network CIDR cannot be changed after creation
+                  {t("inventory.immutableRange")}
                 </p>
               </div>
             </div>
@@ -776,7 +691,7 @@ function NetworksPage() {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-h-[90dvh] overflow-y-auto [overflow-wrap:anywhere]">
           <AlertDialogHeader>
             <AlertDialogTitle>{t("networks.deleteNetwork")}</AlertDialogTitle>
             <AlertDialogDescription>

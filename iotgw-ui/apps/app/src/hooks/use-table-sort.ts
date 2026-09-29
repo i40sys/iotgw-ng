@@ -70,5 +70,5 @@ export function useTableSort<T, K extends string>(
       .map(({ row }) => row);
   }, [rows, sort, accessors]);
 
-  return { sort, toggleSort, sortedRows };
+  return { sort, setSort, toggleSort, sortedRows };
 }

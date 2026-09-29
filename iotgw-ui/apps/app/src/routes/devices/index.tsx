@@ -6,7 +6,18 @@ import { z } from "zod";
 import type { Device } from "@iotgw/supabase-contract";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import {
+  InventoryActions,
+  InventoryDate,
+  InventoryList,
+  InventoryToolbar,
+  type InventoryColumn,
+} from "@/components/inventory-list";
+import {
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { matchesInventorySearch } from "@/lib/inventory";
 import { ipSortValue, useTableSort } from "@/hooks/use-table-sort";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,32 +50,23 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import {
+  Pencil,
+  Trash2,
+  ListChecks,
+  Eye,
+  KeyRound,
+  Rocket,
+  LoaderCircle,
+} from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faPen,
-  faTrash,
   faPlus,
-  faEye,
-  faEyeSlash,
-  faNetworkWired,
-  faWifi,
-  faSearch,
-  faBug,
   faHourglass,
-  faRocket,
-  faX,
   faKey,
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Tooltip,
   TooltipTrigger,
@@ -117,9 +119,8 @@ function DevicesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isTOTPDialogOpen, setIsTOTPDialogOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
-  const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [networkSearchQuery, setNetworkSearchQuery] = useState(
-    networkName || "",
+    networkName ?? "",
   );
   const [deviceSearchQuery, setDeviceSearchQuery] = useState("");
   const [formData, setFormData] = useState<DeviceFormData>({
@@ -161,13 +162,18 @@ function DevicesPage() {
   }, [deviceJobsQuery.data]);
 
   const isDeviceProvisioning = (device: Device): boolean => {
-    if (device.public_key && device.private_key) return false; // keys ready
+    // The public key marks provisioning done: since decision-035 the private key
+    // may be gateway-held, so devices.private_key is legitimately null.
+    if (device.public_key) return false;
     const job = latestJobByDevice.get(device.id);
     if (job && ACTIVE_JOB.has(job.status)) return true; // in progress
     if (job && job.status === "SUCCESS") return true; // keys not synced yet
     if (!job) {
       // The job row appears within ~1s of creation — spin briefly until it does.
-      return Date.now() - new Date(device.created_at).getTime() < 30_000;
+      return (
+        device.created_at !== null &&
+        Date.now() - new Date(device.created_at).getTime() < 30_000
+      );
     }
     return false; // FAILED
   };
@@ -181,6 +187,13 @@ function DevicesPage() {
   });
   const networksQuery = useQuery(trpc.getNetworks.queryOptions());
   const domainsQuery = useQuery(trpc.getDomains.queryOptions());
+  const networkById = useMemo(
+    () =>
+      new Map(
+        (networksQuery.data ?? []).map((network) => [network.id, network]),
+      ),
+    [networksQuery.data],
+  );
 
   const createDeviceMutation = useMutation({
     ...trpc.createDevice.mutationOptions(),
@@ -194,6 +207,7 @@ function DevicesPage() {
       });
       setIsCreateDialogOpen(false);
       setFormData({
+        domain_id: "",
         network_id: "",
         name: "",
         description: "",
@@ -217,6 +231,7 @@ function DevicesPage() {
       setIsEditDialogOpen(false);
       setSelectedDevice(null);
       setFormData({
+        domain_id: "",
         network_id: "",
         name: "",
         description: "",
@@ -270,7 +285,6 @@ function DevicesPage() {
       private_key: "",
       public_key: "",
     });
-    setShowPrivateKey(false);
     setIsCreateDialogOpen(true);
   };
 
@@ -282,11 +296,10 @@ function DevicesPage() {
       network_id: device.network_id,
       name: device.name,
       description: device.description ?? "",
-      ip_address: device.ip_address,
+      ip_address: device.ip_address ?? "",
       private_key: device.private_key ?? "",
       public_key: device.public_key ?? "",
     });
-    setShowPrivateKey(false);
     setIsEditDialogOpen(true);
   };
 
@@ -378,16 +391,6 @@ function DevicesPage() {
     deleteDeviceMutation.mutate({ id: selectedDevice.id });
   };
 
-  const getNetworkName = (networkId: string) => {
-    const network = networksQuery.data?.find((n) => n.id === networkId);
-    return network?.name ?? "Unknown";
-  };
-
-  const shortenUUID = (uuid: string) => {
-    // Show first 8 characters of UUID
-    return uuid.slice(0, 8);
-  };
-
   // Filter networks based on selected domain
   const filteredNetworks = useMemo(() => {
     if (!networksQuery.data) return [];
@@ -406,134 +409,197 @@ function DevicesPage() {
     | "keys"
     | "created";
 
-  const filteredDevices = useMemo(() => {
-    if (!devicesQuery.data) return [];
-
-    return devicesQuery.data.filter((device) => {
-      // Filter by device name
-      const matchesDeviceName = deviceSearchQuery
-        ? device.name.toLowerCase().includes(deviceSearchQuery.toLowerCase())
-        : true;
-
-      // Filter by network name
-      const matchesNetworkName = networkSearchQuery
-        ? getNetworkName(device.network_id)
-            .toLowerCase()
-            .includes(networkSearchQuery.toLowerCase())
-        : true;
-
-      return matchesDeviceName && matchesNetworkName;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    devicesQuery.data,
-    deviceSearchQuery,
-    networkSearchQuery,
-    networksQuery.data,
-  ]);
+  const filteredDevices = useMemo(
+    () =>
+      (devicesQuery.data ?? []).filter(
+        (device) =>
+          matchesInventorySearch(
+            deviceSearchQuery,
+            device.name,
+            device.id,
+            device.description,
+            device.ip_address,
+          ) &&
+          matchesInventorySearch(
+            networkSearchQuery,
+            networkById.get(device.network_id)?.name,
+            device.network_id,
+          ),
+      ),
+    [devicesQuery.data, deviceSearchQuery, networkSearchQuery, networkById],
+  );
 
   const sortAccessors = useMemo(
     () => ({
       name: (d: Device) => d.name,
-      network: (d: Device) => getNetworkName(d.network_id),
+      network: (d: Device) => networkById.get(d.network_id)?.name,
       ip: (d: Device) => ipSortValue(d.ip_address),
       description: (d: Device) => d.description,
       // 2 = KMS key + WireGuard keys, 1 = KMS key only, 0 = nothing yet
       keys: (d: Device) =>
         (d.ssh_key_id ? 1 : 0) + (d.public_key && d.private_key ? 1 : 0),
-      created: (d: Device) => new Date(d.created_at).getTime(),
+      created: (d: Device) =>
+        d.created_at ? new Date(d.created_at).getTime() : null,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [networksQuery.data],
+    [networkById],
   );
   const {
     sort,
+    setSort,
     toggleSort,
     sortedRows: sortedDevices,
   } = useTableSort<Device, DeviceSortKey>(filteredDevices, sortAccessors);
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mx-auto max-w-7xl">
-        {/* Search Filters and Create Button */}
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex gap-3">
-            {/* Network Name Filter */}
-            <div className="relative w-64">
-              <FontAwesomeIcon
-                icon={faSearch}
-                className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
-                aria-hidden="true"
-              />
-              <Input
-                placeholder="Search by network..."
-                value={networkSearchQuery}
-                onChange={(e) => setNetworkSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-              {networkSearchQuery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-1/2 right-1 h-7 -translate-y-1/2 px-2"
-                  onClick={() => setNetworkSearchQuery("")}
+  const columns: InventoryColumn<Device, DeviceSortKey>[] = [
+    {
+      key: "device",
+      label: t("devices.device"),
+      sortKey: "name",
+      render: (device) => (
+        <div className="space-y-1.5">
+          <Link
+            to="/devices/$id"
+            params={{ id: device.id }}
+            className="text-primary font-semibold hover:underline"
+          >
+            {device.name}
+          </Link>
+          <p className="text-muted-foreground font-mono text-xs">{device.id}</p>
+          {device.description && (
+            <p className="text-sm">{device.description}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "network",
+      label: t("inventory.networkAndAddress"),
+      sortKey: "network",
+      className: "w-[26%]",
+      render: (device) => {
+        const network = networkById.get(device.network_id);
+        return (
+          <div className="space-y-2">
+            <div className="space-y-1">
+              {network ? (
+                <Link
+                  to="/networks"
+                  search={{ networkName: network.name }}
+                  className="text-primary font-medium hover:underline"
                 >
-                  <FontAwesomeIcon icon={faX} className="h-3 w-3" />
-                </Button>
+                  {network.name}
+                </Link>
+              ) : (
+                <p>{t("inventory.notAvailable")}</p>
               )}
+              <p className="text-muted-foreground font-mono text-xs">
+                {device.network_id}
+              </p>
             </div>
-
-            {/* Device Name Filter */}
-            <div className="relative w-64">
-              <FontAwesomeIcon
-                icon={faSearch}
-                className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
-                aria-hidden="true"
-              />
-              <Input
-                placeholder="Search by device name..."
-                value={deviceSearchQuery}
-                onChange={(e) => setDeviceSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-              {deviceSearchQuery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-1/2 right-1 h-7 -translate-y-1/2 px-2"
-                  onClick={() => setDeviceSearchQuery("")}
-                >
-                  <FontAwesomeIcon icon={faX} className="h-3 w-3" />
-                </Button>
+            <dl className="text-xs">
+              <dt className="text-muted-foreground">
+                {t("devices.ipAddress")}
+              </dt>
+              <dd className="mt-1 font-mono">
+                {device.ip_address ?? t("inventory.notAssigned")}
+              </dd>
+            </dl>
+          </div>
+        );
+      },
+    },
+    {
+      key: "keys",
+      label: t("inventory.keys"),
+      sortKey: "keys",
+      className: "w-40",
+      render: (device) => (
+        <div className="space-y-2">
+          {renderSshKeyStatus(device.ssh_key_id)}
+          <div className="space-y-1">
+            <p className="text-muted-foreground text-xs">WireGuard</p>
+            <div className="flex flex-wrap gap-1">
+              {device.public_key && (
+                <Badge variant="secondary">{t("inventory.publicKey")}</Badge>
               )}
+              {device.private_key && (
+                <Badge variant="secondary">{t("inventory.privateKey")}</Badge>
+              )}
+              {!device.public_key &&
+                (isDeviceProvisioning(device) ? (
+                  <Badge
+                    variant="outline"
+                    className="max-w-full gap-1 whitespace-normal"
+                  >
+                    <LoaderCircle
+                      aria-hidden="true"
+                      className="size-3 shrink-0 animate-spin"
+                    />
+                    {t("inventory.provisioning")}
+                  </Badge>
+                ) : latestJobByDevice.get(device.id)?.status === "FAILED" ? (
+                  <Badge variant="destructive" className="whitespace-normal">
+                    {t("inventory.failed")}
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground text-xs">
+                    {t("inventory.notConfigured")}
+                  </span>
+                ))}
             </div>
           </div>
+        </div>
+      ),
+    },
+    {
+      key: "created",
+      label: t("inventory.created"),
+      sortKey: "created",
+      className: "w-32",
+      render: (device) => <InventoryDate value={device.created_at} />,
+    },
+  ];
 
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="@container mx-auto max-w-7xl space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {t("devices.title")}
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {t("inventory.devicesDescription")}
+            </p>
+          </div>
           <Dialog
             open={isCreateDialogOpen}
             onOpenChange={setIsCreateDialogOpen}
           >
             <DialogTrigger asChild>
-              <Button onClick={handleCreateClick} className="shrink-0">
+              <Button
+                onClick={handleCreateClick}
+                className="min-h-11 w-full sm:w-auto"
+              >
                 <FontAwesomeIcon
                   icon={faPlus}
                   className="mr-2 h-4 w-4"
                   aria-hidden="true"
                 />
-                Create Device
+                {t("inventory.createDevice")}
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-h-[90dvh] overflow-y-auto [overflow-wrap:anywhere] sm:max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Create Device</DialogTitle>
+                <DialogTitle>{t("inventory.createDevice")}</DialogTitle>
                 <DialogDescription>
-                  Add a new device to your network infrastructure.
+                  {t("inventory.createDeviceDescription")}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="create-domain" className="text-right">
-                    Domain *
+                <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="create-domain" className="sm:text-right">
+                    {t("inventory.domainRequired")}
                   </Label>
                   <Select
                     value={formData.domain_id}
@@ -545,10 +611,13 @@ function DevicesPage() {
                       });
                     }}
                   >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select a domain" />
+                    <SelectTrigger
+                      id="create-domain"
+                      className="h-auto min-h-10 min-w-0 text-left whitespace-normal sm:col-span-3 [&>span]:line-clamp-none [&>span]:[overflow-wrap:anywhere] [&>svg]:shrink-0"
+                    >
+                      <SelectValue placeholder={t("inventory.selectDomain")} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-w-[calc(100vw-3rem)] [&_[role=option]]:[overflow-wrap:anywhere]">
                       {domainsQuery.data?.map((domain) => (
                         <SelectItem key={domain.id} value={domain.id}>
                           {domain.name}
@@ -557,9 +626,9 @@ function DevicesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="create-network" className="text-right">
-                    Network *
+                <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="create-network" className="sm:text-right">
+                    {t("inventory.networkRequired")}
                   </Label>
                   <Select
                     value={formData.network_id}
@@ -568,18 +637,19 @@ function DevicesPage() {
                     }
                   >
                     <SelectTrigger
-                      className="col-span-3"
+                      id="create-network"
+                      className="h-auto min-h-10 min-w-0 text-left whitespace-normal sm:col-span-3 [&>span]:line-clamp-none [&>span]:[overflow-wrap:anywhere] [&>svg]:shrink-0"
                       disabled={!formData.domain_id}
                     >
                       <SelectValue
                         placeholder={
                           formData.domain_id
-                            ? "Select a network"
-                            : "Select a domain first"
+                            ? t("inventory.selectNetwork")
+                            : t("inventory.selectDomainFirst")
                         }
                       />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-w-[calc(100vw-3rem)] [&_[role=option]]:[overflow-wrap:anywhere]">
                       {filteredNetworks.map((network) => (
                         <SelectItem key={network.id} value={network.id}>
                           {network.name}
@@ -588,9 +658,9 @@ function DevicesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="create-name" className="text-right">
-                    Name *
+                <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="create-name" className="sm:text-right">
+                    {t("inventory.nameRequired")}
                   </Label>
                   <Input
                     id="create-name"
@@ -598,13 +668,13 @@ function DevicesPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    placeholder="Device name"
-                    className="col-span-3"
+                    placeholder={t("inventory.deviceNamePlaceholder")}
+                    className="min-w-0 sm:col-span-3"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="create-description" className="text-right">
-                    Description
+                <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="create-description" className="sm:text-right">
+                    {t("inventory.description")}
                   </Label>
                   <Textarea
                     id="create-description"
@@ -612,49 +682,49 @@ function DevicesPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
                     }
-                    placeholder="Device description (optional)"
-                    className="col-span-3"
+                    placeholder={t("inventory.deviceDescriptionPlaceholder")}
+                    className="min-w-0 sm:col-span-3"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="create-ip" className="text-right">
-                    IP Address
+                <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="create-ip" className="sm:text-right">
+                    {t("inventory.ipAddress")}
                   </Label>
-                  <div className="col-span-3">
+                  <div className="min-w-0 sm:col-span-3">
                     <div className="bg-muted text-muted-foreground flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
                       <FontAwesomeIcon
                         icon={faHourglass}
                         className="h-4 w-4"
                         aria-hidden="true"
                       />
-                      <span>IP will be assigned soon</span>
+                      <span>{t("inventory.ipPending")}</span>
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="create-public-key" className="text-right">
-                    Public Key
+                <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="create-public-key" className="sm:text-right">
+                    {t("inventory.publicKeyLabel")}
                   </Label>
-                  <div className="col-span-3">
+                  <div className="min-w-0 sm:col-span-3">
                     <Input
                       id="create-public-key"
                       value={formData.public_key}
                       disabled
-                      placeholder="Generated automatically"
+                      placeholder={t("inventory.generatedAutomatically")}
                       className="font-mono text-sm"
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="create-private-key" className="text-right">
-                    Private Key
+                <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="create-private-key" className="sm:text-right">
+                    {t("inventory.privateKeyLabel")}
                   </Label>
-                  <div className="col-span-3">
+                  <div className="min-w-0 sm:col-span-3">
                     <Input
                       id="create-private-key"
                       value={formData.private_key}
                       disabled
-                      placeholder="Generated automatically"
+                      placeholder={t("inventory.generatedAutomatically")}
                       className="font-mono text-sm"
                     />
                   </div>
@@ -669,354 +739,141 @@ function DevicesPage() {
                   {createDeviceMutation.isPending ? (
                     <LoadingSpinner />
                   ) : (
-                    "Create Device"
+                    t("inventory.createDevice")
                   )}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
-
-        {/* Results Count */}
-        {(networkSearchQuery || deviceSearchQuery) && (
-          <div className="text-muted-foreground mb-3 text-sm">
-            Showing {filteredDevices.length} of {devicesQuery.data?.length ?? 0}{" "}
-            devices
-          </div>
-        )}
-
-        <div className="border-border bg-card overflow-hidden rounded-lg border">
-          <Table className="[&_td]:px-3 [&_th]:px-3">
-            <TableHeader>
-              <TableRow>
-                <SortableTableHead
-                  sortKey="name"
-                  sort={sort}
-                  onSort={toggleSort}
-                >
-                  Name
-                </SortableTableHead>
-                <SortableTableHead
-                  sortKey="network"
-                  sort={sort}
-                  onSort={toggleSort}
-                  className="hidden md:table-cell"
-                >
-                  Network
-                </SortableTableHead>
-                <SortableTableHead sortKey="ip" sort={sort} onSort={toggleSort}>
-                  IP Address
-                </SortableTableHead>
-                <SortableTableHead
-                  sortKey="description"
-                  sort={sort}
-                  onSort={toggleSort}
-                  className="hidden lg:table-cell"
-                >
-                  Description
-                </SortableTableHead>
-                <SortableTableHead
-                  sortKey="keys"
-                  sort={sort}
-                  onSort={toggleSort}
-                >
-                  Keys
-                </SortableTableHead>
-                <SortableTableHead
-                  sortKey="created"
-                  sort={sort}
-                  onSort={toggleSort}
-                  className="hidden xl:table-cell"
-                >
-                  Created At
-                </SortableTableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedDevices.map((device) => (
-                <TableRow key={device.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <FontAwesomeIcon
-                        icon={faWifi}
-                        className="text-muted-foreground h-4 w-4"
-                        aria-hidden="true"
-                      />
-                      <div>
-                        <Link
-                          to="/devices/$id"
-                          params={{ id: device.id }}
-                          className="font-medium whitespace-nowrap text-blue-600 hover:underline dark:text-blue-400"
-                        >
-                          {device.name}
-                        </Link>
-                        <div className="text-muted-foreground text-xs md:hidden">
-                          {getNetworkName(device.network_id)}
-                        </div>
-                        {device.description && (
-                          <div className="text-muted-foreground max-w-[10rem] truncate text-xs lg:hidden">
-                            {device.description}
-                          </div>
-                        )}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="text-muted-foreground cursor-help font-mono text-xs">
-                              {shortenUUID(device.id)}
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="font-mono text-xs">{device.id}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <div className="flex items-center gap-2">
-                      <FontAwesomeIcon
-                        icon={faNetworkWired}
-                        className="text-muted-foreground h-4 w-4"
-                        aria-hidden="true"
-                      />
-                      <div>
-                        <Link
-                          to="/networks"
-                          search={{
-                            networkName: getNetworkName(device.network_id),
-                          }}
-                          className="font-medium whitespace-nowrap text-blue-600 hover:underline dark:text-blue-400"
-                        >
-                          {getNetworkName(device.network_id)}
-                        </Link>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="text-muted-foreground cursor-help font-mono text-xs">
-                              {shortenUUID(device.network_id)}
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="font-mono text-xs">
-                              {device.network_id}
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className="font-mono whitespace-nowrap"
+        <section
+          className="bg-card overflow-hidden rounded-lg border"
+          aria-label={t("devices.title")}
+        >
+          <InventoryToolbar
+            searches={[
+              {
+                label: t("inventory.searchDevices"),
+                placeholder: t("inventory.deviceSearchPlaceholder"),
+                value: deviceSearchQuery,
+                onChange: setDeviceSearchQuery,
+              },
+              {
+                label: t("inventory.filterNetwork"),
+                placeholder: t("inventory.networkFilterPlaceholder"),
+                value: networkSearchQuery,
+                onChange: setNetworkSearchQuery,
+              },
+            ]}
+            sort={sort}
+            onSortChange={setSort}
+            sortOptions={[
+              { key: "name", label: t("inventory.name") },
+              { key: "network", label: t("networks.network") },
+              { key: "ip", label: t("devices.ipAddress") },
+              { key: "description", label: t("inventory.description") },
+              { key: "keys", label: t("inventory.keys") },
+              { key: "created", label: t("inventory.created") },
+            ]}
+            count={filteredDevices.length}
+            total={devicesQuery.data?.length ?? 0}
+            onRefresh={() => {
+              void devicesQuery.refetch();
+              void networksQuery.refetch();
+              void domainsQuery.refetch();
+              void deviceJobsQuery.refetch();
+            }}
+            isRefreshing={
+              devicesQuery.isFetching ||
+              networksQuery.isFetching ||
+              domainsQuery.isFetching ||
+              deviceJobsQuery.isFetching
+            }
+          />
+          <InventoryList
+            rows={sortedDevices}
+            columns={columns}
+            sort={sort}
+            onSort={toggleSort}
+            label={t("devices.title")}
+            emptyMessage={
+              deviceSearchQuery.trim() || networkSearchQuery.trim()
+                ? t("inventory.noMatches")
+                : t("devices.noDevices")
+            }
+            actions={(device) => (
+              <InventoryActions
+                name={device.name}
+                disabled={
+                  updateDeviceMutation.isPending ||
+                  deleteDeviceMutation.isPending
+                }
+                primary={
+                  <Button variant="secondary" size="sm" asChild>
+                    <Link
+                      to="/deployments"
+                      search={{
+                        deviceId: device.id,
+                        networkId: device.network_id,
+                        domainId: networkById.get(device.network_id)?.domain_id,
+                      }}
                     >
-                      {device.ip_address}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden max-w-[12rem] truncate lg:table-cell xl:max-w-xs">
-                    {device.description ?? "-"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex max-w-[7rem] flex-wrap items-center gap-1 lg:max-w-[11rem]">
-                      {renderSshKeyStatus(device.ssh_key_id ?? null)}
-                      {device.public_key && (
-                        <Badge variant="outline" className="text-xs">
-                          Public
-                        </Badge>
-                      )}
-                      {device.private_key && (
-                        <Badge variant="outline" className="text-xs">
-                          Private
-                        </Badge>
-                      )}
-                      {!device.public_key &&
-                        !device.private_key &&
-                        (isDeviceProvisioning(device) ? (
-                          <span className="text-muted-foreground flex items-center gap-1 text-xs">
-                            <span
-                              className="border-primary h-3 w-3 animate-spin rounded-full border-2 border-t-transparent"
-                              aria-hidden="true"
-                            />
-                            Provisioning…
-                          </span>
-                        ) : latestJobByDevice.get(device.id)?.status ===
-                          "FAILED" ? (
-                          <Badge variant="destructive" className="text-xs">
-                            Failed
-                          </Badge>
-                        ) : (
-                          "-"
-                        ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden whitespace-nowrap xl:table-cell">
-                    {new Date(device.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="ml-auto inline-grid grid-cols-[repeat(2,max-content)] gap-1 lg:grid-cols-[repeat(3,max-content)] xl:flex xl:items-center xl:justify-end">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link
-                              to="/deployments"
-                              search={{
-                                deviceId: device.id,
-                                networkId: device.network_id,
-                                domainId: networksQuery.data?.find(
-                                  (n) => n.id === device.network_id,
-                                )?.domain_id,
-                              }}
-                            >
-                              <FontAwesomeIcon
-                                icon={faRocket}
-                                className="h-4 w-4"
-                                aria-hidden="true"
-                              />
-                              <span className="sr-only">
-                                Deploy to {device.name}
-                              </span>
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Deploy</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link to="/devices/$id" params={{ id: device.id }}>
-                              <FontAwesomeIcon
-                                icon={faEye}
-                                className="h-4 w-4"
-                                aria-hidden="true"
-                              />
-                              <span className="sr-only">
-                                Details for {device.name}
-                              </span>
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Details</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleTOTPClick(device)}
-                          >
-                            <FontAwesomeIcon
-                              icon={faKey}
-                              className="h-4 w-4"
-                              aria-hidden="true"
-                            />
-                            <span className="sr-only">
-                              One-time code for {device.name}
-                            </span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>One-time code</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link
-                              to="/debug/device-jobs"
-                              search={{ deviceName: device.name }}
-                            >
-                              <FontAwesomeIcon
-                                icon={faBug}
-                                className="h-4 w-4"
-                                aria-hidden="true"
-                              />
-                              <span className="sr-only">
-                                Debug {device.name}
-                              </span>
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Debug</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditClick(device)}
-                          >
-                            <FontAwesomeIcon
-                              icon={faPen}
-                              className="h-4 w-4"
-                              aria-hidden="true"
-                            />
-                            <span className="sr-only">Edit {device.name}</span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Edit</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteClick(device)}
-                          >
-                            <FontAwesomeIcon
-                              icon={faTrash}
-                              className="h-4 w-4"
-                              aria-hidden="true"
-                            />
-                            <span className="sr-only">
-                              Delete {device.name}
-                            </span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Delete</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {!filteredDevices.length && (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-muted-foreground text-center"
+                      <Rocket aria-hidden="true" className="size-4" />
+                      {t("inventory.deploy")}
+                    </Link>
+                  </Button>
+                }
+              >
+                <DropdownMenuItem asChild>
+                  <Link to="/devices/$id" params={{ id: device.id }}>
+                    <Eye aria-hidden="true" />
+                    {t("inventory.details")}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleTOTPClick(device)}>
+                  <KeyRound aria-hidden="true" />
+                  {t("inventory.oneTimeCode")}
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/debug/device-jobs"
+                    search={{ deviceName: device.name }}
                   >
-                    {networkSearchQuery || deviceSearchQuery
-                      ? "No devices match the current filters"
-                      : "No devices found"}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                    <ListChecks aria-hidden="true" />
+                    {t("inventory.viewJobs")}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => handleEditClick(device)}>
+                  <Pencil aria-hidden="true" />
+                  {t("inventory.editDevice")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={() => handleDeleteClick(device)}
+                >
+                  <Trash2 aria-hidden="true" />
+                  {t("inventory.deleteDevice")}
+                </DropdownMenuItem>
+              </InventoryActions>
+            )}
+          />
+        </section>
       </div>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto [overflow-wrap:anywhere] sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Device</DialogTitle>
+            <DialogTitle>{t("inventory.editDevice")}</DialogTitle>
             <DialogDescription>
-              Update the device configuration.
+              {t("inventory.editDeviceDescription")}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-domain" className="text-right">
-                Domain *
+            <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="edit-domain" className="sm:text-right">
+                {t("inventory.domainRequired")}
               </Label>
               <Select
                 value={formData.domain_id}
@@ -1028,10 +885,13 @@ function DevicesPage() {
                   });
                 }}
               >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a domain" />
+                <SelectTrigger
+                  id="edit-domain"
+                  className="h-auto min-h-10 min-w-0 text-left whitespace-normal sm:col-span-3 [&>span]:line-clamp-none [&>span]:[overflow-wrap:anywhere] [&>svg]:shrink-0"
+                >
+                  <SelectValue placeholder={t("inventory.selectDomain")} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-w-[calc(100vw-3rem)] [&_[role=option]]:[overflow-wrap:anywhere]">
                   {domainsQuery.data?.map((domain) => (
                     <SelectItem key={domain.id} value={domain.id}>
                       {domain.name}
@@ -1040,9 +900,9 @@ function DevicesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-network" className="text-right">
-                Network *
+            <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="edit-network" className="sm:text-right">
+                {t("inventory.networkRequired")}
               </Label>
               <Select
                 value={formData.network_id}
@@ -1051,18 +911,19 @@ function DevicesPage() {
                 }
               >
                 <SelectTrigger
-                  className="col-span-3"
+                  id="edit-network"
+                  className="h-auto min-h-10 min-w-0 text-left whitespace-normal sm:col-span-3 [&>span]:line-clamp-none [&>span]:[overflow-wrap:anywhere] [&>svg]:shrink-0"
                   disabled={!formData.domain_id}
                 >
                   <SelectValue
                     placeholder={
                       formData.domain_id
-                        ? "Select a network"
-                        : "Select a domain first"
+                        ? t("inventory.selectNetwork")
+                        : t("inventory.selectDomainFirst")
                     }
                   />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-w-[calc(100vw-3rem)] [&_[role=option]]:[overflow-wrap:anywhere]">
                   {filteredNetworks.map((network) => (
                     <SelectItem key={network.id} value={network.id}>
                       {network.name}
@@ -1071,9 +932,9 @@ function DevicesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-name" className="text-right">
-                Name *
+            <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="edit-name" className="sm:text-right">
+                {t("inventory.nameRequired")}
               </Label>
               <Input
                 id="edit-name"
@@ -1081,13 +942,13 @@ function DevicesPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                placeholder="Device name"
-                className="col-span-3"
+                placeholder={t("inventory.deviceNamePlaceholder")}
+                className="min-w-0 sm:col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-description" className="text-right">
-                Description
+            <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="edit-description" className="sm:text-right">
+                {t("inventory.description")}
               </Label>
               <Textarea
                 id="edit-description"
@@ -1095,15 +956,15 @@ function DevicesPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                placeholder="Device description (optional)"
-                className="col-span-3"
+                placeholder={t("inventory.deviceDescriptionPlaceholder")}
+                className="min-w-0 sm:col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-ip" className="text-right">
-                IP Address
+            <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="edit-ip" className="sm:text-right">
+                {t("inventory.ipAddress")}
               </Label>
-              <div className="col-span-3">
+              <div className="min-w-0 sm:col-span-3">
                 {formData.ip_address ? (
                   <Input
                     id="edit-ip"
@@ -1118,35 +979,35 @@ function DevicesPage() {
                       className="h-4 w-4"
                       aria-hidden="true"
                     />
-                    <span>IP will be assigned soon</span>
+                    <span>{t("inventory.ipPending")}</span>
                   </div>
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-public-key" className="text-right">
-                Public Key
+            <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="edit-public-key" className="sm:text-right">
+                {t("inventory.publicKeyLabel")}
               </Label>
-              <div className="col-span-3">
+              <div className="min-w-0 sm:col-span-3">
                 <Input
                   id="edit-public-key"
                   value={formData.public_key}
                   disabled
-                  placeholder="Not set"
+                  placeholder={t("inventory.notConfigured")}
                   className="font-mono text-sm"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-private-key" className="text-right">
-                Private Key
+            <div className="grid min-w-0 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="edit-private-key" className="sm:text-right">
+                {t("inventory.privateKeyLabel")}
               </Label>
-              <div className="col-span-3">
+              <div className="min-w-0 sm:col-span-3">
                 <Input
                   id="edit-private-key"
                   value={formData.private_key ? "••••••••" : ""}
                   disabled
-                  placeholder="Not set"
+                  placeholder={t("inventory.notConfigured")}
                   className="font-mono text-sm"
                 />
               </div>
@@ -1161,7 +1022,7 @@ function DevicesPage() {
               {updateDeviceMutation.isPending ? (
                 <LoadingSpinner />
               ) : (
-                "Save Changes"
+                t("inventory.saveChanges")
               )}
             </Button>
           </DialogFooter>
@@ -1173,12 +1034,13 @@ function DevicesPage() {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-h-[90dvh] overflow-y-auto [overflow-wrap:anywhere]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Device</AlertDialogTitle>
+            <AlertDialogTitle>{t("inventory.deleteDevice")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{selectedDevice?.name}"? This
-              action cannot be undone.
+              {t("inventory.confirmDeleteDevice", {
+                name: selectedDevice?.name,
+              })}
             </AlertDialogDescription>
             <div className="mt-2 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               <FontAwesomeIcon
@@ -1189,13 +1051,17 @@ function DevicesPage() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("buttons.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={deleteDeviceMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
             >
-              {deleteDeviceMutation.isPending ? <LoadingSpinner /> : "Delete"}
+              {deleteDeviceMutation.isPending ? (
+                <LoadingSpinner />
+              ) : (
+                t("buttons.delete")
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
