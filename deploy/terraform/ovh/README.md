@@ -21,7 +21,8 @@ The real environment (task-142). kind stays as the dev cluster.
 ## Layout
 
 ```
-tf.sh            sops exec-env wrapper: tf.sh <infra|platform> <terraform args>
+tf.sh            sops exec-env wrapper: tf.sh <infra|platform|bootstrap> <terraform args>
+bootstrap/       protections on the state bucket itself (task-143)
 infra/           OVH: cluster import, node pool, Cloudflare records
 platform/        k8s: StackGres operator (helm), Secrets from SOPS, device-API
                  cert, and deploy/k8s/overlays/ovh (kbst/kustomization)
@@ -29,6 +30,23 @@ platform/        k8s: StackGres operator (helm), Secrets from SOPS, device-API
 
 Two root modules because the Kubernetes providers need the cluster to exist;
 `platform` reads the kubeconfig from the `infra` state.
+
+## State bucket security (task-143)
+
+`platform` state holds the k8s Secrets in plaintext (decision in task-143: keep
+them in Terraform, lock the bucket down). `bootstrap/` manages:
+
+- **Access:** only the dedicated S3 user `iotgw-ng-terraform-state` (OVH user
+  815403), whose S3 policy allows `s3:*` on this bucket only. OVH S3 has **no
+  bucket policies / Public Access Block** (`NotImplemented`); buckets belong to
+  their owner, the ACL is owner-only, and another project S3 user is denied
+  list/get/put (verified with a temporary probe user, 2026-09-29).
+- **At rest:** SSE AES256 default; existing state objects rewritten encrypted.
+- **Retention:** versioning on; noncurrent versions expire after 30 days
+  (older unencrypted versions age out the same way).
+
+Anyone holding the OVH project API credential can still create users and grant
+access — that credential is the trust root (SOPS, `secrets/ovh.enc.env`).
 
 ## Use
 
