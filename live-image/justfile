@@ -79,6 +79,22 @@ dist: check
     cd {{DIST}} && sha256sum iotgw-linux-* iotgw-live-overlay-linux-*.tar.gz iotgw-openwrt-linux-*.tar.gz remove.list > SHA256SUMS
     @cat {{DIST}}/SHA256SUMS
 
+# bootable live image (vmlinuz + initrd + filesystem.squashfs) from PINNED
+# upstream Clonezilla + this overlay, no SSH keys (task-149.01). Runs the build
+# as root in a Debian container; output in dist/image-<arch>/.
+IMAGE_BUILDER := "debian@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a"
+image arch="amd64": (overlay arch)
+    docker run --rm -e DEBIAN_FRONTEND=noninteractive -e SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}" \
+      -v "$PWD":/src -v "${IMAGE_CACHE:-iotgw-image-cache}":/cache -w /src {{IMAGE_BUILDER}} bash -c '\
+        apt-get update -qq && apt-get install -y -qq --no-install-recommends \
+          squashfs-tools unzip cpio xz-utils curl ca-certificates python3 >/dev/null && \
+        image/build.sh {{DIST}}/iotgw-live-overlay-linux-{{arch}}.tar.gz remove.list \
+          {{DIST}}/image-{{arch}} /cache && chown -R '"$(id -u):$(id -g)"' {{DIST}}/image-{{arch}}'
+
+# boot the built image under QEMU and require iotgw-bootstrap + sshd (task-149.01)
+image-test arch="amd64":
+    image/test-boot.sh {{DIST}}/image-{{arch}} 900
+
 # QEMU end-to-end test of the installed-OpenWRT agent (decision-032)
 e2e:
     ./test/qemu/run.sh
