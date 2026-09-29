@@ -1,9 +1,11 @@
 ---
 id: TASK-147
 title: Rotate the Cloudflare API token for i40sys.com
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-09-29 10:37'
+updated_date: '2026-09-29 17:51'
 labels:
   - security
   - ovh
@@ -23,8 +25,8 @@ priority: high
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 New token scoped to Zone:DNS:Edit on i40sys.com only
+- [x] #1 New token scoped to Zone:DNS:Edit on i40sys.com only
 - [ ] #2 Old token revoked in Cloudflare
-- [ ] #3 secrets/ovh.enc.env updated (sops set) and tf.sh infra plan shows no changes
-- [ ] #4 New token stored in Bitwarden, never pasted in chat
+- [x] #3 secrets/ovh.enc.env updated (sops set) and tf.sh infra plan shows no changes
+- [x] #4 New token stored in Bitwarden, never pasted in chat
 <!-- AC:END -->

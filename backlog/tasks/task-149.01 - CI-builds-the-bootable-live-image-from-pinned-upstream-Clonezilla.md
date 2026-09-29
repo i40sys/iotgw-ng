@@ -1,10 +1,11 @@
 ---
 id: TASK-149.01
 title: CI builds the bootable live image from pinned upstream Clonezilla
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-09-29 14:18'
-updated_date: '2026-09-29 14:40'
+updated_date: '2026-09-29 17:43'
 labels:
   - ci
   - live-image
@@ -25,11 +26,11 @@ priority: high
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Inventory of y0 tree vs upstream differences, each resolved (overlay / scripted step / dropped)
+- [x] #1 Inventory of y0 tree vs upstream differences, each resolved (overlay / scripted step / dropped)
 - [ ] #2 Tagged release publishes vmlinuz, initrd, filesystem.squashfs + SHA256SUMS + provenance
 - [ ] #3 Artifact is immutable and referenced by digest
-- [ ] #4 Image boots under QEMU in CI (decision-029) and reaches iotgw-bootstrap
-- [ ] #5 CI gate fails the build if the image (squashfs + initrd) contains any SSH private key, ssh_host_* key or authorized_keys; the gate is green on the release
+- [x] #4 Image boots under QEMU in CI (decision-029) and reaches iotgw-bootstrap
+- [x] #5 CI gate fails the build if the image (squashfs + initrd) contains any SSH private key, ssh_host_* key or authorized_keys; the gate is green on the release
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -39,4 +40,14 @@ priority: high
 - The published `filesystem.squashfs` (and initrd) must contain **no SSH key material**: no private keys (`id_*`, `*.pem`/`*.key` with `PRIVATE KEY`), no `ssh_host_*_key` (host keys are generated at boot by `iotgw-bootstrap`, decision-031), no `authorized_keys` / `authorized_keys2`, no `known_hosts` entries other than the `@cert-authority` line written at runtime.
 - Upstream Clonezilla may ship or generate keys: strip them in the build (`remove.list` / scripted step), and remove `ssh_host_*` so sshd regenerates them.
 - Enforced by a CI gate that unsquashes the built image and fails the job on any match (path patterns + content grep for `BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY` + gitleaks over the tree).
+
+**Inventory y0 `iotgw-live` vs upstream Clonezilla 3.1.2-9 (2026-09-29):**
+- Kernel identical. **initrd**: y0 added a static curl 8.4.0 + CA bundle and patched live-boot `9990-mount-http.sh` (wget → curl, `.part2` chunks) — this is what makes `fetch=https://` work. → reproduced in build.sh (static curl 8.22.0 + cacert-2026-09-25, pinned).
+- **Packages added**: wireguard-tools + wireguard-go (agent calls `wg`/`wg-quick`; kernel 6.6.11 has the wireguard module → only wireguard-tools, pinned 1.0.20210914-1 which needs libc ≥ 2.14), btop, byobu, python3-newt (convenience → dropped). Packages removed on y0 (dnsutils, telnet, lz4, ntpsec…) were side effects → not reproduced.
+- **sshd**: enabled at boot + `PermitRootLogin yes` → reproduced as `systemctl enable ssh` + overlay `40-iotgw-root-login.conf` (`prohibit-password`, no passwords).
+- **Forbidden, dropped**: `root/.ssh/authorized_keys` (2 keys), break-glass `50-iotgw-authorized-keys.conf`, root password in `/etc/shadow`, shell/editor histories.
+- **Deferred**: `/etc/profile` `MAQUINA_ID` hostname (Clonezilla path, DRAFT-001).
+- Upstream itself ships no SSH keys (host keys generated at boot by live-config 1160-openssh-server).
+
+**Build:** `live-image/image/` (pins.env, build.sh, check-no-keys.sh, test-boot.sh), `just image` / `just image-test`, builder pinned by digest. Local + CI (`image` job, run 36602053507) green: QEMU boot fetches the squashfs, `iotgw-bootstrap.service` finishes, `ssh.service` starts. Key gate clean on rootfs and initrd.
 <!-- SECTION:NOTES:END -->

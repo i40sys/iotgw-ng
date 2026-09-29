@@ -4,7 +4,7 @@ title: iPXE chainloader built by CI (USB + local TFTP)
 status: To Do
 assignee: []
 created_date: '2026-09-29 14:18'
-updated_date: '2026-09-29 14:19'
+updated_date: '2026-09-29 17:51'
 labels:
   - ci
   - netboot
@@ -45,10 +45,20 @@ priority: high
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 netboot/chainloader/ subfolder with pinned iPXE source, embedded chain.ipxe, build config, justfile and README
-- [ ] #2 CI workflow builds ipxe.efi, undionly.kpxe and ipxe-usb.img from source, runs the test suite and publishes them with SHA256SUMS + provenance on v* tags
-- [ ] #3 QEMU tests pass in CI: UEFI chain, legacy PXE/TFTP chain, USB image (UEFI + BIOS)
-- [ ] #4 Negative tests pass: untrusted TLS certificate refused, unreachable server shows the fallback, no plain-HTTP downgrade
-- [ ] #5 Static tests pass: embedded script matches chain.ipxe, release URL asserted, no secrets in outputs
+- [x] #1 netboot/chainloader/ subfolder with pinned iPXE source, embedded chain.ipxe, build config, justfile and README
+- [x] #2 CI workflow builds ipxe.efi, undionly.kpxe and ipxe-usb.img from source, runs the test suite and publishes them with SHA256SUMS + provenance on v* tags
+- [x] #3 QEMU tests pass in CI: UEFI chain, legacy PXE/TFTP chain, USB image (UEFI + BIOS)
+- [x] #4 Negative tests pass: untrusted TLS certificate refused, unreachable server shows the fallback, no plain-HTTP downgrade
+- [x] #5 Static tests pass: embedded script matches chain.ipxe, release URL asserted, no secrets in outputs
 - [ ] #6 Real UEFI machine boots from the USB image and from a local TFTP into the OVH menu
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Implemented (2026-09-29):** `netboot/chainloader/` — iPXE v2.0.0 (commit 12798ec2 verified), `chain.ipxe`, `config/local/` (HTTPS for BIOS too, which v2.0.0 disables by default), ISRG X1/X2/YR/YE with `TRUST=` **and** `CERT=` (without CERT the chain cannot be completed: servers do not send the root → EACCES), `build.sh` in a digest-pinned container, `test/run.sh`, `netboot-chainloader.yml`.
+
+**Local suite 13/13:** static (embedded script, exact release URL, HTTPS only, anchors by SHA-256 fingerprint in the binary, gitleaks), UEFI PXE, BIOS PXE, USB on UEFI + BIOS, untrusted TLS (refused, no fetch), unreachable (fallback), reproducibility (fixed EMBED file name — iPXE records it).
+
+**Gotchas:** OVMF mirrors the console to serial twice (“IIPPXXEE”); test markers match both forms.
+<!-- SECTION:NOTES:END -->

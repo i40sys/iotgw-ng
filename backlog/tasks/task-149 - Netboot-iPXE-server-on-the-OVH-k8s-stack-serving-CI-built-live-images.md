@@ -1,10 +1,10 @@
 ---
 id: TASK-149
 title: 'Netboot iPXE server on the OVH k8s stack, serving CI-built live images'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-09-29 14:18'
-updated_date: '2026-09-29 14:40'
+updated_date: '2026-09-29 16:09'
 labels:
   - ovh
   - netboot
