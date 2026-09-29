@@ -1,10 +1,10 @@
 ---
 id: TASK-142
 title: Deploy iotgw-ng to OVH MKS (ymbihq) with Terraform and migrate from kind
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-09-29 07:49'
-updated_date: '2026-09-29 10:37'
+updated_date: '2026-09-29 15:06'
 labels:
   - deploy
   - ovh
@@ -61,4 +61,6 @@ priority: high
 **Smoke:** SPA 200 + redirect, auth health 200, Kong->PostgREST 12 devices, backend 401 without a token, device API TLS with the pinned CA; hl.joor.net 200.
 
 **Pending:** operator UI login on https://iotgw.i40sys.com (AC#6); re-point gateways' `api_base`; kind k8s 1.35 recreate (needs confirmation).
+
+**Closed 2026-09-29.** All ACs met; follow-ups split into TASK-143..147 and TASK-149; v0.5.0 rollout tracked separately.
 <!-- SECTION:NOTES:END -->

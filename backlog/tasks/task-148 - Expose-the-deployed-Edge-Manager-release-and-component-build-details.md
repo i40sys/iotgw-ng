@@ -1,10 +1,10 @@
 ---
 id: TASK-148
 title: Expose the deployed Edge Manager release and component build details
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-09-29 11:28'
-updated_date: '2026-09-29 14:13'
+updated_date: '2026-09-29 15:06'
 labels:
   - frontend
   - backend
@@ -26,11 +26,11 @@ priority: medium
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The brand shows a release or development build identifier and opens responsive, translated deployment details with copyable diagnostics.
+- [x] #1 The brand shows a release or development build identifier and opens responsive, translated deployment details with copyable diagnostics.
 - [x] #2 Frontend and backend identities are stamped during builds; development has a Git revision and production never substitutes a package version for a product release.
 - [x] #3 An authenticated endpoint reads validated, allowlisted deployment metadata and identifies UI/backend mismatches without exposing configuration secrets.
 - [x] #4 A documented manifest-generation and verification workflow records exact component image references and distinguishes unverified declarations from deployment evidence.
-- [ ] #5 An accepted backlog decision documents version ownership, release identity, limitations and upgrade steps; relevant tests and checks pass.
+- [x] #5 An accepted backlog decision documents version ownership, release identity, limitations and upgrade steps; relevant tests and checks pass.
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -75,4 +75,6 @@ priority: medium
 - Re-ran workspace typecheck, build metadata tests, package-version stamping assertions, changed-file formatting, workflow shell syntax and whitespace checks successfully.
 - Publication is blocked by this session's access: git add fails with Read-only file system when creating .git/index.lock, terminal GitHub connectivity is unavailable, and the GitHub connector reports push=false for i40sys/iotgw-ng. No new commit, push, merge, tag or GitHub release was made. Changes remain on feat/deployments-ux-refactor; resume publication from a session with writable Git metadata and authorized GitHub write access.
 - Browser ACs remain pending as recorded above; release preparation does not count as browser validation.
+
+**Closed 2026-09-29.** Browser verification now done: `playwright.deployments.config.ts` 14/14 passed in Chromium, including the version-badge scenario (responsive details + manual copy). decision-036 accepted; shipped in v0.5.0 (PR #1). Rolling the release out to OVH is a separate task.
 <!-- SECTION:NOTES:END -->

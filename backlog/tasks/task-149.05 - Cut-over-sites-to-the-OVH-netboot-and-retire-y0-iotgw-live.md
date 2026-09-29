@@ -4,10 +4,14 @@ title: Cut over sites to the OVH netboot and retire y0 iotgw-live
 status: To Do
 assignee: []
 created_date: '2026-09-29 14:18'
+updated_date: '2026-09-29 15:06'
 labels:
   - netboot
   - migration
-dependencies: []
+dependencies:
+  - TASK-149.01
+  - TASK-149.02
+  - TASK-149.03
 parent_task_id: TASK-149
 priority: medium
 ---
