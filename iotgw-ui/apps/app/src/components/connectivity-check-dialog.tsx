@@ -207,7 +207,9 @@ export function ConnectivityCheckDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      {/* minmax(0,1fr) lets grid children shrink so long IDs/errors wrap instead
+          of widening the dialog; max-h + scroll keeps tall runs on screen. */}
+      <DialogContent className="max-h-[90vh] max-w-md grid-cols-[minmax(0,1fr)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FontAwesomeIcon
@@ -271,7 +273,7 @@ export function ConnectivityCheckDialog({
                     <span className="font-semibold">
                       {t("devices.sshKey.keyId")}:
                     </span>{" "}
-                    <span className="font-mono">{sshKeyId}</span>
+                    <span className="font-mono break-all">{sshKeyId}</span>
                   </p>
                 ) : (
                   <p className="mt-2 text-xs text-muted-foreground">
@@ -305,7 +307,7 @@ export function ConnectivityCheckDialog({
                     <span className="flex w-4 justify-center">
                       {phaseIcon(phase.status)}
                     </span>
-                    <span className="flex-1">{phase.label}</span>
+                    <span className="min-w-0 flex-1 break-words">{phase.label}</span>
                     {phase.durationMs !== undefined && phase.status !== "pending" && (
                       <span className="font-mono text-xs text-muted-foreground">
                         {formatSeconds(phase.durationMs)}
@@ -324,7 +326,7 @@ export function ConnectivityCheckDialog({
               )}
               <p className="mt-2 text-xs text-muted-foreground">
                 {t("deployments.connectivityCheck.kestraExecution")}{" "}
-                <span className="font-mono">#{progress.executionId}</span>
+                <span className="font-mono break-all">#{progress.executionId}</span>
               </p>
             </div>
           )}
@@ -362,7 +364,7 @@ export function ConnectivityCheckDialog({
                 )}
                 {/* Show error if failed */}
                 {displayedPingResult && !displayedPingResult.success && displayedPingResult.error && (
-                  <p className="mt-2 text-sm text-red-700 dark:text-red-300">
+                  <p className="mt-2 text-sm whitespace-pre-wrap break-words text-red-700 dark:text-red-300">
                     {displayedPingResult.error}
                   </p>
                 )}
@@ -401,7 +403,7 @@ export function ConnectivityCheckDialog({
                 )}
                 {/* Show error if failed */}
                 {displayedAnsibleResult && !displayedAnsibleResult.success && displayedAnsibleResult.error && (
-                  <p className="mt-2 text-sm text-red-700 dark:text-red-300">
+                  <p className="mt-2 text-sm whitespace-pre-wrap break-words text-red-700 dark:text-red-300">
                     {displayedAnsibleResult.error}
                   </p>
                 )}
@@ -450,7 +452,7 @@ export function ConnectivityCheckDialog({
           {result?.executionId && showOverallResult && (
             <p className="text-center text-xs text-muted-foreground">
               {t("deployments.steps.moreDetailsAt")}{" "}
-              <span className="font-mono font-semibold">
+              <span className="font-mono font-semibold break-all">
                 #{result.executionId}
               </span>
             </p>
