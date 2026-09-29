@@ -21,6 +21,14 @@ RUN pnpm install --frozen-lockfile
 COPY apps/backend ./apps/backend/
 COPY packages/supabase-contract ./packages/supabase-contract/
 COPY tsconfig.json ./
+COPY build-metadata ./build-metadata/
+
+ARG IOTGW_BUILD_REVISION=""
+ARG IOTGW_BUILD_RELEASE=""
+ARG IOTGW_BUILD_DIRTY="unknown"
+ENV IOTGW_BUILD_REVISION=$IOTGW_BUILD_REVISION
+ENV IOTGW_BUILD_RELEASE=$IOTGW_BUILD_RELEASE
+ENV IOTGW_BUILD_DIRTY=$IOTGW_BUILD_DIRTY
 
 # Build the application
 RUN pnpm --filter @iotgw/backend build

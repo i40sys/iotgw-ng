@@ -117,6 +117,21 @@ async function setup(
       state.calls.push({ procedure, input: args });
       let data: unknown;
       switch (procedure) {
+        case "getDeploymentInfo":
+          data = {
+            backend: {
+              component: "backend",
+              version: "1.0.0",
+              revision: "b".repeat(40),
+              release: null,
+              builtAt: "2026-09-29T10:00:00Z",
+              dirty: false,
+              development: true,
+            },
+            manifest: null,
+            metadataStatus: "missing",
+          };
+          break;
         case "getDevicesFiltered":
           data = devices.map((device) => ({
             ...device,
@@ -238,6 +253,51 @@ async function openConfiguration(page: Page) {
     .getByRole("button", { name: /^Configuration(?::|$)/ })
     .click();
 }
+
+test("the version badge opens responsive deployment details and supports manual copying", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", { value: undefined });
+  });
+  await page.goto("/deployments?deviceId=device-a&step=os-installation");
+  const trigger = page.getByRole("button", { name: /About this deployment/ });
+  for (const width of [360, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(trigger).toBeInViewport();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await trigger.click();
+    const dialog = page.getByRole("dialog");
+    await expect(
+      dialog.getByText("Backend API", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByText("Not declared", { exact: true }),
+    ).toBeVisible();
+    expect(
+      await dialog.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true);
+    await dialog
+      .getByRole("button", { name: "Copy diagnostic information" })
+      .click();
+    await expect(
+      dialog.getByRole("textbox", { name: "Deployment diagnostics" }),
+    ).toBeFocused();
+    await page.screenshot({
+      path: test.info().outputPath(`deployment-about-${width}.png`),
+      animations: "disabled",
+    });
+    await page.keyboard.press("Escape");
+    await expect(trigger).toBeFocused();
+  }
+});
 
 test("device search and workspace navigation preserve edits without writing a configuration", async ({
   page,

@@ -35,6 +35,10 @@ spec:
           env:
             - name: NODE_ENV
               value: production
+            # Optional, non-secret release declaration (decision-036). Mount the
+            # directory so ConfigMap updates are visible without a pod restart.
+            - name: IOTGW_RELEASE_MANIFEST_PATH
+              value: /etc/iotgw-release/manifest.json
             - name: SUPABASE_URL
               value: http://kong.supabase-app.svc.cluster.local:8000
             - name: SUPABASE_SERVICE_KEY
@@ -119,6 +123,10 @@ spec:
                   name: device-auth
                   key: DEVICE_AUTH_TOKEN
                   optional: true
+          volumeMounts:
+            - name: release-metadata
+              mountPath: /etc/iotgw-release
+              readOnly: true
           readinessProbe:
             tcpSocket:
               port: 4444
@@ -131,6 +139,11 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 20
             failureThreshold: 5
+      volumes:
+        - name: release-metadata
+          configMap:
+            name: iotgw-release
+            optional: true
 ---
 apiVersion: v1
 kind: Service

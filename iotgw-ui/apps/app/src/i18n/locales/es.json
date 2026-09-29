@@ -707,5 +707,46 @@
     "deviceDescriptionPlaceholder": "Descripción del dispositivo (opcional)",
     "generatedAutomatically": "Generada automáticamente",
     "confirmDeleteDevice": "¿Seguro que quieres eliminar «{{name}}»? Esta acción no se puede deshacer."
+  },
+  "deploymentAbout": {
+    "open": "Acerca de este despliegue · {{version}}",
+    "title": "Acerca de este despliegue",
+    "description": "La versión del producto y los componentes de esta instancia de Edge Manager.",
+    "unknownVersion": "Versión desconocida",
+    "unknown": "Desconocido",
+    "release": "Versión declarada del producto",
+    "notDeclared": "Sin declarar",
+    "environment": "Entorno",
+    "createdAt": "Manifiesto de versión creado",
+    "environments": {
+      "development": "Desarrollo",
+      "test": "Pruebas",
+      "staging": "Preproducción",
+      "production": "Producción"
+    },
+    "developmentNotice": "Este navegador ejecuta una compilación de desarrollo. El asterisco indica cambios locales al iniciar el servidor.",
+    "loading": "Cargando detalles del despliegue…",
+    "unavailable": "No se pudo contactar con el backend. Los detalles anteriores pueden estar desactualizados; la compilación de este navegador sigue disponible.",
+    "retry": "Reintentar",
+    "missingManifest": "Este despliegue no tiene un manifiesto de versión. Los números de compilación individuales no identifican una versión completa del producto.",
+    "invalidManifest": "No se pudo leer o validar el manifiesto del despliegue. Las compilaciones de los componentes siguen disponibles a continuación.",
+    "mismatch": "Algunos componentes difieren de la versión declarada o no estaban listos en la última comprobación.",
+    "frontend": "Interfaz de usuario",
+    "backend": "API del backend",
+    "modified": "Cambios locales",
+    "builtAt": "Compilado el {{date}}",
+    "startedAt": "Servidor de desarrollo iniciado el {{date}}",
+    "expected": "Esperado: {{value}}",
+    "checkedAt": "Imágenes comprobadas el {{date}}",
+    "status": {
+      "matching": "Coincide con lo declarado",
+      "mismatch": "Difiere de lo declarado",
+      "unverified": "Sin verificar"
+    },
+    "evidenceHelp": "La identidad de la interfaz y el backend procede de las compilaciones en ejecución. Los demás componentes muestran las versiones declaradas y, si existe, la última comprobación de imágenes. No es una supervisión continua; las revisiones de flujos y las migraciones de la base de datos requieren una verificación independiente.",
+    "copy": "Copiar información de diagnóstico",
+    "copied": "Información de diagnóstico copiada",
+    "copyManually": "El portapapeles no está disponible. Copia la información de diagnóstico seleccionada a continuación.",
+    "diagnostics": "Diagnóstico del despliegue"
   }
 }

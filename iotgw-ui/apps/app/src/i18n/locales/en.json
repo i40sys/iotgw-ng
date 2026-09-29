@@ -707,5 +707,46 @@
     "deviceDescriptionPlaceholder": "Device description (optional)",
     "generatedAutomatically": "Generated automatically",
     "confirmDeleteDevice": "Are you sure you want to delete “{{name}}”? This action cannot be undone."
+  },
+  "deploymentAbout": {
+    "open": "About this deployment · {{version}}",
+    "title": "About this deployment",
+    "description": "The product release and the components behind this Edge Manager instance.",
+    "unknownVersion": "Version unknown",
+    "unknown": "Unknown",
+    "release": "Declared product release",
+    "notDeclared": "Not declared",
+    "environment": "Environment",
+    "createdAt": "Release manifest created",
+    "environments": {
+      "development": "Development",
+      "test": "Test",
+      "staging": "Staging",
+      "production": "Production"
+    },
+    "developmentNotice": "This browser is running a development build. An asterisk marks local changes when the dev server started.",
+    "loading": "Loading deployment details…",
+    "unavailable": "The backend could not be reached. Previously loaded details may be out of date; this browser’s build is still available.",
+    "retry": "Retry",
+    "missingManifest": "This deployment has no release manifest. Individual build numbers do not identify a complete product release.",
+    "invalidManifest": "The deployment manifest could not be read or validated. The component builds below are still available.",
+    "mismatch": "Some components differ from the declared release or were not ready at the last check.",
+    "frontend": "User interface",
+    "backend": "Backend API",
+    "modified": "Local changes",
+    "builtAt": "Built {{date}}",
+    "startedAt": "Dev server started {{date}}",
+    "expected": "Expected: {{value}}",
+    "checkedAt": "Image snapshot checked {{date}}",
+    "status": {
+      "matching": "Matches declaration",
+      "mismatch": "Differs from declaration",
+      "unverified": "Not verified"
+    },
+    "evidenceHelp": "UI and backend identities come from the running builds. Other components show the declared versions and, when available, the last image verification snapshot. This is not continuous health monitoring; workflow revisions and database migrations require separate verification.",
+    "copy": "Copy diagnostic information",
+    "copied": "Diagnostic information copied",
+    "copyManually": "Clipboard access is unavailable. Copy the selected diagnostic information below.",
+    "diagnostics": "Deployment diagnostics"
   }
 }

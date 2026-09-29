@@ -26,10 +26,24 @@ attestations (pushed as OCI referrers).
 
 ## 1. Cut a release
 
+Before tagging, commit the component version bumps and release notes at
+`deploy/releases/vX.Y.Z.md`, run the relevant checks, and merge into `main`.
+The Git tag is the product version; frontend/backend package versions advance
+independently when those components change (decision-036).
+
 ```bash
-git tag v1.2.3
+git switch main
+git pull --ff-only origin main
+git tag -a v1.2.3 -m "v1.2.3: concise description of the release"
 git push origin v1.2.3
 ```
+
+The `live-image` workflow creates the GitHub release and attaches its binaries,
+checksums and overlay archives. When the matching notes file exists in the tag,
+the workflow uses it as the release body, including when rerunning against an
+existing release. Older tags without a notes file retain generated notes.
+Wait for the image and live-image workflows to finish before treating the
+release artifacts as ready; publishing a tag does not roll out the platform.
 
 The tag triggers the three caller workflows → build + push + Trivy + cosign +
 SBOM/provenance. Tags emitted (decision-021): immutable `sha-<gitsha>`, `1.2.3`
@@ -107,3 +121,73 @@ IOTGW_IMAGE_SOURCE=registry IOTGW_IMAGE_REF=v1.2.3 deploy/kind/bootstrap.sh depl
 It pulls `ghcr.io/i40sys/*` at the ref, retags to `:local`, and `kind load`s them
 so the kind overlay is unchanged. Remember the frontend's baked `VITE_API_URL`
 won't match the local kind hostname (`TASK-067.14`).
+
+## Product identity in Edge Manager (decision-036)
+
+The badge beside Edge Manager identifies a **declared product release**. The
+About dialog also reports the browser/backend builds and any recorded component
+image observations. UI/backend package versions remain independent; they are
+not the product release number.
+
+New frontend/backend images embed their package version, full Git revision,
+release tag, build time and dirty state. CI supplies this automatically. For a
+manual image build, pass `IOTGW_BUILD_REVISION=<full Git SHA>`,
+`IOTGW_BUILD_RELEASE=vX.Y.Z` and `IOTGW_BUILD_DIRTY=false` **only for a clean tagged
+build**. Local kind builds pass their local revision and dirty state. Without
+provenance the About dialog reports unknown/unverified fields.
+
+After building/verifying the images and pinning their digests, declare the
+release from the intended overlay (Python 3 + PyYAML and kubectl are required):
+
+```bash
+python3 deploy/release-manifest.py generate \
+  --release vX.Y.Z \
+  --overlay deploy/k8s/overlays/ovh \
+  --environment production \
+  --flows-revision <full-commit-of-the-separate-iotgw-kestra-repository> \
+  --output deploy/k8s/overlays/ovh/release-manifest.json
+```
+
+Use a real existing `vX.Y.Z` tag. The tool reads UI/backend package versions and
+the migration target from that tag, and image references from the rendered
+overlay. It does not resolve registry provenance: continue verifying the pinned
+images/signatures as described above. Omit `--flows-revision` if it is unknown;
+never substitute the monorepo SHA for the separate workflow source. Check the
+result into Git with the image pins. Freeze a published release's intended
+component set; create a new release for a changed combination.
+
+Each overlay owns its `release-manifest.json` and creates the `iotgw-release`
+ConfigMap. The checked-in initial value `null` means no release is declared.
+The backend reads `/etc/iotgw-release/manifest.json` through an optional,
+read-only directory mount. An unset/missing/invalid manifest does not prevent
+the backend from starting. For OVH, publish through the existing Terraform
+platform apply; do not separately `kubectl apply` Terraform-owned resources.
+For kind/prod-sketch, use their normal overlay deployment path.
+
+After rollout, record a **read-only image/readiness snapshot**, explicitly
+choosing the correct Kubernetes context:
+
+```bash
+python3 deploy/release-manifest.py verify \
+  --context <cluster-context> \
+  --manifest deploy/k8s/overlays/ovh/release-manifest.json \
+  --output deploy/k8s/overlays/ovh/release-manifest.json
+```
+
+A reference mismatch or incomplete rollout records the evidence and exits 1;
+a read/validation failure exits 2. Review the result and republish the updated
+manifest through the same deployment owner to expose it in the UI. ConfigMap
+projection can take time; no application restart is required for metadata-only
+updates. Repeat after a rollback and retain the previous declaration/snapshot.
+
+The timestamp denotes the observation, not the original deployment time.
+Matching mutable tags are still marked unverified for image content. Workflow
+revisions and migration filenames are declared targets, not proof that Kestra
+or PostgreSQL applied them. The About dialog states these limits. Its **Copy
+diagnostic information** action includes only identity metadata, never process
+environment variables, credentials, pod logs or the rendered overlay.
+
+For local development, Vite shows `DEV · <commit>` (`*` for local changes at
+startup); restart Vite after changing commits to refresh that identity. The
+backend's development identity is independent. A development UI connected to a
+released backend remains visibly marked DEV.

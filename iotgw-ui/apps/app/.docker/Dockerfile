@@ -20,6 +20,15 @@ RUN pnpm install --frozen-lockfile
 COPY apps/app ./apps/app/
 COPY packages/supabase-contract ./packages/supabase-contract/
 COPY tsconfig.json ./
+COPY build-metadata ./build-metadata/
+
+# Provenance is stamped into the asset bundle; runtime env cannot relabel it.
+ARG IOTGW_BUILD_REVISION=""
+ARG IOTGW_BUILD_RELEASE=""
+ARG IOTGW_BUILD_DIRTY="unknown"
+ENV IOTGW_BUILD_REVISION=$IOTGW_BUILD_REVISION
+ENV IOTGW_BUILD_RELEASE=$IOTGW_BUILD_RELEASE
+ENV IOTGW_BUILD_DIRTY=$IOTGW_BUILD_DIRTY
 
 # VITE_API_URL is baked into the JS bundle at build time (import.meta.env).
 # Pass --build-arg VITE_API_URL=<url> to docker build so the SPA knows where

@@ -29,7 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
-import { getAppVersion } from "@/utils/version";
+import { DeploymentAbout } from "./deployment-about";
 import { signOut, useSession } from "@/lib/auth";
 import { queryClient } from "@/utils/trpc";
 import { NAV_SECTIONS, findActiveSection } from "./navigation/nav-config";
@@ -48,26 +48,28 @@ const THEMES = [
 
 function Brand() {
   return (
-    <Link
-      to="/"
-      className="flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight"
-    >
-      <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-blue-400">
-        Edge
-      </span>
-      <span className="text-foreground -ml-1">Manager</span>
-    </Link>
+    <div className="flex shrink-0 flex-col items-start gap-0.5 xl:flex-row xl:items-center xl:gap-2.5">
+      <Link
+        to="/"
+        className="flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight"
+      >
+        <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-blue-400">
+          Edge
+        </span>
+        <span className="text-foreground -ml-1">Manager</span>
+      </Link>
+      <DeploymentAbout />
+    </div>
   );
 }
 
 /**
- * Language + theme + version in one menu. They are preferences, not features,
+ * Language + theme in one menu. They are preferences, not features,
  * so they no longer compete with the section links for attention.
  */
 function PreferencesMenu() {
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
-  const version = getAppVersion();
 
   return (
     <DropdownMenu>
@@ -81,7 +83,7 @@ function PreferencesMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuLabel className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+        <DropdownMenuLabel className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
           {t("navigation.language")}
         </DropdownMenuLabel>
         {LANGUAGES.map((lang) => (
@@ -97,7 +99,7 @@ function PreferencesMenu() {
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+        <DropdownMenuLabel className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
           {t("navigation.theme")}
         </DropdownMenuLabel>
         {THEMES.map((item) => (
@@ -119,10 +121,6 @@ function PreferencesMenu() {
             )}
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator />
-        <div className="text-muted-foreground px-2 py-1.5 font-mono text-xs">
-          v{version}
-        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -175,7 +173,7 @@ export function NavigationBar() {
     <header className="bg-background border-border sticky top-0 z-40 border-b">
       <nav
         aria-label={t("navigation.primary")}
-        className="mx-auto flex h-14 max-w-screen-2xl items-center gap-6 px-4"
+        className="mx-auto flex h-14 max-w-screen-2xl items-center gap-3 px-4 lg:gap-6"
       >
         <Brand />
 
