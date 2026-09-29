@@ -497,6 +497,59 @@ SQL
   fi
 }
 
+# --- kind is DEV only (task-151) ---------------------------------------------
+# Since task-142 the real environment is OVH; kind shares the same SOPS
+# credentials, so anything scheduled or data-driven here reaches the REAL
+# Netmaker / pki-manager / gateways. Two guards:
+#   1. disable_prod_schedules (every deploy): the Kestra schedule triggers that
+#      act on gateways stay disabled in kind. Trigger state lives in Kestra's DB
+#      and survives restarts; re-applied on each deploy after flow syncs.
+#   2. dev_reset (explicit, destructive): drop the production copy of the app
+#      data WITHOUT firing the Netmaker webhooks, and seed a dev domain.
+KIND_DISABLED_SCHEDULES=("connectivity-check:schedule" "ssh-ca-renewal:schedule")
+kestra_api() {
+  # $1 method, $2 path under /api/v1/main, stdin = body (optional)
+  kubectl -n "$NS_KESTRA" exec -i deploy/kestra -- sh -c \
+    'curl -sf -u "$KESTRA_BASIC_AUTH_USERNAME:$KESTRA_BASIC_AUTH_PASSWORD" -H "Content-Type: application/json" -X "$0" "http://localhost:8080/api/v1/main$1" --data-binary @-' "$1" "$2"
+}
+require_kind_context() {
+  local ctx; ctx="$(kubectl config current-context 2>/dev/null || true)"
+  [ "$ctx" = "kind-$CLUSTER" ] || { echo "REFUSING: current kubectl context is '$ctx', not 'kind-$CLUSTER' (dev-only operation)" >&2; exit 1; }
+}
+disable_prod_schedules() {
+  require_kind_context
+  echo "==> kind is dev: disabling Kestra schedules that act on real gateways"
+  kubectl -n "$NS_KESTRA" rollout status deploy/kestra --timeout=300s >/dev/null 2>&1 || true
+  local entry flow trig ctx i
+  for entry in "${KIND_DISABLED_SCHEDULES[@]}"; do
+    flow="${entry%%:*}"; trig="${entry#*:}"; ctx=""
+    for i in $(seq 1 30); do   # triggers appear once the flows are synced
+      ctx="$(kestra_api GET "/triggers/search?namespace=iotgw-ng&size=100" </dev/null 2>/dev/null \
+            | jq -c --arg f "$flow" --arg t "$trig" \
+              '.results[]? | select(.triggerContext.flowId==$f and .triggerContext.triggerId==$t) | .triggerContext | .disabled=true')" || true
+      [ -n "$ctx" ] && break; sleep 10
+    done
+    if [ -z "$ctx" ]; then echo "  WARNING: trigger $flow/$trig not found — NOT disabled"; continue; fi
+    printf '%s' "$ctx" | kestra_api PUT "/triggers" >/dev/null && echo "  $flow/$trig disabled"
+  done
+}
+
+dev_reset() {
+  require_kind_context
+  local pod; pod="$(sg_primary_pod)"
+  echo "==> dev-reset: dropping the app data copy in kind (webhooks OFF) and seeding a dev domain"
+  kubectl -n "$NS_DB" exec -i "$pod" -c patroni -- psql -U postgres -d postgres --no-psqlrc -v ON_ERROR_STOP=1 -q <<'SQL'
+BEGIN;
+SET session_replication_role = replica;  -- no netmaker-call webhooks
+TRUNCATE public.device_otp_uses, public.device_jobs, public.device_creation_log,
+         public.deployment_jobs, public.deployments, public.devices,
+         public.network_jobs, public.networks, public.domains CASCADE;
+INSERT INTO public.domains (name, display_name) VALUES ('dev', 'Development (kind)');
+COMMIT;
+SQL
+  echo "  app data reset; domain 'dev' seeded (no pki zone; operators kept)"
+}
+
 deploy() {
   # build-local by default; IOTGW_IMAGE_SOURCE=registry pulls ghcr.io/i40sys/*.
   provision_functions
@@ -528,6 +581,7 @@ deploy() {
     --for=condition=Ready --timeout=60s 2>/dev/null || true
   sync_role_passwords
   migrate_app_db
+  disable_prod_schedules
 }
 
 smoke() {
@@ -593,6 +647,8 @@ case "${1:-}" in
     done
     kubectl -n "$NS_APP" rollout restart deploy/rest >/dev/null 2>&1 || true ;;
   smoke) smoke ;;
+  kind-safety) disable_prod_schedules ;;
+  dev-reset) dev_reset ;;
   down) kind delete cluster --name "$CLUSTER" ;;
   *) sed -n '2,13p' "${BASH_SOURCE[0]}"; exit 1 ;;
 esac

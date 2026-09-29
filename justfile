@@ -73,6 +73,15 @@ k8s-build:
 db-sync-roles:
     deploy/kind/bootstrap.sh sync-roles
 
+# kind is DEV (task-151): replace the app data with a dev seed, webhooks off.
+# Destructive, kind context only (refuses any other kubectl context).
+kind-dev-reset:
+    deploy/kind/bootstrap.sh dev-reset
+
+# Re-disable the Kestra schedules that act on real gateways (k8s-deploy does it)
+kind-safety:
+    deploy/kind/bootstrap.sh kind-safety
+
 # Smoke-test what is deployed in kind
 k8s-smoke:
     deploy/kind/bootstrap.sh smoke

@@ -27,6 +27,26 @@ deploy/
       prod/           # production sketch (StackGres DB + app tier, real ingress)
 ```
 
+## kind is DEV — OVH is the real environment (task-151)
+
+Since task-142 the real environment is OVH (`deploy/terraform/ovh/`). kind keeps
+the **same SOPS credentials**, so it still talks to the real Netmaker,
+pki-manager and Kestra flow repo. It is kept safe by data and schedules, not by
+separate credentials:
+
+- **No production data in kind.** `just kind-dev-reset` truncates domains /
+  networks / devices / deployments / jobs with `session_replication_role=replica`
+  (so no `netmaker-call` DELETE webhook fires) and seeds one domain `dev`
+  (no pki zone). Operators are kept. Never restore a production dump into kind.
+- **Only self-created Netmaker objects.** The e2e (`just e2e`) needs a live
+  Netmaker: it creates its own network + device under `dev` and tears them down.
+- **No schedules against gateways.** `just k8s-deploy` ends with
+  `disable_prod_schedules` (also `just kind-safety`): Kestra's
+  `connectivity-check` and `ssh-ca-renewal` schedule triggers are disabled in
+  kind's Kestra DB; `sync-namespace-files` stays on.
+- `kind-dev-reset` / `kind-safety` refuse to run unless the kubectl context is
+  `kind-iotgw`.
+
 ## Quickstart (local kind)
 
 ```bash
