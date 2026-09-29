@@ -1,1 +1,266 @@
-null
+{
+  "schemaVersion": 1,
+  "product": "Edge Manager",
+  "release": "v0.5.0",
+  "environment": "production",
+  "createdAt": "2026-09-29T15:09:27Z",
+  "components": [
+    {
+      "id": "backend",
+      "name": "Backend API",
+      "version": "1.1.0",
+      "revision": "64fec1f348222882cbc52ddd02fcbf94fd46417c",
+      "image": "ghcr.io/i40sys/iotgw-ui-backend@sha256:090f7212eb2acb5c0fba1e1469b42977dfc14a6ca8a128e0d13a86e9869a3994",
+      "workload": {
+        "kind": "Deployment",
+        "namespace": "iotgw-ui",
+        "name": "iotgw-ui-backend",
+        "container": "backend"
+      },
+      "observation": {
+        "checkedAt": "2026-09-29T15:10:18Z",
+        "images": [
+          "ghcr.io/i40sys/iotgw-ui-backend@sha256:090f7212eb2acb5c0fba1e1469b42977dfc14a6ca8a128e0d13a86e9869a3994"
+        ],
+        "imageIds": [
+          "ghcr.io/i40sys/iotgw-ui-backend@sha256:090f7212eb2acb5c0fba1e1469b42977dfc14a6ca8a128e0d13a86e9869a3994"
+        ],
+        "ready": true
+      }
+    },
+    {
+      "id": "frontend",
+      "name": "User interface",
+      "version": "0.11.0",
+      "revision": "64fec1f348222882cbc52ddd02fcbf94fd46417c",
+      "image": "ghcr.io/i40sys/iotgw-ui-frontend@sha256:432c29a5dbd9ecfcfe1bd159200747fcb0b463053d8094f5290b09702dee4393",
+      "workload": {
+        "kind": "Deployment",
+        "namespace": "iotgw-ui",
+        "name": "iotgw-ui-frontend",
+        "container": "frontend"
+      },
+      "observation": {
+        "checkedAt": "2026-09-29T15:10:18Z",
+        "images": [
+          "ghcr.io/i40sys/iotgw-ui-frontend@sha256:432c29a5dbd9ecfcfe1bd159200747fcb0b463053d8094f5290b09702dee4393"
+        ],
+        "imageIds": [
+          "ghcr.io/i40sys/iotgw-ui-frontend@sha256:432c29a5dbd9ecfcfe1bd159200747fcb0b463053d8094f5290b09702dee4393"
+        ],
+        "ready": true
+      }
+    },
+    {
+      "id": "kestra/kestra/kestra",
+      "name": "Kestra engine",
+      "version": "v1.3.35",
+      "revision": null,
+      "image": "kestra/kestra:v1.3.35",
+      "workload": {
+        "kind": "Deployment",
+        "namespace": "kestra",
+        "name": "kestra",
+        "container": "kestra"
+      },
+      "observation": {
+        "checkedAt": "2026-09-29T15:10:18Z",
+        "images": [
+          "kestra/kestra:v1.3.35"
+        ],
+        "imageIds": [
+          "docker.io/kestra/kestra@sha256:0b880e20e403ef635a6bc7e9e72786c7a6dde143858723449dc57500830868e2"
+        ],
+        "ready": true
+      }
+    },
+    {
+      "id": "supabase-app/auth/auth",
+      "name": "auth",
+      "version": "v2.189.0",
+      "revision": null,
+      "image": "supabase/gotrue:v2.189.0",
+      "workload": {
+        "kind": "Deployment",
+        "namespace": "supabase-app",
+        "name": "auth",
+        "container": "auth"
+      },
+      "observation": {
+        "checkedAt": "2026-09-29T15:10:18Z",
+        "images": [
+          "supabase/gotrue:v2.189.0"
+        ],
+        "imageIds": [
+          "docker.io/supabase/gotrue@sha256:385184459f57569c54c25209f51f3b2be99ddd7c4ce9e3555b5d3eea8447b7cf"
+        ],
+        "ready": true
+      }
+    },
+    {
+      "id": "functions",
+      "name": "Edge functions",
+      "version": null,
+      "revision": "64fec1f348222882cbc52ddd02fcbf94fd46417c",
+      "image": "ghcr.io/i40sys/iotgw-functions@sha256:6db2b8ddc6f800fd469644363cb9eeaba21f32329470e3aa5ebd71eac9305e92",
+      "workload": {
+        "kind": "Deployment",
+        "namespace": "supabase-app",
+        "name": "functions",
+        "container": "functions"
+      },
+      "observation": {
+        "checkedAt": "2026-09-29T15:10:18Z",
+        "images": [
+          "ghcr.io/i40sys/iotgw-functions@sha256:6db2b8ddc6f800fd469644363cb9eeaba21f32329470e3aa5ebd71eac9305e92"
+        ],
+        "imageIds": [
+          "ghcr.io/i40sys/iotgw-functions@sha256:6db2b8ddc6f800fd469644363cb9eeaba21f32329470e3aa5ebd71eac9305e92"
+        ],
+        "ready": true
+      }
+    },
+    {
+      "id": "supabase-app/kong/kong",
+      "name": "kong",
+      "version": "3.9.1",
+      "revision": null,
+      "image": "kong/kong:3.9.1",
+      "workload": {
+        "kind": "Deployment",
+        "namespace": "supabase-app",
+        "name": "kong",
+        "container": "kong"
+      },
+      "observation": {
+        "checkedAt": "2026-09-29T15:10:18Z",
+        "images": [
+          "kong/kong:3.9.1"
+        ],
+        "imageIds": [
+          "docker.io/kong/kong@sha256:6addf50e6bd8d578314cb9ce4f2d2d1e3781d2edecef59f707e00c6e05d384f5"
+        ],
+        "ready": true
+      }
+    },
+    {
+      "id": "supabase-app/meta/meta",
+      "name": "meta",
+      "version": "v0.96.6",
+      "revision": null,
+      "image": "supabase/postgres-meta:v0.96.6",
+      "workload": {
+        "kind": "Deployment",
+        "namespace": "supabase-app",
+        "name": "meta",
+        "container": "meta"
+      },
+      "observation": {
+        "checkedAt": "2026-09-29T15:10:18Z",
+        "images": [
+          "supabase/postgres-meta:v0.96.6"
+        ],
+        "imageIds": [
+          "docker.io/supabase/postgres-meta@sha256:a84cc713585eea7b401e4a2561ec4a1e48c87083d1c7ecb4502f204bb4391300"
+        ],
+        "ready": true
+      }
+    },
+    {
+      "id": "supabase-app/rest/rest",
+      "name": "rest",
+      "version": "v14.12",
+      "revision": null,
+      "image": "postgrest/postgrest:v14.12",
+      "workload": {
+        "kind": "Deployment",
+        "namespace": "supabase-app",
+        "name": "rest",
+        "container": "rest"
+      },
+      "observation": {
+        "checkedAt": "2026-09-29T15:10:18Z",
+        "images": [
+          "postgrest/postgrest:v14.12"
+        ],
+        "imageIds": [
+          "docker.io/postgrest/postgrest@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c"
+        ],
+        "ready": true
+      }
+    },
+    {
+      "id": "kestra/kestra-postgres/postgres",
+      "name": "kestra-postgres",
+      "version": "16",
+      "revision": null,
+      "image": "postgres:16",
+      "workload": {
+        "kind": "StatefulSet",
+        "namespace": "kestra",
+        "name": "kestra-postgres",
+        "container": "postgres"
+      },
+      "observation": {
+        "checkedAt": "2026-09-29T15:10:18Z",
+        "images": [
+          "postgres:16"
+        ],
+        "imageIds": [
+          "docker.io/library/postgres@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54"
+        ],
+        "ready": true
+      }
+    },
+    {
+      "id": "kms/cosmian-kms/kms",
+      "name": "Cosmian KMS",
+      "version": "5.27.1",
+      "revision": null,
+      "image": "ghcr.io/cosmian/kms:5.27.1",
+      "workload": {
+        "kind": "StatefulSet",
+        "namespace": "kms",
+        "name": "cosmian-kms",
+        "container": "kms"
+      },
+      "observation": {
+        "checkedAt": "2026-09-29T15:10:18Z",
+        "images": [
+          "ghcr.io/cosmian/kms:5.27.1"
+        ],
+        "imageIds": [
+          "ghcr.io/cosmian/kms@sha256:2da7c5507c21c83a9d7774759f8c0605a5d6169fa2a16602784d5faf6be7f3b7"
+        ],
+        "ready": true
+      }
+    },
+    {
+      "id": "supabase-db/supabase-db",
+      "name": "PostgreSQL (StackGres)",
+      "version": "15",
+      "revision": null,
+      "image": null,
+      "workload": null,
+      "observation": null
+    },
+    {
+      "id": "kestra-flows",
+      "name": "Kestra workflows",
+      "version": null,
+      "revision": null,
+      "image": null,
+      "workload": null,
+      "observation": null
+    },
+    {
+      "id": "database-migrations",
+      "name": "Database migration target",
+      "version": "20260926000000_drop_devices_totp_counter.sql",
+      "revision": "64fec1f348222882cbc52ddd02fcbf94fd46417c",
+      "image": null,
+      "workload": null,
+      "observation": null
+    }
+  ]
+}

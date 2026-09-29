@@ -29,13 +29,13 @@ resources:
 images:
   - name: supabase/edge-runtime:v1.74.0
     newName: ghcr.io/i40sys/iotgw-functions
-    digest: sha256:742d38f50237b41e5b52c26540bde768961a38d9c7f2833e8a2281d01ca7ef81
+    digest: sha256:6db2b8ddc6f800fd469644363cb9eeaba21f32329470e3aa5ebd71eac9305e92
   - name: iotgw-ui-backend
     newName: ghcr.io/i40sys/iotgw-ui-backend
-    digest: sha256:2757d82a25eb0229641654defab0890d96d4aa68d5a4ab2bf5baf6d19f13e911
+    digest: sha256:090f7212eb2acb5c0fba1e1469b42977dfc14a6ca8a128e0d13a86e9869a3994
   - name: iotgw-ui-frontend
     newName: ghcr.io/i40sys/iotgw-ui-frontend
-    digest: sha256:8cae26dab10046fa2db0c8f63ef69b2c6736ec3ba487796965f0c7eaf2ec85f7
+    digest: sha256:432c29a5dbd9ecfcfe1bd159200747fcb0b463053d8094f5290b09702dee4393
 
 patches:
   # Baked-in /home/deno/functions instead of the base emptyDir placeholder.
