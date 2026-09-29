@@ -1,0 +1,37 @@
+#!ipxe
+# iotgw-ng netboot chainloader (task-149.03): embedded in ipxe.efi /
+# undionly.kpxe / ipxe-usb.img. Gets an address, then chains the OVH netboot
+# menu over HTTPS only (TLS verified against the pinned ISRG roots). If the
+# menu is unreachable it says so and offers retry / shell / exit to firmware.
+# No credentials here; the menu URL is the only site-specific value.
+set menu-url https://netboot.iotgw.i40sys.com/menu.ipxe
+set tries:int32 0
+
+:retry
+echo iotgw-netboot: DHCP...
+dhcp || goto fail
+echo iotgw-netboot: chaining ${menu-url}
+chain --autofree ${menu-url} || goto fail
+
+:fail
+inc tries
+echo iotgw-netboot: cannot reach ${menu-url} (attempt ${tries})
+iseq ${tries} 3 && goto fallback ||
+sleep 5
+goto retry
+
+:fallback
+menu iotgw-netboot: the OVH netboot menu is unreachable
+item retry Retry
+item shell iPXE shell
+item exit Exit to firmware (next boot device)
+choose --default retry --timeout 60000 action || goto retry
+set tries:int32 0
+goto ${action}
+
+:shell
+shell
+goto retry
+
+:exit
+exit

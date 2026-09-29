@@ -1,0 +1,4 @@
+# Pinned upstream iPXE (task-149.03). build.sh clones the tag and refuses to
+# build unless HEAD is exactly this commit.
+IPXE_TAG=v2.0.0
+IPXE_COMMIT=12798ec29aa8a64d8675c4378b99f5fe28447afb

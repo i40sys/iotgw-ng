@@ -1,0 +1,79 @@
+# netboot-chainloader — build + test the iPXE chainloader (task-149.03,
+# netboot/chainloader/README.md). Every run: pinned-iPXE builds (release +
+# test variant) and the QEMU suite (UEFI/BIOS PXE, USB on UEFI/BIOS, TLS
+# negative cases, reproducibility). Pushes: signed build provenance.
+# v* tags: ipxe.efi / undionly.kpxe / ipxe-usb.img attached to the release.
+name: netboot-chainloader
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - "netboot/chainloader/**"
+      - ".github/workflows/netboot-chainloader.yml"
+  pull_request:
+    paths:
+      - "netboot/chainloader/**"
+      - ".github/workflows/netboot-chainloader.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: netboot-chainloader-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  chainloader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write # attach assets to the release (tags only)
+      id-token: write
+      attestations: write
+    defaults:
+      run:
+        working-directory: netboot/chainloader
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # SOURCE_DATE_EPOCH from the last commit of this dir
+      - uses: extractions/setup-just@v3
+      - name: QEMU + OVMF + NIC ROMs + gitleaks
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qemu-system-x86 ovmf ipxe-qemu binutils >/dev/null
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+      - name: Build + test (static, QEMU, reproducibility)
+        run: just test
+      - name: Test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chainloader-test-logs
+          include-hidden-files: true
+          path: netboot/chainloader/test/.work/*.log
+      - name: Attest build provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            netboot/chainloader/dist/release/ipxe.efi
+            netboot/chainloader/dist/release/undionly.kpxe
+            netboot/chainloader/dist/release/ipxe-usb.img
+      - name: Attach to the GitHub release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          for i in $(seq 1 30); do gh release view "$TAG" >/dev/null 2>&1 && break; sleep 20; done
+          cd dist/release
+          cp SHA256SUMS chainloader-SHA256SUMS
+          gh release upload "$TAG" --clobber ipxe.efi undionly.kpxe ipxe-usb.img chainloader-SHA256SUMS

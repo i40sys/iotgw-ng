@@ -1,0 +1,29 @@
+# iotgw-ng netboot chainloader (task-149.03). See README.md.
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+BUILDER := "debian@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a"
+DEPS := "git ca-certificates make gcc libc6-dev binutils perl liblzma-dev mtools syslinux syslinux-common"
+DIST := "dist"
+
+default:
+    @just --list
+
+# build in the pinned Debian container: build <out> [release | test <ca.pem> <url>]
+_build out mode="release" ca="" url="":
+    docker run --rm -e DEBIAN_FRONTEND=noninteractive \
+      -e SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct -- .)}" \
+      -v "$PWD":/src -v iotgw-ipxe-src:/ipxe-cache -w /src {{BUILDER}} bash -c '\
+        apt-get update -qq && apt-get install -y -qq --no-install-recommends {{DEPS}} >/dev/null && \
+        IPXE_SRC=/ipxe-cache/ipxe ./build.sh {{out}} {{mode}} {{ca}} {{url}} && \
+        chown -R '"$(id -u):$(id -g)"' {{out}}'
+
+# release binaries (ipxe.efi, undionly.kpxe, ipxe-usb.img) in dist/release
+build: (_build DIST + "/release")
+
+# full test suite (static + QEMU); builds the release and the test variants
+test: build
+    test/run.sh {{DIST}}
+
+# release artifacts + SHA256SUMS for CI
+dist: test
+    cp {{DIST}}/release/SHA256SUMS {{DIST}}/SHA256SUMS
