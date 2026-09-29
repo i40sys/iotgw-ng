@@ -29,6 +29,11 @@ rules:
   - apiGroups: [""]
     resources: ["pods/status"]
     verbs: ["get", "watch"]
+  # The PodCreate runner reads the pod's events to explain failures
+  # (task-152: "events is forbidden" in every failed run's log).
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

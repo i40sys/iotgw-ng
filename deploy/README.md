@@ -41,9 +41,9 @@ separate credentials:
 - **Only self-created Netmaker objects.** The e2e (`just e2e`) needs a live
   Netmaker: it creates its own network + device under `dev` and tears them down.
 - **No schedules against gateways.** `just k8s-deploy` ends with
-  `disable_prod_schedules` (also `just kind-safety`): Kestra's
-  `connectivity-check` and `ssh-ca-renewal` schedule triggers are disabled in
-  kind's Kestra DB; `sync-namespace-files` stays on.
+  `disable_prod_schedules` (also `just kind-safety`): Kestra's `ssh-ca-renewal`
+  schedule trigger is disabled in kind's Kestra DB (`connectivity-check` has no
+  schedule since task-152); `sync-namespace-files` stays on.
 - `kind-dev-reset` / `kind-safety` refuse to run unless the kubectl context is
   `kind-iotgw`.
 

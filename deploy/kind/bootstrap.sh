@@ -506,7 +506,8 @@ SQL
 #      and survives restarts; re-applied on each deploy after flow syncs.
 #   2. dev_reset (explicit, destructive): drop the production copy of the app
 #      data WITHOUT firing the Netmaker webhooks, and seed a dev domain.
-KIND_DISABLED_SCHEDULES=("connectivity-check:schedule" "ssh-ca-renewal:schedule")
+# connectivity-check has no schedule since task-152.
+KIND_DISABLED_SCHEDULES=("ssh-ca-renewal:schedule")
 kestra_api() {
   # $1 method, $2 path under /api/v1/main, stdin = body (optional)
   kubectl -n "$NS_KESTRA" exec -i deploy/kestra -- sh -c \
