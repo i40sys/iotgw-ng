@@ -1,6 +1,6 @@
 ---
 id: doc-005
-title: tRPC API Development Patterns
+title: "005: tRPC API Development Patterns"
 type: documentation
 created_date: "2025-08-24 12:17"
 ---

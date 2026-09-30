@@ -1,6 +1,6 @@
 ---
 id: decision-036
-title: 'Product release identity, build provenance and deployment diagnostics'
+title: "036: Product release identity, build provenance and deployment diagnostics"
 date: '2026-09-29 11:28'
 status: accepted
 ---

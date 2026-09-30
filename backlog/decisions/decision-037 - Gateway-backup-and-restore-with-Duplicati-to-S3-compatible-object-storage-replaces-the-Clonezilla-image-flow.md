@@ -1,7 +1,7 @@
 ---
 id: decision-037
 title: >-
-  Gateway backup and restore with Duplicati to S3-compatible object storage
+  037: Gateway backup and restore with Duplicati to S3-compatible object storage
   (replaces the Clonezilla image flow)
 date: '2026-09-30 06:37'
 status: proposed

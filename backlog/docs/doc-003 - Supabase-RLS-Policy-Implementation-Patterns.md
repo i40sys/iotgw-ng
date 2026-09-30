@@ -1,6 +1,6 @@
 ---
 id: doc-003
-title: Supabase RLS Policy Implementation Patterns
+title: "003: Supabase RLS Policy Implementation Patterns"
 type: documentation
 created_date: "2025-08-24 12:12"
 ---

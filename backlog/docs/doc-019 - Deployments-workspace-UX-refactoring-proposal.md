@@ -1,6 +1,6 @@
 ---
 id: doc-019
-title: Deployments workspace UX refactoring proposal
+title: "019: Deployments workspace UX refactoring proposal"
 type: specification
 created_date: '2026-09-29 05:46'
 updated_date: '2026-09-29 07:42'

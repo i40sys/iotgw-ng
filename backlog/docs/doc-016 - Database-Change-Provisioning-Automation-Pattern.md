@@ -1,6 +1,6 @@
 ---
 id: doc-016
-title: Database-Change Provisioning Automation Pattern
+title: "016: Database-Change Provisioning Automation Pattern"
 type: documentation
 created_date: "2025-10-22"
 updated_date: "2026-06-17"

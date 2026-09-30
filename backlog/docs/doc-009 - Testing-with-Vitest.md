@@ -1,6 +1,6 @@
 ---
 id: doc-009
-title: Testing with Vitest
+title: "009: Testing with Vitest"
 type: documentation
 created_date: "2025-09-24 06:30"
 ---

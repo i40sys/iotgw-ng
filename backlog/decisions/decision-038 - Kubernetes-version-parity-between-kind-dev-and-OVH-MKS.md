@@ -1,6 +1,6 @@
 ---
 id: decision-038
-title: Kubernetes version parity between kind (dev) and OVH MKS
+title: "038: Kubernetes version parity between kind (dev) and OVH MKS"
 date: '2026-09-30 06:37'
 status: proposed
 ---

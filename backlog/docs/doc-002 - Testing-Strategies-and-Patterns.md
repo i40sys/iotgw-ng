@@ -1,6 +1,6 @@
 ---
 id: doc-002
-title: Testing Strategies and Patterns
+title: "002: Testing Strategies and Patterns"
 type: documentation
 created_date: "2025-08-24 12:26"
 ---

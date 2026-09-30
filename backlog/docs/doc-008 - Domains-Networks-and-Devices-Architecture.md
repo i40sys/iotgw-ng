@@ -1,6 +1,6 @@
 ---
 id: doc-008
-title: Domains, Networks, and Devices Architecture
+title: "008: Domains, Networks, and Devices Architecture"
 type: documentation
 created_date: "2025-09-24 06:30"
 ---
