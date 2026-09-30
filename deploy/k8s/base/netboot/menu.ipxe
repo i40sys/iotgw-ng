@@ -1,12 +1,16 @@
 #!ipxe
-# iotgw-ng netboot menu, served by the OVH netboot (task-149.02). Reached
-# through the CI-built chainloader (netboot/chainloader, task-149.03) over
-# HTTPS. Every image here is the CI-built live image pinned by digest
-# (task-149.01) — nothing hand-maintained, no SSH keys.
+# iotgw-ng netboot menu, served by the OVH netboot (task-149.02). Reached by
+# the sites' firmware iPXE over plain HTTP (no HTTPS support there yet) or by
+# the CI-built chainloader (netboot/chainloader, task-149.03) over HTTPS.
+# Every image here is the CI-built live image pinned by digest (task-149.01) —
+# nothing hand-maintained, no SSH keys.
 set site_name netboot.iotgw.i40sys.com
-set live_endpoint https://${site_name}
+# kernel + initrd: loaded by iPXE -> plain HTTP works with any iPXE.
+set live_endpoint http://${site_name}
 set path /iotgw-live/
 set url ${live_endpoint}${path}
+# squashfs: fetched by the image's initrd (static curl + CA bundle) -> HTTPS.
+set fetch_url https://${site_name}${path}filesystem.squashfs
 set boot_timeout 300000
 isset ${ip} || dhcp
 
@@ -35,7 +39,7 @@ read device_id
 echo One-time code (6 digits, from the UI):
 read otp
 imgfree
-kernel ${url}vmlinuz boot=live username=user union=overlay config components noswap edd=on nomodeset keyboard-layouts=es locales=en_US.UTF-8 device_id=${device_id} otp=${otp} iotgw_api=https://device.iotgw.i40sys.com ocs_live_batch=no ocs_screen_blank="no" net.ifnames=0 nosplash noprompt fetch=${url}filesystem.squashfs initrd=initrd.magic loglevel=3
+kernel ${url}vmlinuz boot=live username=user union=overlay config components noswap edd=on nomodeset keyboard-layouts=es locales=en_US.UTF-8 device_id=${device_id} otp=${otp} iotgw_api=https://device.iotgw.i40sys.com ocs_live_batch=no ocs_screen_blank="no" net.ifnames=0 nosplash noprompt fetch=${fetch_url} initrd=initrd.magic loglevel=3
 initrd ${url}initrd
 boot || goto error
 
@@ -59,7 +63,7 @@ goto clonezilla-boot
 
 :clonezilla-debian
 imgfree
-kernel ${url}vmlinuz boot=live username=user union=overlay config components noswap edd=on nomodeset keyboard-layouts=es locales=en_US.UTF-8 ocs_live_batch=no ocs_screen_blank="no" net.ifnames=0 nosplash noprompt fetch=${url}filesystem.squashfs initrd=initrd.magic loglevel=7
+kernel ${url}vmlinuz boot=live username=user union=overlay config components noswap edd=on nomodeset keyboard-layouts=es locales=en_US.UTF-8 ocs_live_batch=no ocs_screen_blank="no" net.ifnames=0 nosplash noprompt fetch=${fetch_url} initrd=initrd.magic loglevel=7
 initrd ${url}initrd
 boot || goto error
 
@@ -75,7 +79,7 @@ read maquina_id
 #set extra_params maquina_id=${maquina_id}
 #set ocs_preload1 ocs_preload1=${live_endpoint}/boot.tgz
 #set ocs_preload2 ocs_preload2=${live_endpoint}/${maquina_id}.tgz
-kernel ${url}vmlinuz boot=live username=user union=overlay config components noswap edd=on nomodeset keyboard-layouts=es locales=en_US.UTF-8 ${clonezilla} ocs_live_batch=no ocs_screen_blank="no" net.ifnames=0 nosplash noprompt fetch=${url}filesystem.squashfs initrd=initrd.magic loglevel=3
+kernel ${url}vmlinuz boot=live username=user union=overlay config components noswap edd=on nomodeset keyboard-layouts=es locales=en_US.UTF-8 ${clonezilla} ocs_live_batch=no ocs_screen_blank="no" net.ifnames=0 nosplash noprompt fetch=${fetch_url} initrd=initrd.magic loglevel=3
 initrd ${url}initrd
 boot || goto error
 

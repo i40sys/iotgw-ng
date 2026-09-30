@@ -6,7 +6,8 @@
 #   backend.iotgw.i40sys.com  -> iotgw-ui-backend:4444  (tRPC + WS)
 #   api.iotgw.i40sys.com      -> kong:8000              (Supabase API, operator login)
 #   device.iotgw.i40sys.com   -> kong:8000 /functions/v1/{vpn,ssh-ca} only
-#   netboot.iotgw.i40sys.com  -> netboot:80 (iPXE menu + CI-built live image, task-149.02)
+#   netboot.iotgw.i40sys.com  -> netboot:80 (iPXE menu + CI-built live image,
+#                                task-149.02) — HTTP and HTTPS, no redirect
 #
 # The first three use Let's Encrypt (HTTP-01 solved through default-gateway's
 # port-80 listener). The DEVICE host is served with a certificate from the
@@ -118,7 +119,6 @@ spec:
     - backend.iotgw.i40sys.com
     - api.iotgw.i40sys.com
     - device.iotgw.i40sys.com
-    - netboot.iotgw.i40sys.com
   rules:
     - filters:
         - type: RequestRedirect
@@ -176,8 +176,11 @@ spec:
         - path: { type: PathPrefix, value: /functions/v1/ssh-ca }
       backendRefs: [{ name: kong, port: 8000 }]
 ---
-# iPXE menu + live image (task-149.02). HTTPS only: the chainloader and the
-# image's initrd both verify Let's Encrypt; plain HTTP is redirected above.
+# iPXE menu + live image (task-149.02). Served over plain HTTP too (no
+# redirect): the sites' firmware iPXE has no HTTPS support yet, so it chains
+# http://netboot.iotgw.i40sys.com/menu.ipxe directly. HTTPS stays available
+# (the CI chainloader uses it); the squashfs itself is fetched over HTTPS by the
+# image's initrd (curl + CA bundle), see menu.ipxe.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -186,6 +189,7 @@ metadata:
 spec:
   parentRefs:
     - { name: iotgw, namespace: iotgw-gateway, sectionName: netboot }
+    - { name: default-gateway, namespace: traefik, sectionName: http }
   hostnames: [netboot.iotgw.i40sys.com]
   rules:
     - backendRefs: [{ name: netboot, port: 80 }]
