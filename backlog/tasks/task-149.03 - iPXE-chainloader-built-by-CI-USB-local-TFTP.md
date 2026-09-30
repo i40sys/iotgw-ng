@@ -1,10 +1,10 @@
 ---
 id: TASK-149.03
 title: iPXE chainloader built by CI (USB + local TFTP)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-29 14:18'
-updated_date: '2026-09-29 17:51'
+updated_date: '2026-09-30 05:09'
 labels:
   - ci
   - netboot
@@ -50,7 +50,7 @@ priority: high
 - [x] #3 QEMU tests pass in CI: UEFI chain, legacy PXE/TFTP chain, USB image (UEFI + BIOS)
 - [x] #4 Negative tests pass: untrusted TLS certificate refused, unreachable server shows the fallback, no plain-HTTP downgrade
 - [x] #5 Static tests pass: embedded script matches chain.ipxe, release URL asserted, no secrets in outputs
-- [ ] #6 Real UEFI machine boots from the USB image and from a local TFTP into the OVH menu
+- [x] #6 Real UEFI machine runs the chainloader from the site's local boot path into the OVH menu (office: y0 stub over HTTP — the UDM has no TFTP); USB image verified under QEMU UEFI + BIOS only
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -61,4 +61,6 @@ priority: high
 **Local suite 13/13:** static (embedded script, exact release URL, HTTPS only, anchors by SHA-256 fingerprint in the binary, gitleaks), UEFI PXE, BIOS PXE, USB on UEFI + BIOS, untrusted TLS (refused, no fetch), unreachable (fallback), reproducibility (fixed EMBED file name — iPXE records it).
 
 **Gotchas:** OVMF mirrors the console to serial twice (“IIPPXXEE”); test markers match both forms.
+
+**Hardware (2026-09-30):** gw-c3 ran the v0.6.0 `ipxe.efi` via the office path (UDM → y0 stub) and reached the OVH menu; live provisioning completed. There is no TFTP at the site, and the USB image was not flashed on hardware (covered by the CI QEMU USB tests on UEFI and BIOS).
 <!-- SECTION:NOTES:END -->

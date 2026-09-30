@@ -1,11 +1,11 @@
 ---
 id: TASK-149.05
 title: Cut over sites to the OVH netboot and retire y0 iotgw-live
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-29 14:18'
-updated_date: '2026-09-29 18:25'
+updated_date: '2026-09-30 05:09'
 labels:
   - netboot
   - migration
@@ -27,8 +27,8 @@ priority: medium
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Office PXE path uses the chainloader and lands on the OVH menu
-- [ ] #2 One gateway provisioned end-to-end from OVH
+- [x] #1 Office PXE path uses the chainloader and lands on the OVH menu
+- [x] #2 One gateway provisioned end-to-end from OVH
 - [x] #3 y0 iotgw-live retired or chained to OVH; docs updated
 <!-- AC:END -->
 
@@ -41,4 +41,8 @@ priority: medium
 - **Simulated in QEMU**: BIOS iPXE client with the UDM boot file URL → stub → chainloader → `https://netboot.iotgw.i40sys.com/menu.ipxe ... ok` → OVH menu.
 - Docs: `scripts/live-image/README.md` (superseded banner), infra-kb `netboot.md` (with rollback).
 - Pending: the same on real hardware + one gateway provisioned end-to-end from OVH (needs an operator at the console to type the device code).
+
+**Real hardware (2026-09-30):** gw-c3 (office LAN, 10.2.0.210) PXE-booted with the UDM boot file `http://netboot.joor.net/config/menu.ipxe` → y0 stub → CI chainloader → OVH menu → *IoT gateway live provisioning*; the initrd fetched the squashfs over HTTPS from `netboot.iotgw.i40sys.com` (slow but complete). OVH `device_otp_uses`: `vpn` 05:08:12 and `ssh-live-enroll` 05:08:15 UTC — VPN + SSH PKI enrolled against the OVH device API.
+
+**Follow-up applied:** the netboot also serves plain HTTP (no redirect) because the sites' firmware iPXE lacks HTTPS; menu/kernel/initrd over HTTP, squashfs over HTTPS (commit 5030681).
 <!-- SECTION:NOTES:END -->
