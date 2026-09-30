@@ -7,7 +7,7 @@ relationships:
     type: related_to
 sources:
   - backlog/decisions/decision-019-headlamp-sso-via-keycloak-oidc-on-the-kube-apiserver.md
-  - backlog/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access.md
+  - backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md
 summary: The platform IdP at iam.joor.net hosting realm iotgw; provides OIDC SSO for Headlamp via the kube-apiserver. Note "iotgw realm" is unrelated to the iotgw cluster/namespace naming.
 provenance:
   extracted: 0.85
@@ -54,4 +54,4 @@ Admin password and the Headlamp client secret are in Bitwarden / SOPS
 **Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/decisions/decision-019-headlamp-sso-via-keycloak-oidc-on-the-kube-apiserver|decision-019-headlamp-sso-via-keycloak-oidc-on-the-kube-apiserver]]
-- [[_sources/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access|doc-017-headlamp-kubernetes-dashboard-deployment-and-access]]
+- [[_sources/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access|doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access]]

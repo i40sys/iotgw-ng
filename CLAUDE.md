@@ -118,13 +118,13 @@ integration point:
 | **decision-015** | [Kubernetes migration with kind](backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md) |
 | **decision-020** | [Namespace-per-subproject topology (`iotgw` is the cluster, not a namespace)](backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md) |
 | **decision-021** | [Container image CI/CD + ghcr.io/i40sys conventions (3 custom images, digest-pinned, signed)](backlog/decisions/decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions.md) |
-| **doc-016** | [Database-change provisioning automation pattern](backlog/docs/doc-016-database-change-provisioning-automation-pattern.md) (current: DB trigger → `netmaker-call` → Netmaker REST) |
+| **doc-016** | [Database-change provisioning automation pattern](backlog/docs/doc-016%20-%20Database-Change-Provisioning-Automation-Pattern.md) (current: DB trigger → `netmaker-call` → Netmaker REST) |
 | **decision-010** | [SSH key management via Cosmian KMS](backlog/decisions/decision-010-ssh-key-management-with-cosmian-kms.md) |
 | **decision-033** | [Device one-time codes from a KMS-held random seed](backlog/decisions/decision-033%20-%20Device-one-time-codes-from-a-KMS-held-random-seed-operator-entered-single-use.md) — operator-entered, single-use; sealed VPN reply; host-key SSH renewal (supersedes decision-009) |
 | **decision-024** | [SSH-CA target architecture — iotgw-ng consumes pki-manager, one zone per domain](backlog/decisions/decision-024-ssh-ca-target-architecture-iotgw-ng-consumes-pki-manager-one-zone-per-domain.md) (+ current-state `decision-023`, change map `decision-025`, provisioning sequence `decision-026`, migration plan `decision-027`, open decisions `decision-028`) |
-| **doc-008** | [Domains → Networks → Devices hierarchy](backlog/docs/doc-008-domains-networks-and-devices-architecture.md) |
-| **doc-010** | [DB migration + webhook management](backlog/docs/doc-010-database-migration-and-webhook-management-guide.md) |
-| **doc-013** | [Deployments page behavior spec](backlog/docs/doc-013-deployments-page-behavior-specification.md) |
+| **doc-008** | [Domains → Networks → Devices hierarchy](backlog/docs/doc-008%20-%20Domains-Networks-and-Devices-Architecture.md) |
+| **doc-010** | [DB migration + webhook management](backlog/docs/doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md) |
+| **doc-013** | [Deployments page behavior spec](backlog/docs/doc-013%20-%20Deployments-Page-Behavior-Specification.md) |
 
 In-flight SSH-key-in-KMS work spans **task-032 through task-041**
 (032/036/037/040/041 Done). The network-CRUD epic is task-042..052. Manage

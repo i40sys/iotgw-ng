@@ -294,7 +294,7 @@
       "pages_updated": [],
       "note": "produced: synthesis/netmaker-collection-externalization.md, entities/netmaker.md"
     },
-    "backlog/docs/doc-002-testing-strategies-and-patterns.md": {
+    "backlog/docs/doc-002 - Testing-Strategies-and-Patterns.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 26727,
       "modified_at": 1759390544,
@@ -307,7 +307,7 @@
       "pages_updated": [],
       "note": "produced: skills/testing-with-vitest.md"
     },
-    "backlog/docs/doc-003-supabase-rls-policy-implementation-patterns.md": {
+    "backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 19439,
       "modified_at": 1759390544,
@@ -321,7 +321,7 @@
       "pages_updated": [],
       "note": "produced: entities/supabase.md, concepts/iotgw-ui-architecture.md"
     },
-    "backlog/docs/doc-005-trpc-api-development-patterns.md": {
+    "backlog/docs/doc-005 - tRPC-API-Development-Patterns.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 44618,
       "modified_at": 1763376986,
@@ -334,7 +334,7 @@
       "pages_updated": [],
       "note": "produced: concepts/iotgw-ui-architecture.md"
     },
-    "backlog/docs/doc-006-react-component-development-guidelines.md": {
+    "backlog/docs/doc-006 - React-Component-Development-Guidelines.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 41342,
       "modified_at": 1759390544,
@@ -347,7 +347,7 @@
       "pages_updated": [],
       "note": "produced: concepts/iotgw-ui-architecture.md"
     },
-    "backlog/docs/doc-007-workspace-development-workflow.md": {
+    "backlog/docs/doc-007 - Workspace-Development-Workflow.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 20638,
       "modified_at": 1759390545,
@@ -360,7 +360,7 @@
       "pages_updated": [],
       "note": "produced: skills/iotgw-ui-development-workflow.md"
     },
-    "backlog/docs/doc-008-domains-networks-and-devices-architecture.md": {
+    "backlog/docs/doc-008 - Domains-Networks-and-Devices-Architecture.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 9820,
       "modified_at": 1782104138,
@@ -373,7 +373,7 @@
       "pages_updated": [],
       "note": "produced: concepts/domains-networks-devices.md"
     },
-    "backlog/docs/doc-009-testing-with-vitest.md": {
+    "backlog/docs/doc-009 - Testing-with-Vitest.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 18297,
       "modified_at": 1759390544,
@@ -386,7 +386,7 @@
       "pages_updated": [],
       "note": "produced: skills/testing-with-vitest.md"
     },
-    "backlog/docs/doc-010-database-migration-and-webhook-management-guide.md": {
+    "backlog/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 7637,
       "modified_at": 1782199989,
@@ -400,7 +400,7 @@
       "pages_updated": [],
       "note": "produced: references/database-migrations-webhooks.md, concepts/provisioning-call-chain.md"
     },
-    "backlog/docs/doc-011-deployment-section-redesign-interface-specification.md": {
+    "backlog/docs/doc-011 - Deployment-Section-Redesign-Interface-Specification.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 4427,
       "modified_at": 1764138392,
@@ -413,7 +413,7 @@
       "pages_updated": [],
       "note": "produced: references/deployments-page-behavior.md"
     },
-    "backlog/docs/doc-013-deployments-page-behavior-specification.md": {
+    "backlog/docs/doc-013 - Deployments-Page-Behavior-Specification.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 8588,
       "modified_at": 1764741161,
@@ -427,7 +427,7 @@
       "pages_updated": [],
       "note": "produced: references/deployments-page-behavior.md, entities/kestra.md"
     },
-    "backlog/docs/doc-014-openwrt-wireguard-setup-guide.md": {
+    "backlog/docs/doc-014 - OpenWRT-Wireguard-Setup-Guide.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 2160,
       "modified_at": 1782104138,
@@ -440,7 +440,7 @@
       "pages_updated": [],
       "note": "produced: references/openwrt-wireguard-config.md"
     },
-    "backlog/docs/doc-015-claude-code-skills-and-knowledge-requirements.md": {
+    "backlog/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 18572,
       "modified_at": 1780288944,
@@ -454,7 +454,7 @@
       "pages_updated": [],
       "note": "produced: concepts/iotgw-ui-architecture.md, skills/iotgw-ui-development-workflow.md"
     },
-    "backlog/docs/doc-016-database-change-provisioning-automation-pattern.md": {
+    "backlog/docs/doc-016 - Database-Change-Provisioning-Automation-Pattern.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 8813,
       "modified_at": 1782399263,
@@ -470,7 +470,7 @@
       "pages_updated": [],
       "note": "produced: concepts/provisioning-call-chain.md, entities/netmaker.md, entities/kestra.md, entities/edge-functions.md"
     },
-    "backlog/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access.md": {
+    "backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md": {
       "ingested_at": "2026-06-26",
       "size_bytes": 10589,
       "modified_at": 1782199989,
@@ -2331,7 +2331,7 @@
   "pages": {
     "concepts/domains-networks-devices.md": {
       "sources": [
-        "backlog/docs/doc-008-domains-networks-and-devices-architecture.md",
+        "backlog/docs/doc-008 - Domains-Networks-and-Devices-Architecture.md",
         "backlog/completed/task-027 - Implement-new-devices-table-with-network-relationship-and-secure-key-storage.md",
         "backlog/completed/task-028 - Fix-Supabase-row-level-security-for-database-queries.md"
       ]
@@ -2345,10 +2345,10 @@
         "backlog/decisions/decision-005-development-tooling-build-and-development-experience.md",
         "backlog/decisions/decision-006-testing-framework-vitest-choice.md",
         "backlog/decisions/decision-011-get-debug-of-the-connectivity-check-button.md",
-        "backlog/docs/doc-003-supabase-rls-policy-implementation-patterns.md",
-        "backlog/docs/doc-005-trpc-api-development-patterns.md",
-        "backlog/docs/doc-006-react-component-development-guidelines.md",
-        "backlog/docs/doc-015-claude-code-skills-and-knowledge-requirements.md",
+        "backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md",
+        "backlog/docs/doc-005 - tRPC-API-Development-Patterns.md",
+        "backlog/docs/doc-006 - React-Component-Development-Guidelines.md",
+        "backlog/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements.md",
         "backlog/completed/task-001 - Document-tRPC-API-Development-Patterns.md",
         "backlog/completed/task-002 - Document-React-Component-Development-Guidelines.md",
         "backlog/completed/task-003 - Document-Supabase-RLS-Policy-Implementation-Patterns.md",
@@ -2380,8 +2380,8 @@
     "concepts/provisioning-call-chain.md": {
       "sources": [
         "backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md",
-        "backlog/docs/doc-010-database-migration-and-webhook-management-guide.md",
-        "backlog/docs/doc-016-database-change-provisioning-automation-pattern.md",
+        "backlog/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide.md",
+        "backlog/docs/doc-016 - Database-Change-Provisioning-Automation-Pattern.md",
         "backlog/tasks/task-055 - Re-point-pg_net-webhook-URLs-to-in-cluster-Service-for-k8s.md"
       ]
     },
@@ -2412,14 +2412,14 @@
     "entities/edge-functions.md": {
       "sources": [
         "backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md",
-        "backlog/docs/doc-016-database-change-provisioning-automation-pattern.md",
+        "backlog/docs/doc-016 - Database-Change-Provisioning-Automation-Pattern.md",
         "backlog/tasks/task-062.18 - Define-and-implement-the-edge-function-\u2192-Kestra-durable-execution-handoff-contract.md"
       ]
     },
     "entities/headlamp.md": {
       "sources": [
         "backlog/decisions/decision-019-headlamp-sso-via-keycloak-oidc-on-the-kube-apiserver.md",
-        "backlog/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access.md",
+        "backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md",
         "backlog/tasks/task-063 - Deploy-Headlamp-Kubernetes-dashboard-into-the-kind-cluster.md"
       ]
     },
@@ -2427,14 +2427,14 @@
       "sources": [
         "backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md",
         "backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md",
-        "backlog/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access.md"
+        "backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md"
       ]
     },
     "entities/kestra.md": {
       "sources": [
         "backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md",
-        "backlog/docs/doc-013-deployments-page-behavior-specification.md",
-        "backlog/docs/doc-016-database-change-provisioning-automation-pattern.md",
+        "backlog/docs/doc-013 - Deployments-Page-Behavior-Specification.md",
+        "backlog/docs/doc-016 - Database-Change-Provisioning-Automation-Pattern.md",
         "backlog/tasks/task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner.md",
         "backlog/tasks/task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods.md"
       ]
@@ -2442,7 +2442,7 @@
     "entities/keycloak.md": {
       "sources": [
         "backlog/decisions/decision-019-headlamp-sso-via-keycloak-oidc-on-the-kube-apiserver.md",
-        "backlog/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access.md"
+        "backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md"
       ]
     },
     "entities/kind.md": {
@@ -2455,7 +2455,7 @@
       "sources": [
         "backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md",
         "backlog/decisions/decision-022-re-externalize-the-oriolrius-netmaker-ansible-collection-out-of-the-monorepo.md",
-        "backlog/docs/doc-016-database-change-provisioning-automation-pattern.md",
+        "backlog/docs/doc-016 - Database-Change-Provisioning-Automation-Pattern.md",
         "backlog/docs/netmaker-credential-handling.md"
       ]
     },
@@ -2469,7 +2469,7 @@
         "backlog/decisions/decision-003-database-and-infrastructure-supabase-postgresql-choice.md",
         "backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md",
         "backlog/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md",
-        "backlog/docs/doc-003-supabase-rls-policy-implementation-patterns.md",
+        "backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md",
         "backlog/completed/task-028 - Fix-Supabase-row-level-security-for-database-queries.md"
       ]
     },
@@ -2486,19 +2486,19 @@
     },
     "references/database-migrations-webhooks.md": {
       "sources": [
-        "backlog/docs/doc-010-database-migration-and-webhook-management-guide.md"
+        "backlog/docs/doc-010 - Database-Migration-and-Webhook-Management-Guide.md"
       ]
     },
     "references/deployments-page-behavior.md": {
       "sources": [
-        "backlog/docs/doc-011-deployment-section-redesign-interface-specification.md",
-        "backlog/docs/doc-013-deployments-page-behavior-specification.md",
+        "backlog/docs/doc-011 - Deployment-Section-Redesign-Interface-Specification.md",
+        "backlog/docs/doc-013 - Deployments-Page-Behavior-Specification.md",
         "backlog/archive/tasks/task-001 - Create-database-schema-for-deployments-table.md"
       ]
     },
     "references/openwrt-wireguard-config.md": {
       "sources": [
-        "backlog/docs/doc-014-openwrt-wireguard-setup-guide.md"
+        "backlog/docs/doc-014 - OpenWRT-Wireguard-Setup-Guide.md"
       ]
     },
     "references/service-ports-and-namespaces.md": {
@@ -2518,8 +2518,8 @@
         "backlog/decisions/decision-004-monorepo-architecture-pnpm-workspaces-and-package-structure.md",
         "backlog/decisions/decision-005-development-tooling-build-and-development-experience.md",
         "backlog/decisions/decision-011-get-debug-of-the-connectivity-check-button.md",
-        "backlog/docs/doc-007-workspace-development-workflow.md",
-        "backlog/docs/doc-015-claude-code-skills-and-knowledge-requirements.md",
+        "backlog/docs/doc-007 - Workspace-Development-Workflow.md",
+        "backlog/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements.md",
         "backlog/completed/task-001 - Document-tRPC-API-Development-Patterns.md",
         "backlog/completed/task-002 - Document-React-Component-Development-Guidelines.md",
         "backlog/completed/task-003 - Document-Supabase-RLS-Policy-Implementation-Patterns.md",
@@ -2531,8 +2531,8 @@
     "skills/testing-with-vitest.md": {
       "sources": [
         "backlog/decisions/decision-006-testing-framework-vitest-choice.md",
-        "backlog/docs/doc-002-testing-strategies-and-patterns.md",
-        "backlog/docs/doc-009-testing-with-vitest.md"
+        "backlog/docs/doc-002 - Testing-Strategies-and-Patterns.md",
+        "backlog/docs/doc-009 - Testing-with-Vitest.md"
       ]
     },
     "synthesis/docker-compose-decommission.md": {

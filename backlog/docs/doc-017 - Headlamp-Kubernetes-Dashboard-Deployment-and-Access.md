@@ -1,6 +1,6 @@
 ---
 id: doc-017
-title: "017: Headlamp Kubernetes Dashboard Deployment and Access"
+title: Headlamp Kubernetes Dashboard Deployment and Access
 type: guide
 created_date: '2026-06-22 16:09'
 ---

@@ -97,7 +97,7 @@ kubectl -n headlamp create token headlamp
 ```
 
 Full deploy + SSO + token runbook:
-[`backlog/docs/doc-017`](../backlog/docs/doc-017-headlamp-kubernetes-dashboard-deployment-and-access.md).
+[`backlog/docs/doc-017`](../backlog/docs/doc-017%20-%20Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md).
 
 ## Postgres tier: StackGres (decision-018)
 

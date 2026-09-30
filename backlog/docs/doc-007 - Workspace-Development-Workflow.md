@@ -1,6 +1,6 @@
 ---
 id: doc-007
-title: "007: Workspace Development Workflow"
+title: Workspace Development Workflow
 type: documentation
 created_date: "2025-08-24 12:24"
 ---

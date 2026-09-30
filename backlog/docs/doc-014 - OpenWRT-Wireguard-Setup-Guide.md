@@ -1,6 +1,6 @@
 ---
 id: doc-014
-title: "014: OpenWRT Wireguard Setup Guide"
+title: OpenWRT Wireguard Setup Guide
 type: other
 created_date: "2025-12-04 06:25"
 ---

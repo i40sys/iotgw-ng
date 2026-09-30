@@ -85,5 +85,5 @@ gateways is NOT done here — that is the `ssh-ca` edge function. See the root
 ## References
 
 - [decision-002](../../../backlog/decisions/decision-002-backend-architecture-fastify-and-trpc-api-design.md) — why Fastify + tRPC
-- [doc-005](../../../backlog/docs/doc-005-trpc-api-development-patterns.md) — tRPC procedure/router patterns used here
+- [doc-005](../../../backlog/docs/doc-005%20-%20tRPC-API-Development-Patterns.md) — tRPC procedure/router patterns used here
 - [decision-011](../../../backlog/decisions/decision-011-get-debug-of-the-connectivity-check-button.md) — Pino logging setup

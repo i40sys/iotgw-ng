@@ -1,6 +1,6 @@
 ---
 id: doc-016
-title: "016: Database-Change Provisioning Automation Pattern"
+title: Database-Change Provisioning Automation Pattern
 type: documentation
 created_date: "2025-10-22"
 updated_date: "2026-06-17"
@@ -125,7 +125,7 @@ Everything is in the schema + the edge function — both versioned in git:
 
 Applying migrations (`pnpm db:reset` / `pnpm db:migrate`) (re)creates the
 triggers. Restarting the `functions` container deploys edge-function code
-changes. See [doc-010](doc-010-database-migration-and-webhook-management-guide.md).
+changes. See [doc-010](doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md).
 
 ### Verifying end-to-end (don't trust the 202)
 
@@ -190,7 +190,7 @@ functions (and the Dashboard-webhook setup they relied on) and the Kestra
 ## References
 
 - [netmaker-call edge function CLAUDE.md](../../supabase/volumes/functions/netmaker-call/CLAUDE.md)
-- [doc-010 — Database Migration & Webhook Management](doc-010-database-migration-and-webhook-management-guide.md)
-- [doc-008 — Domains/Networks/Devices architecture](doc-008-domains-networks-and-devices-architecture.md)
+- [doc-010 — Database Migration & Webhook Management](doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md)
+- [doc-008 — Domains/Networks/Devices architecture](doc-008%20-%20Domains-Networks-and-Devices-Architecture.md)
 - [decision-010 — SSH key management via Cosmian KMS](../decisions/decision-010-ssh-key-management-with-cosmian-kms.md)
 - [oriolrius.netmaker — the Netmaker REST contract netmaker-call replicates](https://github.com/oriolrius/netmaker-ansible-automation) (external repo; re-externalized per [decision-022](../decisions/decision-022-re-externalize-the-oriolrius-netmaker-ansible-collection-out-of-the-monorepo.md))

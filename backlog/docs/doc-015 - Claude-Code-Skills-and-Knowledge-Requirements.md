@@ -1,6 +1,6 @@
 ---
 id: doc-015
-title: "015: Claude Code Skills and Knowledge Requirements"
+title: Claude Code Skills and Knowledge Requirements
 type: documentation
 created_date: "2025-10-21"
 ---

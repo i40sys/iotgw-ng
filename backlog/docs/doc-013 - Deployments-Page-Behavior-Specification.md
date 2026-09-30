@@ -1,6 +1,6 @@
 ---
 id: doc-013
-title: "013: Deployments Page Behavior Specification"
+title: Deployments Page Behavior Specification
 type: other
 created_date: '2025-12-02 06:25'
 ---

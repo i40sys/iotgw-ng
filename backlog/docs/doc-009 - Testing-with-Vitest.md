@@ -1,6 +1,6 @@
 ---
 id: doc-009
-title: "009: Testing with Vitest"
+title: Testing with Vitest
 type: documentation
 created_date: "2025-09-24 06:30"
 ---
@@ -784,4 +784,4 @@ For more information:
 
 - [Vitest Documentation](https://vitest.dev)
 - [React Testing Library](https://testing-library.com/docs/react-testing-library/intro)
-- [Testing Best Practices](./doc-002-testing-strategies-and-patterns.md)
+- [Testing Best Practices](./doc-002%20-%20Testing-Strategies-and-Patterns.md)

@@ -3,7 +3,7 @@ title: OpenWRT WireGuard Config
 category: references
 tags: [vpn/wireguard, provisioning/openwrt, status/current]
 sources:
-  - backlog/docs/doc-014-openwrt-wireguard-setup-guide.md
+  - backlog/docs/doc-014 - OpenWRT-Wireguard-Setup-Guide.md
 relationships:
   - target: "[[entities/netmaker]]"
     type: related_to
@@ -54,4 +54,4 @@ Netmaker endpoint ([[entities/netmaker]]).
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/docs/doc-014-openwrt-wireguard-setup-guide|doc-014-openwrt-wireguard-setup-guide]]
+- [[_sources/docs/doc-014 - OpenWRT-Wireguard-Setup-Guide|doc-014 - OpenWRT-Wireguard-Setup-Guide]]

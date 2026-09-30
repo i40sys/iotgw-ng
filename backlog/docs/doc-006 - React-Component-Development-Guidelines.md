@@ -1,6 +1,6 @@
 ---
 id: doc-006
-title: "006: React Component Development Guidelines"
+title: React Component Development Guidelines
 type: documentation
 created_date: "2025-08-24 12:22"
 ---

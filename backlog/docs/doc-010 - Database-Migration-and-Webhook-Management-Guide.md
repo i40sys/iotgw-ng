@@ -1,6 +1,6 @@
 ---
 id: doc-010
-title: "010: Database Migration and Webhook Management Guide"
+title: Database Migration and Webhook Management Guide
 type: other
 created_date: '2025-11-17 11:14'
 updated_date: '2026-06-17'
@@ -61,7 +61,7 @@ and the row triggers that POST to the `netmaker-call` edge function.
 | `networks` | INSERT, UPDATE, DELETE | `20260610000001_repoint_networks_webhook_to_netmaker.sql` |
 
 The mechanics of the trigger → edge-function → Netmaker flow are documented in
-[doc-016](doc-016-database-change-provisioning-automation-pattern.md).
+[doc-016](doc-016%20-%20Database-Change-Provisioning-Automation-Pattern.md).
 
 ## Common operations
 
@@ -194,7 +194,7 @@ pnpm typecheck           # verify types
 
 ## Related documentation
 
-- [doc-016 — Database-Change Provisioning Automation Pattern](doc-016-database-change-provisioning-automation-pattern.md)
-- [doc-008 — Domains/Networks/Devices architecture](doc-008-domains-networks-and-devices-architecture.md)
+- [doc-016 — Database-Change Provisioning Automation Pattern](doc-016%20-%20Database-Change-Provisioning-Automation-Pattern.md)
+- [doc-008 — Domains/Networks/Devices architecture](doc-008%20-%20Domains-Networks-and-Devices-Architecture.md)
 - [netmaker-call edge function CLAUDE.md](../../supabase/volumes/functions/netmaker-call/CLAUDE.md)
 - [Supabase CLI](https://supabase.com/docs/guides/cli)

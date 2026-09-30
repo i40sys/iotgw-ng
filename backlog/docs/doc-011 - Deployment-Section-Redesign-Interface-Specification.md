@@ -1,6 +1,6 @@
 ---
 id: doc-011
-title: "011: Deployment Section Redesign - Interface Specification"
+title: Deployment Section Redesign - Interface Specification
 type: other
 created_date: '2025-11-26 06:26'
 ---

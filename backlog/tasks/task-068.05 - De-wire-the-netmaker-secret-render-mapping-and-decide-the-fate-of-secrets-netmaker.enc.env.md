@@ -20,7 +20,7 @@ references:
   - secrets/README.md
   - secrets/netmaker.enc.env
   - supabase/volumes/functions/netmaker-call/index.ts
-  - backlog/docs/doc-018-netmaker-credential-handling.md
+  - backlog/docs/doc-018 - Netmaker-credential-handling.md
 parent_task_id: TASK-068
 priority: high
 ---

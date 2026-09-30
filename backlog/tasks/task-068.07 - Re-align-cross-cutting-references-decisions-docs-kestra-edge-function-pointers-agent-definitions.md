@@ -18,7 +18,7 @@ references:
     backlog/decisions/decision-012-workspace-git-consolidation-into-a-single-root-repository.md
   - >-
     backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md
-  - backlog/docs/doc-016-database-change-provisioning-automation-pattern.md
+  - backlog/docs/doc-016 - Database-Change-Provisioning-Automation-Pattern.md
   - kestra/CLAUDE.md
   - supabase/volumes/functions/netmaker-call/CLAUDE.md
   - .claude/agents/supabase-function-developer.md

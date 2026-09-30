@@ -14,10 +14,10 @@ sources:
   - backlog/decisions/decision-005-development-tooling-build-and-development-experience.md
   - backlog/decisions/decision-006-testing-framework-vitest-choice.md
   - backlog/decisions/decision-011-get-debug-of-the-connectivity-check-button.md
-  - backlog/docs/doc-005-trpc-api-development-patterns.md
-  - backlog/docs/doc-003-supabase-rls-policy-implementation-patterns.md
-  - backlog/docs/doc-006-react-component-development-guidelines.md
-  - backlog/docs/doc-015-claude-code-skills-and-knowledge-requirements.md
+  - backlog/docs/doc-005 - tRPC-API-Development-Patterns.md
+  - backlog/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns.md
+  - backlog/docs/doc-006 - React-Component-Development-Guidelines.md
+  - backlog/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements.md
 summary: The iotgw-ui app — React 19 + TanStack + Tailwind v4/Shadcn on the front, Fastify + tRPC v11 + Zod + Pino on the back, end-to-end type-safe over a pnpm workspace.
 provenance:
   extracted: 0.85
@@ -91,7 +91,7 @@ single source of truth, regenerated via `pnpm generate:contract`.
 - [[_sources/decisions/decision-005-development-tooling-build-and-development-experience|decision-005-development-tooling-build-and-development-experience]]
 - [[_sources/decisions/decision-006-testing-framework-vitest-choice|decision-006-testing-framework-vitest-choice]]
 - [[_sources/decisions/decision-011-get-debug-of-the-connectivity-check-button|decision-011-get-debug-of-the-connectivity-check-button]]
-- [[_sources/docs/doc-005-trpc-api-development-patterns|doc-005-trpc-api-development-patterns]]
-- [[_sources/docs/doc-003-supabase-rls-policy-implementation-patterns|doc-003-supabase-rls-policy-implementation-patterns]]
-- [[_sources/docs/doc-006-react-component-development-guidelines|doc-006-react-component-development-guidelines]]
-- [[_sources/docs/doc-015-claude-code-skills-and-knowledge-requirements|doc-015-claude-code-skills-and-knowledge-requirements]]
+- [[_sources/docs/doc-005 - tRPC-API-Development-Patterns|doc-005 - tRPC-API-Development-Patterns]]
+- [[_sources/docs/doc-003 - Supabase-RLS-Policy-Implementation-Patterns|doc-003 - Supabase-RLS-Policy-Implementation-Patterns]]
+- [[_sources/docs/doc-006 - React-Component-Development-Guidelines|doc-006 - React-Component-Development-Guidelines]]
+- [[_sources/docs/doc-015 - Claude-Code-Skills-and-Knowledge-Requirements|doc-015 - Claude-Code-Skills-and-Knowledge-Requirements]]

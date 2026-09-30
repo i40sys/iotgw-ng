@@ -1,6 +1,6 @@
 ---
 id: doc-018
-title: "018: Netmaker credential handling"
+title: Netmaker credential handling
 type: documentation
 created_date: "2026-06-17"
 ---
