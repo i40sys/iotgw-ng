@@ -20,7 +20,7 @@ item --gap Provisioning:
 item iotgw-live ${space} IoT gateway live provisioning (iotgw-live)
 item --gap Default:
 item local ${space} Boot from local disk
-item --gap Clonezilla (resources pending, DRAFT-001):
+item --gap Clonezilla (resources pending, decision-037):
 item backup ${space} Clone disk
 item restore ${space} Restore disk
 item clonezilla-debian ${space} Clonezilla (Debian based)
@@ -68,7 +68,7 @@ initrd ${url}initrd
 boot || goto error
 
 :clonezilla-boot
-# DEFERRED (DRAFT-001): the Clonezilla resources on the old netboot host —
+# DEFERRED (decision-037): the Clonezilla resources on the old netboot host —
 # boot.tgz, the per-machine <maquina_id>.tgz, the image-repository mounts and
 # the /etc/rc.local run — are NOT migrated yet. Their wiring is commented out,
 # so backup/restore boot Clonezilla without them and are EXPECTED TO FAIL.

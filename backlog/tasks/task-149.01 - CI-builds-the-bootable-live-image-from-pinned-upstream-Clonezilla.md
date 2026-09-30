@@ -46,7 +46,7 @@ priority: high
 - **Packages added**: wireguard-tools + wireguard-go (agent calls `wg`/`wg-quick`; kernel 6.6.11 has the wireguard module → only wireguard-tools, pinned 1.0.20210914-1 which needs libc ≥ 2.14), btop, byobu, python3-newt (convenience → dropped). Packages removed on y0 (dnsutils, telnet, lz4, ntpsec…) were side effects → not reproduced.
 - **sshd**: enabled at boot + `PermitRootLogin yes` → reproduced as `systemctl enable ssh` + overlay `40-iotgw-root-login.conf` (`prohibit-password`, no passwords).
 - **Forbidden, dropped**: `root/.ssh/authorized_keys` (2 keys), break-glass `50-iotgw-authorized-keys.conf`, root password in `/etc/shadow`, shell/editor histories.
-- **Deferred**: `/etc/profile` `MAQUINA_ID` hostname (Clonezilla path, DRAFT-001).
+- **Deferred**: `/etc/profile` `MAQUINA_ID` hostname (Clonezilla path, decision-037).
 - Upstream itself ships no SSH keys (host keys generated at boot by live-config 1160-openssh-server).
 
 **Build:** `live-image/image/` (pins.env, build.sh, check-no-keys.sh, test-boot.sh), `just image` / `just image-test`, builder pinned by digest. Local + CI (`image` job, run 36602053507) green: QEMU boot fetches the squashfs, `iotgw-bootstrap.service` finishes, `ssh.service` starts. Key gate clean on rootfs and initrd.

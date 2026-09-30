@@ -43,5 +43,5 @@ priority: high
 <!-- SECTION:NOTES:BEGIN -->
 **2026-09-29 user updates:** no SSH keys anywhere in the served images (gate in 149.01 / 149.02); Clonezilla resources (boot.tgz, per-machine tgz, mounts) deferred — menu wiring commented, entries fail on purpose (149.04, low).
 
-**Done 2026-09-30:** CI-built live image (v0.6.0 OCI digest) served by the OVH netboot; CI chainloader; y0 reduced to a stub; gw-c3 provisioned end to end from OVH on real hardware. Clonezilla resources remain DRAFT-001.
+**Done 2026-09-30:** CI-built live image (v0.6.0 OCI digest) served by the OVH netboot; CI chainloader; y0 reduced to a stub; gw-c3 provisioned end to end from OVH on real hardware. Clonezilla resources remain decision-037.
 <!-- SECTION:NOTES:END -->

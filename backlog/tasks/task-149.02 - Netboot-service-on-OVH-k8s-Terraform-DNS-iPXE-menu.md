@@ -34,7 +34,7 @@ priority: high
 - [x] #2 Artifact version/digest is pinned in the overlay and bumped by the release flow (deploy/RELEASE.md)
 - [x] #3 Menu contains the agreed entries and iotgw-live passes the OVH device API
 - [x] #4 live-boot fetch of the squashfs verified (HTTPS, or HTTP + hash check documented)
-- [x] #5 Clonezilla backup/restore/clonezilla-debian entries present with the resource wiring (ocs_preload boot.tgz / <id>.tgz, rc.local run, repository mounts) commented out and pointing to DRAFT-001 (was TASK-149.04) — failing on purpose until then
+- [x] #5 Clonezilla backup/restore/clonezilla-debian entries present with the resource wiring (ocs_preload boot.tgz / <id>.tgz, rc.local run, repository mounts) commented out and pointing to decision-037 (was TASK-149.04, decision-037) — failing on purpose until then
 - [x] #6 No SSH key material in anything the netboot serves (menu, preloads, image) — checked in CI
 <!-- AC:END -->
 
@@ -48,5 +48,5 @@ priority: high
 **Verified end to end (no local server):**
 - (A) The **published v0.6.0 `ipxe-usb.img`** under OVMF/QEMU with internet: DHCP → `chain https://netboot.iotgw.i40sys.com/menu.ipxe ... ok` (real LE chain validated by the pinned ISRG anchors) → OVH menu rendered with every entry.
 - (B) Kernel + initrd **downloaded from the netboot**, `fetch=https://netboot.iotgw.i40sys.com/iotgw-live/filesystem.squashfs`: the initrd's curl fetched over HTTPS, squashfs mounted, `iotgw-bootstrap.service` finished, `ssh.service` started.
-- All files 200 with valid TLS; HTTP → HTTPS 301; menu `iotgw_api=https://device.iotgw.i40sys.com`; Clonezilla wiring commented (DRAFT-001).
+- All files 200 with valid TLS; HTTP → HTTPS 301; menu `iotgw_api=https://device.iotgw.i40sys.com`; Clonezilla wiring commented (decision-037).
 <!-- SECTION:NOTES:END -->
