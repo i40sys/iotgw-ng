@@ -113,15 +113,15 @@ integration point:
 
 | Doc | Topic |
 |---|---|
-| **decision-013** | [Monorepo organization](backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md) |
-| **decision-014** | [Secrets management (SOPS+age) + rotation runbook](backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md) |
-| **decision-015** | [Kubernetes migration with kind](backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md) |
-| **decision-020** | [Namespace-per-subproject topology (`iotgw` is the cluster, not a namespace)](backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md) |
-| **decision-021** | [Container image CI/CD + ghcr.io/i40sys conventions (3 custom images, digest-pinned, signed)](backlog/decisions/decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions.md) |
+| **decision-013** | [Monorepo organization](backlog/decisions/decision-013%20-%20Monorepo-Organization-Single-Repo-with-Logical-Grouping-finalizes-decision-012.md) |
+| **decision-014** | [Secrets management (SOPS+age) + rotation runbook](backlog/decisions/decision-014%20-%20Secrets-Management-with-SOPS-age-and-credential-rotation-runbook.md) |
+| **decision-015** | [Kubernetes migration with kind](backlog/decisions/decision-015%20-%20Kubernetes-Migration-kustomize-with-a-local-kind-cluster-for-testing.md) |
+| **decision-020** | [Namespace-per-subproject topology (`iotgw` is the cluster, not a namespace)](backlog/decisions/decision-020%20-%20Namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md) |
+| **decision-021** | [Container image CI/CD + ghcr.io/i40sys conventions (3 custom images, digest-pinned, signed)](backlog/decisions/decision-021%20-%20Container-image-CI-CD-ghcr.io-i40sys-conventions.md) |
 | **doc-016** | [Database-change provisioning automation pattern](backlog/docs/doc-016%20-%20Database-Change-Provisioning-Automation-Pattern.md) (current: DB trigger → `netmaker-call` → Netmaker REST) |
-| **decision-010** | [SSH key management via Cosmian KMS](backlog/decisions/decision-010-ssh-key-management-with-cosmian-kms.md) |
+| **decision-010** | [SSH key management via Cosmian KMS](backlog/decisions/decision-010%20-%20SSH-Key-Management-with-Cosmian-KMS.md) |
 | **decision-033** | [Device one-time codes from a KMS-held random seed](backlog/decisions/decision-033%20-%20Device-one-time-codes-from-a-KMS-held-random-seed-operator-entered-single-use.md) — operator-entered, single-use; sealed VPN reply; host-key SSH renewal (supersedes decision-009) |
-| **decision-024** | [SSH-CA target architecture — iotgw-ng consumes pki-manager, one zone per domain](backlog/decisions/decision-024-ssh-ca-target-architecture-iotgw-ng-consumes-pki-manager-one-zone-per-domain.md) (+ current-state `decision-023`, change map `decision-025`, provisioning sequence `decision-026`, migration plan `decision-027`, open decisions `decision-028`) |
+| **decision-024** | [SSH-CA target architecture — iotgw-ng consumes pki-manager, one zone per domain](backlog/decisions/decision-024%20-%20SSH-CA-target-architecture-iotgw-ng-consumes-pki-manager-one-zone-per-domain.md) (+ current-state `decision-023`, change map `decision-025`, provisioning sequence `decision-026`, migration plan `decision-027`, open decisions `decision-028`) |
 | **doc-008** | [Domains → Networks → Devices hierarchy](backlog/docs/doc-008%20-%20Domains-Networks-and-Devices-Architecture.md) |
 | **doc-010** | [DB migration + webhook management](backlog/docs/doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md) |
 | **doc-013** | [Deployments page behavior spec](backlog/docs/doc-013%20-%20Deployments-Page-Behavior-Specification.md) |

@@ -15,7 +15,7 @@ dependencies:
   - TASK-089
 references:
   - >-
-    backlog/decisions/decision-026-ssh-ca-gateway-provisioning-and-enrollment-sequence.md
+    backlog/decisions/decision-026 - SSH-CA-gateway-provisioning-and-enrollment-sequence.md
 priority: high
 ---
 

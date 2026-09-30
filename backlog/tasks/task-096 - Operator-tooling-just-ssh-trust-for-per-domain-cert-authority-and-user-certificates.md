@@ -15,9 +15,9 @@ dependencies:
   - TASK-070
 references:
   - >-
-    backlog/decisions/decision-024-ssh-ca-target-architecture-iotgw-ng-consumes-pki-manager-one-zone-per-domain.md
+    backlog/decisions/decision-024 - SSH-CA-target-architecture-iotgw-ng-consumes-pki-manager-one-zone-per-domain.md
   - >-
-    backlog/decisions/decision-027-ssh-ca-migration-plan-authorized-keys-to-certificate-coexistence-and-cutover.md
+    backlog/decisions/decision-027 - SSH-CA-migration-plan-authorized_keys-to-certificate-coexistence-and-cutover.md
 priority: medium
 ---
 

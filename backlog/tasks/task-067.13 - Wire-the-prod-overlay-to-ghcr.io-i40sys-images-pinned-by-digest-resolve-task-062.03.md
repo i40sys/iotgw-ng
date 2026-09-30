@@ -24,9 +24,9 @@ references:
   - deploy/README.md
   - task-062.03
   - >-
-    backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
+    backlog/decisions/decision-020 - Namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
   - >-
-    backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md
+    backlog/decisions/decision-014 - Secrets-Management-with-SOPS-age-and-credential-rotation-runbook.md
 parent_task_id: TASK-067
 priority: medium
 ---

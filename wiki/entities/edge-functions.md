@@ -8,7 +8,7 @@ relationships:
   - target: "[[entities/kestra]]"
     type: uses
 sources:
-  - backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md
+  - backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md
   - backlog/docs/doc-016 - Database-Change-Provisioning-Automation-Pattern.md
   - backlog/tasks/task-062.18 - Define-and-implement-the-edge-function-→-Kestra-durable-execution-handoff-contract.md
 summary: Deno workers (supabase/edge-runtime) behind Kong — netmaker-call (live provisioning), kestra-dispatch (durable handoff), vpn (TOTP), and iPXE/smoke; the right-hand side of the call chain.
@@ -84,6 +84,6 @@ flow → write-back, with the execution id recorded in `deployment_jobs`.
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration|decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration]]
+- [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
 - [[_sources/docs/doc-016 - Database-Change-Provisioning-Automation-Pattern|doc-016 - Database-Change-Provisioning-Automation-Pattern]]
 - [[_sources/tasks/task-062.18 - Define-and-implement-the-edge-function-→-Kestra-durable-execution-handoff-contract|task-062.18 - Define-and-implement-the-edge-function-→-Kestra-durable-execution-handoff-contract]]

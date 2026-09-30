@@ -9,9 +9,9 @@ relationships:
     type: related_to
 sources:
   - backlog/docs/doc-016 - Database-Change-Provisioning-Automation-Pattern.md
-  - backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md
+  - backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md
   - backlog/docs/doc-013 - Deployments-Page-Behavior-Specification.md
-  - backlog/decisions/decision-010-ssh-key-management-with-cosmian-kms.md
+  - backlog/decisions/decision-010 - SSH-Key-Management-with-Cosmian-KMS.md
   - backlog/tasks/task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner.md
   - backlog/tasks/task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods.md
 summary: The workflow orchestrator — no longer in device/network provisioning; runs Ansible flows (install/provisioning/connectivity-check) against OpenWRT gateways as the durable-execution target.
@@ -77,8 +77,8 @@ Kestra remains the orchestrator for the **OpenWRT gateway** side:
 **Original documents** (browsable in-vault under `_sources/`):
 
 - [[_sources/docs/doc-016 - Database-Change-Provisioning-Automation-Pattern|doc-016 - Database-Change-Provisioning-Automation-Pattern]]
-- [[_sources/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration|decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration]]
+- [[_sources/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration|decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration]]
 - [[_sources/docs/doc-013 - Deployments-Page-Behavior-Specification|doc-013 - Deployments-Page-Behavior-Specification]]
-- [[_sources/decisions/decision-010-ssh-key-management-with-cosmian-kms|decision-010-ssh-key-management-with-cosmian-kms]]
+- [[_sources/decisions/decision-010 - SSH-Key-Management-with-Cosmian-KMS|decision-010 - SSH-Key-Management-with-Cosmian-KMS]]
 - [[_sources/tasks/task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner|task-054 - Migrate-Kestra-Ansible-flows-to-the-Kubernetes-task-runner]]
 - [[_sources/tasks/task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods|task-065 - Fix-DownloadFiles-PodCreate-leading-slash-path-bug-blocking-Ansible-runner-pods]]

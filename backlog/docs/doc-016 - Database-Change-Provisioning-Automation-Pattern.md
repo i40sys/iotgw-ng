@@ -5,6 +5,7 @@ type: documentation
 created_date: "2025-10-22"
 updated_date: "2026-06-17"
 ---
+# 016: Database-Change Provisioning Automation Pattern
 
 > **Rewritten 2026-06-17.** This document previously described triggering
 > **Kestra** workflows for device/network changes via the `kestra-call` edge
@@ -192,5 +193,5 @@ functions (and the Dashboard-webhook setup they relied on) and the Kestra
 - [netmaker-call edge function CLAUDE.md](../../supabase/volumes/functions/netmaker-call/CLAUDE.md)
 - [doc-010 — Database Migration & Webhook Management](doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md)
 - [doc-008 — Domains/Networks/Devices architecture](doc-008%20-%20Domains-Networks-and-Devices-Architecture.md)
-- [decision-010 — SSH key management via Cosmian KMS](../decisions/decision-010-ssh-key-management-with-cosmian-kms.md)
-- [oriolrius.netmaker — the Netmaker REST contract netmaker-call replicates](https://github.com/oriolrius/netmaker-ansible-automation) (external repo; re-externalized per [decision-022](../decisions/decision-022-re-externalize-the-oriolrius-netmaker-ansible-collection-out-of-the-monorepo.md))
+- [decision-010 — SSH key management via Cosmian KMS](../decisions/decision-010%20-%20SSH-Key-Management-with-Cosmian-KMS.md)
+- [oriolrius.netmaker — the Netmaker REST contract netmaker-call replicates](https://github.com/oriolrius/netmaker-ansible-automation) (external repo; re-externalized per [decision-022](../decisions/decision-022%20-%20Re-externalize-the-oriolrius.netmaker-Ansible-collection-out-of-the-monorepo.md))

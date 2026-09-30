@@ -12,9 +12,9 @@ milestone: m-1
 dependencies: []
 references:
   - >-
-    backlog/decisions/decision-025-ssh-ca-change-map-per-component-current-vs-required-behaviour-and-ownership.md
+    backlog/decisions/decision-025 - SSH-CA-change-map-per-component-current-vs-required-behaviour-and-ownership.md
   - >-
-    backlog/decisions/decision-027-ssh-ca-migration-plan-authorized-keys-to-certificate-coexistence-and-cutover.md
+    backlog/decisions/decision-027 - SSH-CA-migration-plan-authorized_keys-to-certificate-coexistence-and-cutover.md
 priority: high
 ---
 

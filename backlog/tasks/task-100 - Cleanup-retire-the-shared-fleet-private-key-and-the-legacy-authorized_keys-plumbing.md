@@ -19,7 +19,7 @@ dependencies:
   - TASK-107
 references:
   - >-
-    backlog/decisions/decision-027-ssh-ca-migration-plan-authorized-keys-to-certificate-coexistence-and-cutover.md
+    backlog/decisions/decision-027 - SSH-CA-migration-plan-authorized_keys-to-certificate-coexistence-and-cutover.md
 priority: medium
 ---
 

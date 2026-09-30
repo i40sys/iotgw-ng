@@ -5,7 +5,7 @@ type: specification
 created_date: '2026-09-29 05:46'
 updated_date: '2026-09-29 07:42'
 ---
-# Deployments workspace: UX refactoring proposal
+# 019: Deployments workspace UX refactoring proposal
 
 Status: implemented for review on `feat/deployments-ux-refactor` (task-141). This proposal supersedes the page layout and interaction rules in doc-011/doc-013 on this branch. Backend execution, authentication, SSH-CA and configuration-schema contracts remain authoritative.
 

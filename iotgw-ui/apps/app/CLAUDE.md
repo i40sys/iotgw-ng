@@ -51,7 +51,7 @@ src/
 
 ## References
 
-- [decision-001](../../../backlog/decisions/decision-001-frontend-technology-stack-react-19-and-tanstack-ecosystem.md) — stack rationale
+- [decision-001](../../../backlog/decisions/decision-001%20-%20Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem.md) — stack rationale
 - [doc-006](../../../backlog/docs/doc-006%20-%20React-Component-Development-Guidelines.md) — component guidelines
 - [doc-013](../../../backlog/docs/doc-013%20-%20Deployments-Page-Behavior-Specification.md) — Deployments page spec
 - [doc-011](../../../backlog/docs/doc-011%20-%20Deployment-Section-Redesign-Interface-Specification.md) — Deployment section redesign spec

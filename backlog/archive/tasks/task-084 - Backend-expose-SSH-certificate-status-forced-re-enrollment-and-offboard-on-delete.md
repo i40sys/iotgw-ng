@@ -12,8 +12,8 @@ labels:
 milestone: m-1
 dependencies: []
 references:
-  - "backlog/decisions/decision-025-ssh-ca-change-map-per-component-current-vs-required-behaviour-and-ownership.md"
-  - "backlog/decisions/decision-026-ssh-ca-gateway-provisioning-and-enrollment-sequence.md"
+  - "backlog/decisions/decision-025 - SSH-CA-change-map-per-component-current-vs-required-behaviour-and-ownership.md"
+  - "backlog/decisions/decision-026 - SSH-CA-gateway-provisioning-and-enrollment-sequence.md"
 priority: medium
 ---
 

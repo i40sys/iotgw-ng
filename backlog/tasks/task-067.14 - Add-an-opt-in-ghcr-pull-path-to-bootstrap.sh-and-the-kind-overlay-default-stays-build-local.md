@@ -23,9 +23,9 @@ references:
   - deploy/kind/cluster.yaml
   - iotgw-ui/apps/app/.docker/Dockerfile
   - >-
-    backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md
+    backlog/decisions/decision-015 - Kubernetes-Migration-kustomize-with-a-local-kind-cluster-for-testing.md
   - >-
-    backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md
+    backlog/decisions/decision-014 - Secrets-Management-with-SOPS-age-and-credential-rotation-runbook.md
 parent_task_id: TASK-067
 priority: medium
 ---

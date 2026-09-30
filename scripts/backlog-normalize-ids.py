@@ -2,7 +2,7 @@
 """Normalise backlog decision/doc filenames and titles to an ID-first convention.
 
 Target convention:
-    filename   <kind>-<NNN>-<slug-of-title>.md      e.g. decision-001-frontend-technology-stack-react-19-and-tanstack-ecosystem.md
+    filename   <kind>-<NNN>-<slug-of-title>.md      e.g. decision-001 - Frontend-Technology-Stack-React-19-and-TanStack-Ecosystem.md
     title       NNN: <Original Title>               e.g. 001: Frontend Technology Stack - React 19 and TanStack Ecosystem
     H1          # NNN: <Original Title>             only when an H1 already mirrored the title
 

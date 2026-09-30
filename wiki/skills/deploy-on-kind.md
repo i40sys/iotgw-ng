@@ -3,9 +3,9 @@ title: Deploy on kind
 category: skills
 tags: [infra/kind, infra/kubernetes, secrets/sops, status/current]
 sources:
-  - backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md
-  - backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md
-  - backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
+  - backlog/decisions/decision-015 - Kubernetes-Migration-kustomize-with-a-local-kind-cluster-for-testing.md
+  - backlog/decisions/decision-014 - Secrets-Management-with-SOPS-age-and-credential-rotation-runbook.md
+  - backlog/decisions/decision-020 - Namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
 relationships:
   - target: "[[concepts/kubernetes-migration-kind]]"
     type: related_to
@@ -77,6 +77,6 @@ Secrets fan out per namespace ([[concepts/namespace-per-subproject]]).
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing|decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing]]
-- [[_sources/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook|decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook]]
-- [[_sources/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace|decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace]]
+- [[_sources/decisions/decision-015 - Kubernetes-Migration-kustomize-with-a-local-kind-cluster-for-testing|decision-015 - Kubernetes-Migration-kustomize-with-a-local-kind-cluster-for-testing]]
+- [[_sources/decisions/decision-014 - Secrets-Management-with-SOPS-age-and-credential-rotation-runbook|decision-014 - Secrets-Management-with-SOPS-age-and-credential-rotation-runbook]]
+- [[_sources/decisions/decision-020 - Namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace|decision-020 - Namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace]]

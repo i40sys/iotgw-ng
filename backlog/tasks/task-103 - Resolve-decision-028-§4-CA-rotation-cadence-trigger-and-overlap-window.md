@@ -13,7 +13,7 @@ dependencies:
   - TASK-076
 references:
   - >-
-    backlog/decisions/decision-028-ssh-ca-open-security-and-architecture-decisions.md
+    backlog/decisions/decision-028 - SSH-CA-open-security-and-architecture-decisions.md
 priority: medium
 ---
 

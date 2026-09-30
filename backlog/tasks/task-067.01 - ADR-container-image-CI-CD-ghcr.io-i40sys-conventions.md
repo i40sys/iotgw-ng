@@ -14,11 +14,11 @@ milestone: Container image CI/CD (ghcr.io/i40sys)
 dependencies: []
 references:
   - >-
-    backlog/decisions/decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions.md
+    backlog/decisions/decision-021 - Container-image-CI-CD-ghcr.io-i40sys-conventions.md
   - >-
-    backlog/decisions/decision-014-secrets-management-with-sops-age-and-credential-rotation-runbook.md
+    backlog/decisions/decision-014 - Secrets-Management-with-SOPS-age-and-credential-rotation-runbook.md
   - >-
-    backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
+    backlog/decisions/decision-020 - Namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
   - deploy/k8s/overlays/prod/kustomization.yaml
   - deploy/k8s/base/supabase-app/Dockerfile.functions
   - iotgw-ui/apps/backend/.docker/Dockerfile

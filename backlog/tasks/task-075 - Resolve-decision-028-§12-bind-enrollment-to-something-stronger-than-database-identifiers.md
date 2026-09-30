@@ -15,9 +15,9 @@ milestone: m-1
 dependencies: []
 references:
   - >-
-    backlog/decisions/decision-028-ssh-ca-open-security-and-architecture-decisions.md
+    backlog/decisions/decision-028 - SSH-CA-open-security-and-architecture-decisions.md
   - >-
-    backlog/decisions/decision-026-ssh-ca-gateway-provisioning-and-enrollment-sequence.md
+    backlog/decisions/decision-026 - SSH-CA-gateway-provisioning-and-enrollment-sequence.md
 priority: high
 ---
 

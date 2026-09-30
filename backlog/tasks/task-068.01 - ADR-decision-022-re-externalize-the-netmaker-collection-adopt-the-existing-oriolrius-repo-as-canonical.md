@@ -16,11 +16,11 @@ milestone: Extract netmaker collection to its own repo
 dependencies: []
 references:
   - >-
-    backlog/decisions/decision-012-workspace-git-consolidation-into-a-single-root-repository.md
+    backlog/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository.md
   - >-
-    backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md
+    backlog/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping-finalizes-decision-012.md
   - >-
-    backlog/decisions/decision-021-container-image-ci-cd-ghcr-io-i40sys-conventions.md
+    backlog/decisions/decision-021 - Container-image-CI-CD-ghcr.io-i40sys-conventions.md
 parent_task_id: TASK-068
 priority: high
 ---

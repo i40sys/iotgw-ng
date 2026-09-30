@@ -14,7 +14,7 @@ milestone: m-1
 dependencies: []
 references:
   - >-
-    backlog/decisions/decision-024-ssh-ca-target-architecture-iotgw-ng-consumes-pki-manager-one-zone-per-domain.md
+    backlog/decisions/decision-024 - SSH-CA-target-architecture-iotgw-ng-consumes-pki-manager-one-zone-per-domain.md
 priority: medium
 ---
 

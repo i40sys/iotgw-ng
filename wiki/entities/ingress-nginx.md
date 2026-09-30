@@ -6,8 +6,8 @@ relationships:
   - target: "[[concepts/kubernetes-migration-kind]]"
     type: related_to
 sources:
-  - backlog/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing.md
-  - backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md
+  - backlog/decisions/decision-015 - Kubernetes-Migration-kustomize-with-a-local-kind-cluster-for-testing.md
+  - backlog/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping-finalizes-decision-012.md
   - backlog/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access.md
 summary: The Ingress controller (its own isolated namespace) that terminates TLS and routes HTTP(S) 80/443; replaced the removed traefik-poc docker-compose PoC.
 provenance:
@@ -50,6 +50,6 @@ Ingress (decision-015, decision-013).
 
 **Original documents** (browsable in-vault under `_sources/`):
 
-- [[_sources/decisions/decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing|decision-015-kubernetes-migration-kustomize-with-a-local-kind-cluster-for-testing]]
-- [[_sources/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012|decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012]]
+- [[_sources/decisions/decision-015 - Kubernetes-Migration-kustomize-with-a-local-kind-cluster-for-testing|decision-015 - Kubernetes-Migration-kustomize-with-a-local-kind-cluster-for-testing]]
+- [[_sources/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping-finalizes-decision-012|decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping-finalizes-decision-012]]
 - [[_sources/docs/doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access|doc-017 - Headlamp-Kubernetes-Dashboard-Deployment-and-Access]]

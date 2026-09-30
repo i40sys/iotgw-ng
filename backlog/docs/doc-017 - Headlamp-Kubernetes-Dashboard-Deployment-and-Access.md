@@ -4,8 +4,7 @@ title: "017: Headlamp Kubernetes Dashboard Deployment and Access"
 type: guide
 created_date: '2026-06-22 16:09'
 ---
-
-# Headlamp Kubernetes Dashboard — Deployment & Access
+# 017: Headlamp Kubernetes Dashboard Deployment and Access
 
 Operational runbook for [Headlamp](https://headlamp.dev), the in-cluster
 Kubernetes web UI added to the iotgw-ng platform (`TASK-063`). Covers **how it

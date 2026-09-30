@@ -4,6 +4,7 @@ title: "015: Claude Code Skills and Knowledge Requirements"
 type: documentation
 created_date: "2025-10-21"
 ---
+# 015: Claude Code Skills and Knowledge Requirements
 
 ## Context
 

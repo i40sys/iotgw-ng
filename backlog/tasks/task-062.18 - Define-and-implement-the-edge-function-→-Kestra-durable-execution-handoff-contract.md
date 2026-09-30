@@ -19,7 +19,7 @@ dependencies:
   - TASK-062.04
 references:
   - >-
-    backlog/decisions/decision-016-edge-functions-architecture-for-the-stackgres-data-plane-migration.md
+    backlog/decisions/decision-016 - Edge-Functions-Architecture-for-the-StackGres-Data-Plane-Migration.md
 parent_task_id: TASK-062
 priority: medium
 ---

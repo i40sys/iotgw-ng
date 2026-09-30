@@ -17,9 +17,9 @@ references:
   - BACKUP/supabase-2025-10-20/
   - BACKUP/COMPOSE-DECOMMISSION-RECOVERY.md
   - >-
-    backlog/decisions/decision-013-monorepo-organization-single-repo-with-logical-grouping-finalizes-decision-012.md
+    backlog/decisions/decision-013 - Monorepo-Organization-Single-Repo-with-Logical-Grouping-finalizes-decision-012.md
   - >-
-    backlog/decisions/decision-012-workspace-git-consolidation-into-a-single-root-repository.md
+    backlog/decisions/decision-012 - Workspace-Git-Consolidation-into-a-Single-Root-Repository.md
 parent_task_id: TASK-067
 priority: high
 ---

@@ -15,9 +15,9 @@ milestone: m-1
 dependencies: []
 references:
   - >-
-    backlog/decisions/decision-028-ssh-ca-open-security-and-architecture-decisions.md
+    backlog/decisions/decision-028 - SSH-CA-open-security-and-architecture-decisions.md
   - >-
-    backlog/decisions/decision-023-ssh-ca-migration-current-state-analysis-of-gateway-ssh-access.md
+    backlog/decisions/decision-023 - SSH-CA-migration-current-state-analysis-of-gateway-SSH-access.md
 priority: high
 ---
 

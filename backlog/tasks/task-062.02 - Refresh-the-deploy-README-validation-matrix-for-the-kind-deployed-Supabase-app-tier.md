@@ -16,7 +16,7 @@ dependencies:
   - TASK-062.04
 references:
   - >-
-    backlog/decisions/decision-018-adopt-stackgres-for-the-postgres-tier-dev-and-prod.md
+    backlog/decisions/decision-018 - Adopt-StackGres-for-the-Postgres-tier-dev-and-prod.md
 parent_task_id: TASK-062
 priority: high
 ---

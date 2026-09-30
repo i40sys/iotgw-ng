@@ -26,7 +26,7 @@ references:
   - deploy/kind/bootstrap.sh
   - task-062.03
   - >-
-    backlog/decisions/decision-020-namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
+    backlog/decisions/decision-020 - Namespace-per-subproject-topology-iotgw-is-the-cluster-not-a-namespace.md
 parent_task_id: TASK-067
 priority: medium
 ---
