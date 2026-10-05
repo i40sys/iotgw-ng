@@ -22,6 +22,7 @@ firmware (PXE / USB) → this iPXE → DHCP → https://netboot.iotgw.i40sys.com
 - `ipxe.efi` — UEFI (x86_64). Put it on a site TFTP server as the UEFI boot file.
 - `undionly.kpxe` — legacy BIOS PXE (chains through the NIC's UNDI). Site TFTP boot file for BIOS clients.
 - `ipxe-usb.img` — hybrid USB image (UEFI + BIOS): `dd if=ipxe-usb.img of=/dev/sdX bs=4M conv=fsync`.
+- `ipxe-local.efi` — UEFI local-disk booter (embeds `local.ipxe`): served by the OVH netboot and chained by the menu's *Boot from local disk*, since a site's firmware iPXE may be too old to boot a local EFI disk.
 
 Published on every `v*` release with `chainloader-SHA256SUMS` and signed build
 provenance (`gh attestation verify <file> -R i40sys/iotgw-ng`).

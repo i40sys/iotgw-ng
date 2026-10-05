@@ -137,6 +137,20 @@ fi
 printf '#!ipxe\necho %s\npoweroff\n' "$REACHED" > "$work/www/menu.ipxe"
 stop_server
 
+# 4c. ipxe-local.efi (release build, no network needed) boots the gateway's
+# ESP: a GPT disk whose ESP holds \EFI\BOOT\BOOTX64.EFI + startup.nsh.
+truncate -s 40M "$work/disk.img"; printf 'label: gpt\n,,U\n' | sfdisk -q "$work/disk.img"
+mkfs.vfat -C "$work/esp.img" 36000 >/dev/null
+mmd -i "$work/esp.img" ::/EFI ::/EFI/BOOT
+mcopy -i "$work/esp.img" "$rel/ipxe.efi" ::/EFI/BOOT/BOOTX64.EFI
+printf 'echo gateway\r\n' > "$work/startup.nsh"; mcopy -i "$work/esp.img" "$work/startup.nsh" ::/startup.nsh
+dd if="$work/esp.img" of="$work/disk.img" bs=1M seek=1 conv=notrunc status=none
+cp "$rel/ipxe-local.efi" "$work/tftp/"
+# shellcheck disable=SC2046
+boot "uefi-local-efi: ipxe-local.efi boots the local ESP" 'Booting \EFI\BOOT\BOOTX64.EFI from SAN device' 180 $(uefi) \
+  -netdev user,id=n0,tftp="$work/tftp",bootfile=ipxe-local.efi -device virtio-net-pci,netdev=n0,romfile=,bootindex=1 \
+  -drive if=none,id=d0,format=raw,file="$work/disk.img" -device virtio-blk-pci,drive=d0,bootindex=2
+
 # 5. untrusted certificate: refused, fallback shown, the menu is never fetched
 start_server untrusted
 if boot "tls-untrusted: refused and falls back" "$FALLBACK" 120 \

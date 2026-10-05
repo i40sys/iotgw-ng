@@ -44,7 +44,7 @@ jobs:
       - name: QEMU + OVMF + NIC ROMs + gitleaks
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq qemu-system-x86 ovmf ipxe-qemu binutils >/dev/null
+          sudo apt-get install -y -qq qemu-system-x86 ovmf ipxe-qemu binutils dosfstools mtools fdisk >/dev/null
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
@@ -67,6 +67,7 @@ jobs:
             netboot/chainloader/dist/release/ipxe.efi
             netboot/chainloader/dist/release/undionly.kpxe
             netboot/chainloader/dist/release/ipxe-usb.img
+            netboot/chainloader/dist/release/ipxe-local.efi
       - name: Attach to the GitHub release
         if: github.ref_type == 'tag'
         env:
@@ -76,4 +77,4 @@ jobs:
           for i in $(seq 1 30); do gh release view "$TAG" >/dev/null 2>&1 && break; sleep 20; done
           cd dist/release
           cp SHA256SUMS chainloader-SHA256SUMS
-          gh release upload "$TAG" --clobber ipxe.efi undionly.kpxe ipxe-usb.img chainloader-SHA256SUMS
+          gh release upload "$TAG" --clobber ipxe.efi undionly.kpxe ipxe-usb.img ipxe-local.efi chainloader-SHA256SUMS

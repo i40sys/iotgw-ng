@@ -1,0 +1,14 @@
+#!ipxe
+# iotgw-ng local-disk booter: embedded in ipxe-local.efi (UEFI only). The OVH
+# menu chains it for "Boot from local disk", because a site's firmware iPXE may
+# be too old to boot a local EFI disk itself (no sanboot --extra) and its
+# `exit` drops to that iPXE's prompt instead of the firmware.
+# 1. the gateway's ESP: the EFI loader + startup.nsh (d01_install_owrt.yml),
+#    so an iPXE USB stick is never picked;
+# 2. otherwise any local disk with the default EFI loader;
+# 3. otherwise back to the firmware.
+echo iotgw-local: booting the local disk ...
+sanboot --no-describe --drive 0 --filename \EFI\BOOT\BOOTX64.EFI --extra \startup.nsh && exit ||
+sanboot --no-describe --drive 0 --filename \EFI\BOOT\BOOTX64.EFI && exit ||
+echo iotgw-local: no bootable local disk found
+exit

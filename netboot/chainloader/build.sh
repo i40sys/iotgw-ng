@@ -2,6 +2,8 @@
 # Build the chainloader from pinned iPXE source (task-149.03). Runs inside a
 # Debian container (`just build` / CI):
 #   build.sh <out-dir> [release|test <test-ca.pem> <menu-url>]
+# Outputs ipxe.efi / undionly.kpxe / ipxe-usb.img (chain.ipxe) and
+# ipxe-local.efi (local.ipxe: boot the local disk on UEFI).
 # release: embeds chain.ipxe as-is and trusts ONLY certs/isrg-root-*.pem.
 # test:    same script with the menu URL replaced, trusting ONLY the test CA.
 set -euo pipefail
@@ -37,5 +39,11 @@ make -s -j"$(nproc)" EMBED="$embed" TRUST="$trust" CERT="$trust" \
 ./util/genfsimg -o "$out/ipxe-usb.img" bin-x86_64-efi/ipxe.efi bin/ipxe.lkrn
 cp bin-x86_64-efi/ipxe.efi bin/undionly.kpxe "$out/"
 cp "$embed" "$out/embedded.ipxe"
-( cd "$out" && sha256sum ipxe.efi undionly.kpxe ipxe-usb.img > SHA256SUMS )
+# ipxe-local.efi: same iPXE, embedding only local.ipxe (boot the local disk;
+# chained by the OVH menu's "Boot from local disk" on UEFI).
+cp "$here/local.ipxe" "$embeddir/local.ipxe"
+make -s -j"$(nproc)" EMBED="$embeddir/local.ipxe" TRUST="$trust" CERT="$trust" \
+  bin-x86_64-efi/ipxe.efi >/dev/null
+cp bin-x86_64-efi/ipxe.efi "$out/ipxe-local.efi"
+( cd "$out" && sha256sum ipxe.efi undionly.kpxe ipxe-usb.img ipxe-local.efi > SHA256SUMS )
 echo "built ($mode) -> $out"; cat "$out/SHA256SUMS"
