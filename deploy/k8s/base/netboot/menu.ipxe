@@ -44,18 +44,18 @@ initrd ${url}initrd
 boot || goto error
 
 :local
-# BIOS: boot drive 0x80. UEFI: there is no 0x80; drive 0 boots any local disk
-# whose partition holds the EFI loader — --extra \startup.nsh (written by the
-# OpenWrt install, d01_install_owrt.yml) picks the gateway's ESP and never an
-# iPXE USB stick. `exit` here would only return to whichever iPXE loaded this
-# menu (a site's firmware iPXE drops to its iPXE> prompt), so it stays only as
-# the last resort.
+# BIOS: boot drive 0x80. UEFI: chain ipxe-local.efi (our pinned iPXE, built in
+# netboot/chainloader from local.ipxe), which boots the gateway's ESP. A site's
+# firmware iPXE may be too old to boot a local EFI disk itself, and `exit` only
+# returns to whichever iPXE loaded this menu (it drops to its iPXE> prompt), so
+# `exit` stays only as the last resort.
 echo Booting from local disk ...
 iseq ${platform} efi && goto local_efi ||
 sanboot --no-describe --drive 0x80 || exit
 
 :local_efi
-sanboot --no-describe --drive 0 --filename \EFI\BOOT\BOOTX64.EFI --extra \startup.nsh || exit
+chain --autofree ${live_endpoint}/ipxe-local.efi || exit
+exit
 
 :backup
 set clonezilla clonezilla=backup

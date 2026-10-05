@@ -46,6 +46,14 @@ patches:
       - op: replace
         path: /spec/template/spec/initContainers/0/env/0/value
         value: ghcr.io/i40sys/iotgw-live-image@sha256:91408278f22b66e7c24defb25e05fbcac1c5f4a651dabeb3c7603e3640d8b00e # v0.6.0
+      # ipxe-local.efi ("Boot from local disk" on UEFI): a release asset, pinned
+      # by its SHA256 (release asset chainloader-SHA256SUMS).
+      - op: replace
+        path: /spec/template/spec/initContainers/1/env/0/value
+        value: https://github.com/i40sys/iotgw-ng/releases/download/v0.6.2/ipxe-local.efi
+      - op: replace
+        path: /spec/template/spec/initContainers/1/env/1/value
+        value: 3f97011772d25efa762fafc6451b742bc4c29146baf717809750aaf99cc494f5 # v0.6.2
   # Baked-in /home/deno/functions instead of the base emptyDir placeholder.
   - target:
       kind: Deployment

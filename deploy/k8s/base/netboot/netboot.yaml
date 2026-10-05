@@ -36,6 +36,27 @@ spec:
           resources:
             requests: { cpu: 50m, memory: 64Mi }
             limits: { memory: 256Mi }
+        # ipxe-local.efi (netboot/chainloader): chained by the menu's "Boot from
+        # local disk" on UEFI. Downloaded from a release and checked against
+        # the pinned SHA256 before nginx may serve it.
+        - name: fetch-local-booter
+          image: ghcr.io/oras-project/oras:v1.3.4@sha256:f7bc056d54d97baa399414ed5048ecc67c3371b750d4bbce1d871827a5758179
+          command: ["sh", "-ec"]
+          args:
+            - |
+              mkdir -p /www/boot
+              wget -q -O /www/boot/ipxe-local.efi "$LOCAL_BOOTER_URL"
+              echo "$LOCAL_BOOTER_SHA256  /www/boot/ipxe-local.efi" | sha256sum -c
+          env:
+            - name: LOCAL_BOOTER_URL
+              value: "unset"
+            - name: LOCAL_BOOTER_SHA256
+              value: "unset"
+          volumeMounts:
+            - { name: www, mountPath: /www }
+          resources:
+            requests: { cpu: 20m, memory: 32Mi }
+            limits: { memory: 64Mi }
       containers:
         - name: nginx
           image: nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
@@ -46,6 +67,7 @@ spec:
             periodSeconds: 10
           volumeMounts:
             - { name: www, mountPath: /usr/share/nginx/html/iotgw-live, subPath: iotgw-live, readOnly: true }
+            - { name: www, mountPath: /usr/share/nginx/html/ipxe-local.efi, subPath: boot/ipxe-local.efi, readOnly: true }
             - { name: menu, mountPath: /usr/share/nginx/html/menu.ipxe, subPath: menu.ipxe, readOnly: true }
           resources:
             requests: { cpu: 20m, memory: 32Mi }
