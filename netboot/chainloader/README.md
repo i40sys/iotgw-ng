@@ -10,7 +10,7 @@ firmware (PXE / USB) → this iPXE → DHCP → https://netboot.iotgw.i40sys.com
 
 | File | Use |
 |---|---|
-| `chain.ipxe` | the embedded script: DHCP, chain the menu (HTTPS only), after 3 failed attempts a fallback menu (retry / iPXE shell / exit to firmware) |
+| `chain.ipxe` | the embedded script: DHCP, chain the menu (HTTPS only); if the menu returns (*Boot from local disk* on UEFI) exit to the firmware's next boot entry; after 3 failed attempts a fallback menu (retry / iPXE shell / exit to firmware) |
 | `IPXE_VERSION` | upstream tag + exact commit; the build refuses any other commit |
 | `config/local/` | build options: HTTPS on every platform (v2.0.0 turns it off for BIOS), `poweroff`/`sleep`, serial console |
 | `certs/` | the only trust anchors: ISRG Root X1, X2, YR, YE (public Let's Encrypt roots), embedded with `TRUST=` + `CERT=` |
@@ -42,6 +42,7 @@ networking) and a throwaway test CA as its only trust anchor — and runs:
 2. **UEFI PXE**: OVMF PXE-loads `ipxe.efi` over TFTP → HTTPS menu reached.
 3. **BIOS PXE**: SeaBIOS + NIC ROM loads `undionly.kpxe` → HTTPS menu reached.
 4. **USB**: `ipxe-usb.img` as a USB disk under OVMF and under SeaBIOS → HTTPS menu reached.
+   - **Local disk (UEFI)**: a menu that exits (as *Boot from local disk* does after `sanboot` fails) makes the chainloader exit to the firmware too — no retry.
 5. **Untrusted TLS**: server certificate from another CA → refused, fallback shown, menu never fetched (no plain-HTTP downgrade).
 6. **Unreachable**: no server → bounded retries, fallback menu, no hang.
 7. Release URL assertion (part of 1).

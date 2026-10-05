@@ -12,6 +12,10 @@ echo iotgw-netboot: DHCP...
 dhcp || goto fail
 echo iotgw-netboot: chaining ${menu-url}
 chain --autofree ${menu-url} || goto fail
+# The menu returned on its own (e.g. "Boot from local disk" on UEFI: sanboot
+# fails and the menu exits): leave iPXE too, so the firmware boots its next
+# entry (EFI Shell -> startup.nsh -> local disk), instead of retrying.
+exit
 
 :fail
 inc tries

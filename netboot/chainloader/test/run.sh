@@ -120,6 +120,21 @@ boot "usb-uefi: ipxe-usb.img chains the HTTPS menu" "$REACHED" 180 $(uefi) $(usb
 # shellcheck disable=SC2046
 boot "usb-bios: ipxe-usb.img chains the HTTPS menu" "$REACHED" 180 $(usbdisk) \
   -netdev user,id=n0 -device virtio-net-pci,netdev=n0,romfile=
+
+# 4b. "Boot from local disk" on UEFI: the menu's sanboot fails and it exits;
+# the chainloader must leave iPXE too (no retry) and hand control back to the
+# firmware. What the firmware does next is firmware-specific: OVMF opens its
+# boot manager UI (UiApp) after a boot option returns success; the gateways'
+# EDK II continues to the EFI Shell -> startup.nsh (infra-kb netboot.md).
+printf '#!ipxe\necho Booting from local disk ...\nsanboot --no-describe --drive 0x80 || exit\n' > "$work/www/menu.ipxe"
+# shellcheck disable=SC2046
+if boot "uefi-local: menu exit -> chainloader exits to the firmware" '"UiApp"' 180 $(uefi) \
+     -netdev user,id=n0,tftp="$work/tftp",bootfile=ipxe.efi -device virtio-net-pci,netdev=n0,romfile=,bootindex=1; then
+  if grep -qa -e 'cannot reach' -e 'ccaannnnoott' "$work/uefi-local: menu exit -> chainloader exits to the firmware.serial.log"; then
+    fail "uefi-local: the chainloader retried after the menu exited"
+  else pass "uefi-local: no retry after the menu exited"; fi
+fi
+printf '#!ipxe\necho %s\npoweroff\n' "$REACHED" > "$work/www/menu.ipxe"
 stop_server
 
 # 5. untrusted certificate: refused, fallback shown, the menu is never fetched
