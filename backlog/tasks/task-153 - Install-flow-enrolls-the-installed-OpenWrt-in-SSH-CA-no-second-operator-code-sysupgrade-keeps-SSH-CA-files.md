@@ -7,7 +7,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-06 06:54'
-updated_date: '2026-10-06 06:59'
+updated_date: '2026-10-06 07:28'
 labels:
   - ssh-ca
   - openwrt
@@ -26,11 +26,11 @@ priority: high
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Agent: `iotgw ssh refresh -offline` writes the same files/drop-ins as the online path, validates with sshd -t, rolls back on failure, never reloads; unit-tested
-- [ ] #2 Backend: POST /internal/devices/enroll-code accepts reinstall:true — clears ssh_host_pubkey, writes an audit entry, returns the code; tested
-- [ ] #3 iotgw-kestra install: tasks/ssh_ca_install.yaml enrolls the installed rootfs; the install fails with a clear message if enrollment fails; agent pin bumped
-- [ ] #4 sysupgrade keeps the SSH-CA files (same keep list as the agent)
-- [ ] #5 QEMU/OpenWrt verification: installed rootfs boots serving the host certificate and trusting the User CA; sshd config accepted by OpenWrt's openssh-server
+- [x] #1 Agent: `iotgw ssh refresh -offline` writes the same files/drop-ins as the online path, validates with sshd -t, rolls back on failure, never reloads; unit-tested
+- [x] #2 Backend: POST /internal/devices/enroll-code accepts reinstall:true — clears ssh_host_pubkey, writes an audit entry, returns the code; tested
+- [x] #3 iotgw-kestra install: tasks/ssh_ca_install.yaml enrolls the installed rootfs; the install fails with a clear message if enrollment fails; agent pin bumped
+- [x] #4 sysupgrade keeps the SSH-CA files (same keep list as the agent)
+- [x] #5 QEMU/OpenWrt verification: installed rootfs boots serving the host certificate and trusting the User CA; sshd config accepted by OpenWrt's openssh-server
 - [ ] #6 Real gateway (office LAN, never the banned ranges): PXE code typed once, install → reboot → SSH PKI HEALTHY, provisioning connects with no extra code
 <!-- AC:END -->
 
@@ -44,3 +44,20 @@ priority: high
 4. QEMU OpenWrt e2e case 7b: offline enroll leaves the running sshd alone, sshd -t/-T OK, `sysupgrade -l` keeps every SSH-CA file, after a power cycle sshd serves the cert to a strict client.
 5. Release (agent + backend image), pin the agent in iotgw-kestra, roll the backend to OVH, sync Kestra, then the real-gateway test.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+**Implemented and released as v0.6.3; real-gateway test pending (AC#6).**
+
+**What changed:**
+- `live-image/internal/agent` + `cli` — `iotgw ssh refresh -offline`: the same installEnrollment (files, 50-/60- drop-ins, Include, sshd -t, rollback) without reload/restart (monorepo bab6ff9).
+- `iotgw-ui/apps/backend` — enroll-code `reinstall: true` clears ssh_host_pubkey + audit entry, only once a code is available; test added (57/57 green, typecheck OK).
+- `iotgw-kestra` 5f3327d — `tasks/ssh_ca_install.yaml` (chroot /mnt/p2, backend code in a root-only file, live resolv.conf for the call, sshd -T assertion) imported by d01 after the agent install; SSH-CA files added to the sysupgrade keep list in tasks/iotgw_agent.yaml; agent pinned v0.6.3 (sha256 5373186a…).
+- QEMU OpenWrt e2e case 7b (73/73): offline enroll leaves the running sshd untouched; sshd -t/-T accept it; `sysupgrade -l` keeps every SSH-CA file; after a power cycle sshd serves the certificate to a strict client.
+
+**Rollout:**
+- Tag v0.6.3 (CI green, cosign-verified backend sha256:fa55a5d0…); OVH backend rolled out via tf.sh platform apply; release manifest v0.6.3 generated + verified; Kestra namespace files synced.
+
+**Pending:** AC#6 on gw-c3 (PXE code once → install → reboot → SSH PKI HEALTHY → provisioning with no extra code).
+<!-- SECTION:NOTES:END -->
