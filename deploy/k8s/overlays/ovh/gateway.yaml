@@ -8,11 +8,11 @@
 #   device.iotgw.i40sys.com   -> kong:8000 /functions/v1/{vpn,ssh-ca} only
 #   netboot.iotgw.i40sys.com  -> netboot:80 (iPXE menu + CI-built live image,
 #                                task-149.02) — HTTP and HTTPS, no redirect
-#   kestra.145-239-127-187.sslip.io -> kestra.kestra:8080 (UI + API for
-#                                operators; Kestra basic auth on every API
-#                                call). sslip.io (public wildcard DNS for the
-#                                LB IP) until kestra.iotgw.i40sys.com exists:
-#                                the Cloudflare token was rejected (2026-10-06).
+#   kestra.iotgw.i40sys.com   -> kestra.kestra:8080 (UI + API for operators;
+#                                Kestra basic auth on every API call). Also
+#                                kestra.145-239-127-187.sslip.io (public wildcard DNS for
+#                                the LB IP) while the i40sys.com record is
+#                                missing (Cloudflare token rejected 2026-10-06).
 #
 # The first three use Let's Encrypt (HTTP-01 solved through default-gateway's
 # port-80 listener). The DEVICE host is served with a certificate from the
@@ -73,6 +73,20 @@ spec:
     kind: ClusterIssuer
     name: letsencrypt-iotgw
   dnsNames:
+    - kestra.iotgw.i40sys.com
+---
+# Temporary: the sslip.io name, own certificate, until the i40sys.com record exists.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: iotgw-kestra-sslip
+  namespace: iotgw-gateway
+spec:
+  secretName: iotgw-kestra-sslip-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-iotgw
+  dnsNames:
     - kestra.145-239-127-187.sslip.io
 ---
 apiVersion: gateway.networking.k8s.io/v1
@@ -116,12 +130,20 @@ spec:
         certificateRefs: [{ kind: Secret, name: iotgw-public-tls }]
       allowedRoutes: { namespaces: { from: All } }
     - name: kestra
-      hostname: kestra.145-239-127-187.sslip.io
+      hostname: kestra.iotgw.i40sys.com
       port: 443
       protocol: HTTPS
       tls:
         mode: Terminate
         certificateRefs: [{ kind: Secret, name: iotgw-kestra-tls }]
+      allowedRoutes: { namespaces: { from: All } }
+    - name: kestra-sslip
+      hostname: kestra.145-239-127-187.sslip.io
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs: [{ kind: Secret, name: iotgw-kestra-sslip-tls }]
       allowedRoutes: { namespaces: { from: All } }
     - name: device
       hostname: device.iotgw.i40sys.com
@@ -147,6 +169,7 @@ spec:
     - backend.iotgw.i40sys.com
     - api.iotgw.i40sys.com
     - device.iotgw.i40sys.com
+    - kestra.iotgw.i40sys.com
     - kestra.145-239-127-187.sslip.io
   rules:
     - filters:
@@ -233,6 +256,7 @@ metadata:
 spec:
   parentRefs:
     - { name: iotgw, namespace: iotgw-gateway, sectionName: kestra }
-  hostnames: [kestra.145-239-127-187.sslip.io]
+    - { name: iotgw, namespace: iotgw-gateway, sectionName: kestra-sslip }
+  hostnames: [kestra.iotgw.i40sys.com, kestra.145-239-127-187.sslip.io]
   rules:
     - backendRefs: [{ name: kestra, port: 8080 }]
