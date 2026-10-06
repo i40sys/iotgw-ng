@@ -42,8 +42,9 @@ usage: iotgw <command> [options]
                                  re-request the VPN configuration and apply it safely
                                  (keeps the gateway's WireGuard key; -rotate-key makes a new one)
   ssh status                     SSH PKI state (User CA, host certificate, sshd)
-  ssh refresh [-otp CODE] [-force]
+  ssh refresh [-otp CODE] [-force] [-offline]
                                  re-request SSH trust + host certificate, reload sshd safely
+                                 (-offline: into a chrooted install, sshd -t only, no reload)
   internet lan|vpn|auto          how the Internet is reached (persistent on OpenWRT)
   hold enable [-reason TEXT] | hold disable | hold status
                                  freeze / resume the daemon's automatic changes
@@ -279,7 +280,7 @@ func ago(t time.Time) string {
 
 func sshCmd(args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: iotgw ssh status | ssh refresh [-otp CODE] [-force]")
+		fmt.Fprintln(os.Stderr, "usage: iotgw ssh status | ssh refresh [-otp CODE] [-force] [-offline]")
 		return 2
 	}
 	switch args[0] {
@@ -300,18 +301,30 @@ func sshCmd(args []string) int {
 		fs := flag.NewFlagSet("ssh refresh", flag.ExitOnError)
 		otp := fs.String("otp", "", "one-time code from the iotgw-ng UI (only for a first enrollment)")
 		force := fs.Bool("force", false, "re-request even if the current certificate is valid")
+		offline := fs.Bool("offline", false, "install into a root filesystem whose sshd is not running (chroot during the OS install): sshd -t only, no reload")
 		_ = fs.Parse(args[1:])
 		if !requireRoot("ssh refresh") {
 			return 1
 		}
 		ctx, cancel := signalContext(5 * time.Minute)
 		defer cancel()
-		if err := gatewayFor(platform.Detect(), syslogger("iotgw", false)).SSHRefresh(ctx, *otp, *force, printer("ssh refresh: ")); err != nil {
+		k := platform.Detect()
+		lg := syslogger("iotgw", false)
+		var g Gateway = gatewayFor(k, lg)
+		if *offline {
+			if k != platform.OpenWRT {
+				return fail(errors.New("ssh refresh -offline is for an installed OpenWRT root filesystem (run it chrooted into it)"))
+			}
+			a := agent.New(lg)
+			a.Offline = true
+			g = openwrtGateway{a: a}
+		}
+		if err := g.SSHRefresh(ctx, *otp, *force, printer("ssh refresh: ")); err != nil {
 			return fail(err)
 		}
 		return 0
 	}
-	fmt.Fprintln(os.Stderr, "usage: iotgw ssh status | ssh refresh [-otp CODE] [-force]")
+	fmt.Fprintln(os.Stderr, "usage: iotgw ssh status | ssh refresh [-otp CODE] [-force] [-offline]")
 	return 2
 }
 

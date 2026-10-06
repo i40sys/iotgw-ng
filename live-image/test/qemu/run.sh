@@ -27,7 +27,10 @@
 # policy survives a reboot; vpn refresh needs a code, uses it once, repairs a
 # broken tunnel and rolls back a bad config; ssh refresh enrolls with a code,
 # renews with the host key (no code), refuses a re-enroll after a "reinstall",
-# and the daemon renews an expiring certificate by itself; the dashboard runs
+# and the daemon renews an expiring certificate by itself; the install-time
+# `ssh refresh -offline` writes the same SSH-CA files without touching sshd,
+# OpenWRT's sshd serves them after a reboot and sysupgrade keeps them
+# (task-153); the dashboard runs
 # on the serial console; LuCI/rpcd require the code for a VPN refresh.
 #
 # decision-035: the gateway reaches the API over HTTPS with a PINNED CA (a
@@ -209,6 +212,14 @@ gw_extra() { # what tasks/iotgw_agent.yaml puts into the rootfs
   debugfs -R "cat /etc/inittab" "$fs" 2>/dev/null |
     sed -E 's#^(tty1|ttyS0)::askfirst:/usr/libexec/login.sh$#\1::respawn:/usr/libexec/iotgw-console#' >inittab.gw
   put "$fs" inittab.gw /etc/inittab 644
+  # the sysupgrade keep list tasks/iotgw_agent.yaml writes (agent + SSH-CA files)
+  printf '%s\n' /usr/sbin/iotgw /etc/iotgw/ /etc/init.d/iotgw /usr/libexec/iotgw-console \
+    /usr/libexec/rpcd/iotgw /usr/share/rpcd/acl.d/luci-app-iotgw.json /usr/share/luci/menu.d/luci-app-iotgw.json \
+    /www/luci-static/resources/view/iotgw/ /etc/inittab \
+    /etc/ssh/ssh_host_ecdsa_key /etc/ssh/ssh_host_ecdsa_key.pub /etc/ssh/ssh_host_ecdsa_key-cert.pub \
+    /etc/ssh/ssh-user-ca.pub /etc/ssh/ssh-host-ca.pub /etc/ssh/ssh_known_hosts /etc/ssh/auth_principals/ \
+    /etc/ssh/revoked_keys >sysupgrade.gw
+  put "$fs" sysupgrade.gw /etc/sysupgrade.conf 644
 }
 prep hub hub.defaults
 prep gw gw.defaults gw_extra
@@ -490,6 +501,31 @@ curl -fsS -X POST "$API/control?validity=long" >/dev/null
 self_renewed() { gw "grep -A1 '\"kind\": \"renew\"' /var/run/iotgw/agent.json | grep -q '\"result\": \"ok\"'"; }
 until_ok "the daemon renewed the expiring certificate by itself (no code)" $((INTERVAL * 8)) self_renewed
 until_ok "sshd serving after the self-renewal" 30 opssh true
+
+log "7b. install-time enrollment: ssh refresh -offline (task-153)"
+# A reinstall as the install playbook sees it: a rootfs with no SSH-CA state
+# whose sshd is not serving it yet, and a server enrollment the backend reset
+# (enroll-code reinstall:true). The agent writes the SAME files/drop-ins as
+# the online path, checks sshd -t, and must not touch the running sshd.
+SSHCA_FILES="/etc/ssh/ssh_host_ecdsa_key /etc/ssh/ssh_host_ecdsa_key.pub /etc/ssh/ssh_host_ecdsa_key-cert.pub /etc/ssh/ssh-user-ca.pub /etc/ssh/ssh-host-ca.pub /etc/ssh/ssh_known_hosts /etc/ssh/auth_principals/root /etc/ssh/revoked_keys /etc/ssh/sshd_config.d/50-iotgw-authorized-keys.conf /etc/ssh/sshd_config.d/60-iotgw-ssh-ca.conf"
+gw "rm -f $SSHCA_FILES"
+curl -fsS -X POST "$API/control?reset_ssh=1" >/dev/null
+sshd_pid() { gw "pidof sshd | tr ' ' '\\n' | sort -n | head -1"; }
+pid_before=$(sshd_pid)
+out=$(gw "iotgw ssh refresh -offline -otp $(otp ssh-enroll)" 2>&1) && rc=0 || rc=$?
+if [ "$rc" = 0 ] && grep -q "installed offline" <<<"$out" && enrolled; then ok "offline enrollment installs the host certificate"; else ko "offline enrollment: $out"; fi
+if [ "$(sshd_pid)" = "$pid_before" ] && ! grep -q "reloading sshd" <<<"$out"; then ok "offline enrollment does not reload or restart sshd"; else ko "offline enrollment touched the running sshd"; fi
+if gw "sshd -t && sshd -T | grep -q 'hostcertificate /etc/ssh/ssh_host_ecdsa_key-cert.pub'"; then ok "OpenWrt's openssh-server accepts the installed configuration (sshd -t / -T)"; else ko "sshd rejects the offline-installed configuration"; fi
+# What sysupgrade would carry over: the SSH-CA files the drop-ins point at.
+missing=$(gw "sysupgrade -l" | sort >sysupgrade.list; for f in $SSHCA_FILES; do grep -qx "$f" sysupgrade.list || echo "$f"; done)
+if [ -z "$missing" ]; then ok "sysupgrade keeps every SSH-CA file"; else ko "sysupgrade would drop: $missing"; fi
+# Cold power cycle (see case 5): OpenWRT's /etc/init.d/sshd starts with it.
+gw "sync; poweroff" || true
+for _ in $(seq 120); do kill -0 "$GW_PID" 2>/dev/null || break; sleep 1; done
+kill "$GW_PID" 2>/dev/null || true
+boot_gw
+wait_ssh gw 600
+until_ok "after boot sshd serves the offline-installed host certificate; the operator's user certificate is accepted" 60 opssh true
 
 log "8. LuCI page + rpcd plugin: the web backend is the daemon's snapshot"
 # Install the whole OpenWRT package the way the playbook does (extract it).

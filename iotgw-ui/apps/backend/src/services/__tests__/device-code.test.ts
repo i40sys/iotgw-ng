@@ -30,7 +30,11 @@ vi.mock("../kms", async (importOriginal) => {
           );
         }
         kmsStore.set(uid, crypto.randomBytes(32));
-        return Promise.resolve({ tag: "CreateResponse", type: "Structure", value: [] });
+        return Promise.resolve({
+          tag: "CreateResponse",
+          type: "Structure",
+          value: [],
+        });
       }
       if (body.tag === "Get") {
         const key = kmsStore.get(uid);
@@ -39,7 +43,11 @@ vi.mock("../kms", async (importOriginal) => {
           tag: "GetResponse",
           type: "Structure",
           value: [
-            { tag: "KeyMaterial", type: "ByteString", value: key.toString("hex") },
+            {
+              tag: "KeyMaterial",
+              type: "ByteString",
+              value: key.toString("hex"),
+            },
           ],
         });
       }
@@ -90,8 +98,16 @@ describe("RFC 4226 / RFC 6238 core", () => {
 
   it("matches the RFC 4226 Appendix D HOTP vectors (6 digits)", () => {
     const expected = [
-      "755224", "287082", "359152", "969429", "338314",
-      "254676", "287922", "162583", "399871", "520489",
+      "755224",
+      "287082",
+      "359152",
+      "969429",
+      "338314",
+      "254676",
+      "287922",
+      "162583",
+      "399871",
+      "520489",
     ];
     expected.forEach((code, counter) => {
       expect(hotp(RFC_KEY, counter)).toBe(code);
@@ -142,8 +158,7 @@ beforeEach(() => {
   supabase = createFakeSupabase(tables) as unknown as SupabaseClient<Database>;
 });
 
-const seedKey = () =>
-  kmsStore.get(String(tables.devices[0].totp_seed_id))!;
+const seedKey = () => kmsStore.get(String(tables.devices[0].totp_seed_id))!;
 
 describe("getDeviceCode", () => {
   it("creates the seed lazily and returns the current step's code", async () => {
@@ -181,7 +196,12 @@ describe("getDeviceCode", () => {
     const seedId = tables.devices[0].totp_seed_id;
     tables.device_otp_uses.push(
       { device_id: DEVICE, seed_id: seedId, purpose: "ssh-enroll", step: STEP },
-      { device_id: DEVICE, seed_id: "device_totp_old_0", purpose: "vpn", step: STEP },
+      {
+        device_id: DEVICE,
+        seed_id: "device_totp_old_0",
+        purpose: "vpn",
+        step: STEP,
+      },
       { device_id: DEVICE, seed_id: seedId, purpose: "vpn", step: STEP - 1 },
     );
     const code = await getDeviceCode(supabase, DEVICE, NOW_MS);
@@ -197,7 +217,9 @@ describe("getDeviceCode", () => {
     const after = await getDeviceCode(supabase, DEVICE, NOW_MS);
     expect(after.step).toBe(STEP);
     // 1-in-a-million collision chance with random seeds; compare keys instead.
-    expect(seedKey().equals(kmsStore.get(`device_totp_${DEVICE}_2`)!)).toBe(true);
+    expect(seedKey().equals(kmsStore.get(`device_totp_${DEVICE}_2`)!)).toBe(
+      true,
+    );
     expect(before.code).toMatch(/^\d{6}$/);
   });
 
@@ -210,17 +232,25 @@ describe("getDeviceCode", () => {
 
 describe("candidates / enroll-code services", () => {
   it("returns steps now-1..now+1 and the lock only while it is in the future", async () => {
-    tables.devices[0].totp_locked_until = new Date(NOW_MS + 60_000).toISOString();
+    tables.devices[0].totp_locked_until = new Date(
+      NOW_MS + 60_000,
+    ).toISOString();
     const res = await getCodeCandidates(supabase, DEVICE, NOW_MS);
     expect(res.seed_id).toBe(`device_totp_${DEVICE}_1`);
-    expect(res.candidates.map((c) => c.step)).toEqual([STEP - 1, STEP, STEP + 1]);
+    expect(res.candidates.map((c) => c.step)).toEqual([
+      STEP - 1,
+      STEP,
+      STEP + 1,
+    ]);
     for (const c of res.candidates) {
       expect(c.code).toBe(codeForStep(seedKey(), c.step));
     }
     expect(res.locked_until).toBe(new Date(NOW_MS + 60_000).toISOString());
 
     tables.devices[0].totp_locked_until = new Date(NOW_MS - 1).toISOString();
-    expect((await getCodeCandidates(supabase, DEVICE, NOW_MS)).locked_until).toBeNull();
+    expect(
+      (await getCodeCandidates(supabase, DEVICE, NOW_MS)).locked_until,
+    ).toBeNull();
   });
 
   it("enroll-code picks the first unused ssh-enroll step and gives up past the window", async () => {
@@ -228,19 +258,37 @@ describe("candidates / enroll-code services", () => {
     expect(first.step).toBe(STEP);
     expect(first.device_uuid).toBe(DEVICE);
     const seedId = tables.devices[0].totp_seed_id;
-    tables.device_otp_uses.push({ device_id: DEVICE, seed_id: seedId, purpose: "ssh-enroll", step: STEP });
+    tables.device_otp_uses.push({
+      device_id: DEVICE,
+      seed_id: seedId,
+      purpose: "ssh-enroll",
+      step: STEP,
+    });
     expect((await getEnrollCode(supabase, DEVICE, NOW_MS)).step).toBe(STEP + 1);
-    tables.device_otp_uses.push({ device_id: DEVICE, seed_id: seedId, purpose: "ssh-enroll", step: STEP + 1 });
+    tables.device_otp_uses.push({
+      device_id: DEVICE,
+      seed_id: seedId,
+      purpose: "ssh-enroll",
+      step: STEP + 1,
+    });
     await expect(getEnrollCode(supabase, DEVICE, NOW_MS)).rejects.toThrow(
       "no unused enrollment code",
     );
   });
 
   it("resolves <name>@<net8> like the edge functions", async () => {
-    expect(await resolveDeviceUuid(supabase, { device_id: "gw-1@abcdef01" })).toBe(DEVICE);
-    expect(await resolveDeviceUuid(supabase, { device_id: "gw-1@ABCDEF01xyz" })).toBe(DEVICE);
-    await expect(resolveDeviceUuid(supabase, { device_id: "gw-1@00000000" })).rejects.toThrow();
-    await expect(resolveDeviceUuid(supabase, { device_id: "gw-1" })).rejects.toThrow();
+    expect(
+      await resolveDeviceUuid(supabase, { device_id: "gw-1@abcdef01" }),
+    ).toBe(DEVICE);
+    expect(
+      await resolveDeviceUuid(supabase, { device_id: "gw-1@ABCDEF01xyz" }),
+    ).toBe(DEVICE);
+    await expect(
+      resolveDeviceUuid(supabase, { device_id: "gw-1@00000000" }),
+    ).rejects.toThrow();
+    await expect(
+      resolveDeviceUuid(supabase, { device_id: "gw-1" }),
+    ).rejects.toThrow();
   });
 });
 
@@ -315,7 +363,9 @@ describe("internal HTTP endpoints", () => {
         payload: body as object,
       });
 
-    expect((await post("Bearer dev-auth", { device_uuid: DEVICE })).statusCode).toBe(401);
+    expect(
+      (await post("Bearer dev-auth", { device_uuid: DEVICE })).statusCode,
+    ).toBe(401);
     expect((await post("Bearer ops", {})).statusCode).toBe(400);
 
     const byUuid = await post("Bearer ops", { device_uuid: DEVICE });
@@ -327,11 +377,46 @@ describe("internal HTTP endpoints", () => {
       device_uuid: DEVICE,
     });
 
-    const byName = await post("Bearer ops", { device_id: `gw-1@${NETWORK.slice(0, 8)}` });
+    const byName = await post("Bearer ops", {
+      device_id: `gw-1@${NETWORK.slice(0, 8)}`,
+    });
     expect(byName.statusCode).toBe(200);
     expect(byName.json<{ device_uuid: string }>().device_uuid).toBe(DEVICE);
 
-    expect((await post("Bearer ops", { device_id: "nope@00000000" })).statusCode).toBe(404);
+    expect(
+      (await post("Bearer ops", { device_id: "nope@00000000" })).statusCode,
+    ).toBe(404);
+    await app.close();
+  });
+
+  it("enroll-code reinstall:true clears the previous host key (task-153); without it the key stays", async () => {
+    process.env.OPS_CERT_MINT_TOKEN = "ops";
+    const app = build();
+    const post = (body: unknown) =>
+      app.inject({
+        method: "POST",
+        url: "/internal/devices/enroll-code",
+        headers: { authorization: "Bearer ops" },
+        payload: body as object,
+      });
+    tables.devices[0].ssh_host_pubkey = "ecdsa-sha2-nistp256 AAAA old";
+
+    expect(
+      (await post({ device_uuid: DEVICE, reinstall: "yes" })).statusCode,
+    ).toBe(400);
+    expect(tables.devices[0].ssh_host_pubkey).toBe(
+      "ecdsa-sha2-nistp256 AAAA old",
+    );
+
+    expect((await post({ device_uuid: DEVICE })).statusCode).toBe(200);
+    expect(tables.devices[0].ssh_host_pubkey).toBe(
+      "ecdsa-sha2-nistp256 AAAA old",
+    );
+
+    const res = await post({ device_uuid: DEVICE, reinstall: true });
+    expect(res.statusCode).toBe(200);
+    expect(res.json<{ code: string }>().code).toMatch(/^\d{6}$/);
+    expect(tables.devices[0].ssh_host_pubkey).toBeNull();
     await app.close();
   });
 });

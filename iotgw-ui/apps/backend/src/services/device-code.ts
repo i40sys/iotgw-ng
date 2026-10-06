@@ -183,7 +183,10 @@ interface DeviceSeedRow {
   totp_locked_until: string | null;
 }
 
-async function loadDevice(supabase: Db, deviceUuid: string): Promise<DeviceSeedRow> {
+async function loadDevice(
+  supabase: Db,
+  deviceUuid: string,
+): Promise<DeviceSeedRow> {
   const { data, error } = await supabase
     .from("devices")
     .select("id, totp_seed_id, totp_locked_until")
@@ -221,7 +224,9 @@ export async function ensureDeviceSeed(
     .is("totp_seed_id", null)
     .select("totp_seed_id");
   if (error) {
-    throw new Error(`Failed to persist the device code seed id: ${error.message}`);
+    throw new Error(
+      `Failed to persist the device code seed id: ${error.message}`,
+    );
   }
   if (data && data.length > 0) return seedId;
   // Lost a race: someone else stored a seed id first.
@@ -256,12 +261,17 @@ export async function rotateDeviceSeed(
     : query.is("totp_seed_id", null);
   const { data, error } = await query.select("totp_seed_id");
   if (error) {
-    throw new Error(`Failed to persist the rotated code seed id: ${error.message}`);
+    throw new Error(
+      `Failed to persist the rotated code seed id: ${error.message}`,
+    );
   }
   if (!data || data.length === 0) {
     // A concurrent rotation won; drop ours and use the stored one.
     await destroySeed(newSeedId).catch((err: unknown) =>
-      logger.warn({ err, seedId: newSeedId }, "Failed to destroy an unused seed"),
+      logger.warn(
+        { err, seedId: newSeedId },
+        "Failed to destroy an unused seed",
+      ),
     );
     const again = await loadDevice(supabase, deviceUuid);
     if (!again.totp_seed_id) throw new Error("Device code seed id vanished");
@@ -278,7 +288,10 @@ export async function rotateDeviceSeed(
       );
     }
   }
-  logger.info({ deviceId: device.id, seedId: newSeedId }, "Rotated device code seed");
+  logger.info(
+    { deviceId: device.id, seedId: newSeedId },
+    "Rotated device code seed",
+  );
   return newSeedId;
 }
 
@@ -325,7 +338,13 @@ export async function getDeviceCode(
 ): Promise<DeviceCode> {
   const seedId = await ensureDeviceSeed(supabase, deviceUuid);
   const current = stepAt(Math.floor(nowMs / 1000));
-  const used = await latestUsedStep(supabase, deviceUuid, seedId, "vpn", current);
+  const used = await latestUsedStep(
+    supabase,
+    deviceUuid,
+    seedId,
+    "vpn",
+    current,
+  );
   const next = used !== null;
   const step = next ? current + 1 : current;
   const key = await getSeed(seedId);
@@ -350,11 +369,16 @@ export async function getCodeCandidates(
   nowMs: number = Date.now(),
 ): Promise<CodeCandidates> {
   const device = await loadDevice(supabase, deviceUuid);
-  const seedId = device.totp_seed_id ?? (await ensureDeviceSeed(supabase, device.id));
+  const seedId =
+    device.totp_seed_id ?? (await ensureDeviceSeed(supabase, device.id));
   const key = await getSeed(seedId);
   const current = stepAt(Math.floor(nowMs / 1000));
   const candidates = [];
-  for (let step = current - CODE_WINDOW; step <= current + CODE_WINDOW; step++) {
+  for (
+    let step = current - CODE_WINDOW;
+    step <= current + CODE_WINDOW;
+    step++
+  ) {
     candidates.push({ step, code: codeForStep(key, step) });
   }
   const lockedMs = device.totp_locked_until
@@ -418,7 +442,13 @@ export async function getEnrollCode(
 ): Promise<EnrollCode> {
   const seedId = await ensureDeviceSeed(supabase, deviceUuid);
   const current = stepAt(Math.floor(nowMs / 1000));
-  const used = await latestUsedStep(supabase, deviceUuid, seedId, "ssh-enroll", current);
+  const used = await latestUsedStep(
+    supabase,
+    deviceUuid,
+    seedId,
+    "ssh-enroll",
+    current,
+  );
   const step = used === null ? current : used + 1;
   if (step > current + CODE_WINDOW) throw new NoEnrollCodeError();
   const key = await getSeed(seedId);
@@ -428,4 +458,32 @@ export async function getEnrollCode(
     valid_until: stepValidUntil(step),
     device_uuid: deviceUuid,
   };
+}
+
+/**
+ * A reinstall gives the gateway a new SSH host key, so the server's record of
+ * the old one must go before the new OS can enroll — the same change as the
+ * UI's "Reset SSH enrollment" (`resetSshEnrollment`): only ssh_host_pubkey is
+ * cleared, nothing is revoked or offboarded, and the re-enrollment re-keys the
+ * SAME pki-manager host (same fqdn). Called by the install flow through
+ * enroll-code `reinstall: true` (iotgw-ng task-153), so it is audited here.
+ */
+export async function resetSshEnrollmentForReinstall(
+  supabase: Db,
+  deviceUuid: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("devices")
+    .update({ ssh_host_pubkey: null })
+    .eq("id", deviceUuid);
+  if (error) throw new Error(`reset SSH enrollment: ${error.message}`);
+  logger.info(
+    {
+      audit: "reset_ssh_enrollment",
+      actor: "install-flow",
+      deviceId: deviceUuid,
+      reason: "reinstall",
+    },
+    "audit: reset_ssh_enrollment by the install flow (reinstall)",
+  );
 }

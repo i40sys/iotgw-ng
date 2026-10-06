@@ -35,6 +35,13 @@ type Agent struct {
 	// LockPath serializes changes between the daemon and manual commands
 	// (dashboard, LuCI, CLI); "" = no lock.
 	LockPath string
+	// Offline installs an SSH enrollment into a root filesystem whose sshd is
+	// not running — the install playbook runs `iotgw ssh refresh -offline`
+	// chrooted into the freshly written OpenWRT (iotgw-ng task-153). The same
+	// files and drop-ins are written and checked with `sshd -t` (restored if it
+	// fails), but sshd is never reloaded or restarted: OpenWRT's
+	// /etc/init.d/sshd serves the new identity from the next boot.
+	Offline bool
 }
 
 // DefaultLock is the change lock on the installed gateway.

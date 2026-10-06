@@ -7,6 +7,7 @@ import {
   NoEnrollCodeError,
   getCodeCandidates,
   getEnrollCode,
+  resetSshEnrollmentForReinstall,
   resolveDeviceUuid,
 } from "../services/device-code";
 
@@ -18,7 +19,9 @@ import {
  *    plus the device's lock state.
  *  - POST /internal/devices/enroll-code — bearer OPS_CERT_MINT_TOKEN (the
  *    existing Kestra→backend credential). One code for the first SSH enrollment
- *    during provisioning.
+ *    during provisioning. `reinstall: true` (the install flow, task-153) first
+ *    clears the server's record of the previous host key, as "Reset SSH
+ *    enrollment" does, so the freshly installed OS can enroll.
  */
 
 /** Constant-time bearer check. Compares SHA-256 digests so lengths never leak. */
@@ -71,51 +74,62 @@ export function registerDeviceCodeRoutes(
         return reply.code(400).send({ error: "device_uuid is required" });
       }
       try {
-        return reply.send(await getCodeCandidates(deps.supabase, deviceUuid, now()));
+        return reply.send(
+          await getCodeCandidates(deps.supabase, deviceUuid, now()),
+        );
       } catch (err) {
         if (err instanceof DeviceNotFoundError) {
           return reply.code(404).send({ error: "device not found" });
         }
         request.log.error({ err, deviceUuid }, "device code candidates failed");
-        return reply.code(502).send({ error: "failed to compute device codes" });
+        return reply
+          .code(502)
+          .send({ error: "failed to compute device codes" });
       }
     },
   );
 
-  server.post<{ Body: { device_uuid?: string; device_id?: string } }>(
-    "/internal/devices/enroll-code",
-    async (request, reply) => {
-      if (!authorize(request, reply, "OPS_CERT_MINT_TOKEN")) return reply;
-      const { device_uuid, device_id } = request.body ?? {};
-      if (
-        (typeof device_uuid !== "string" || !device_uuid) &&
-        (typeof device_id !== "string" || !device_id)
-      ) {
-        return reply
-          .code(400)
-          .send({ error: "device_uuid or device_id is required" });
+  server.post<{
+    Body: { device_uuid?: string; device_id?: string; reinstall?: boolean };
+  }>("/internal/devices/enroll-code", async (request, reply) => {
+    if (!authorize(request, reply, "OPS_CERT_MINT_TOKEN")) return reply;
+    const { device_uuid, device_id, reinstall } = request.body ?? {};
+    if (reinstall !== undefined && typeof reinstall !== "boolean") {
+      return reply.code(400).send({ error: "reinstall must be a boolean" });
+    }
+    if (
+      (typeof device_uuid !== "string" || !device_uuid) &&
+      (typeof device_id !== "string" || !device_id)
+    ) {
+      return reply
+        .code(400)
+        .send({ error: "device_uuid or device_id is required" });
+    }
+    try {
+      const uuid = await resolveDeviceUuid(
+        deps.supabase,
+        typeof device_uuid === "string" && device_uuid
+          ? { device_uuid }
+          : { device_id },
+      );
+      const code = await getEnrollCode(deps.supabase, uuid, now());
+      // Reset only once a code is available, so a refused request changes nothing.
+      if (reinstall) await resetSshEnrollmentForReinstall(deps.supabase, uuid);
+      return reply.send(code);
+    } catch (err) {
+      if (err instanceof DeviceNotFoundError) {
+        return reply.code(404).send({ error: "device not found" });
       }
-      try {
-        const uuid = await resolveDeviceUuid(
-          deps.supabase,
-          typeof device_uuid === "string" && device_uuid
-            ? { device_uuid }
-            : { device_id },
-        );
-        return reply.send(await getEnrollCode(deps.supabase, uuid, now()));
-      } catch (err) {
-        if (err instanceof DeviceNotFoundError) {
-          return reply.code(404).send({ error: "device not found" });
-        }
-        if (err instanceof NoEnrollCodeError) {
-          return reply.code(409).send({ error: err.message });
-        }
-        request.log.error(
-          { err, device_uuid, device_id },
-          "enroll-code minting failed",
-        );
-        return reply.code(502).send({ error: "failed to compute the enrollment code" });
+      if (err instanceof NoEnrollCodeError) {
+        return reply.code(409).send({ error: err.message });
       }
-    },
-  );
+      request.log.error(
+        { err, device_uuid, device_id },
+        "enroll-code minting failed",
+      );
+      return reply
+        .code(502)
+        .send({ error: "failed to compute the enrollment code" });
+    }
+  });
 }

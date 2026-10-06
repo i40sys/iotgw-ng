@@ -447,8 +447,10 @@ func (a *Agent) installEnrollment(ctx context.Context, r enrollReply, out func(s
 	rollback := func(why string, cause error) error {
 		out("ROLLING BACK: " + why)
 		rerr := restoreFiles(snaps)
-		if err := platform.RestartSSHD(ctx); err != nil {
-			rerr = errors.Join(rerr, fmt.Errorf("restart sshd after restore: %w", err))
+		if !a.Offline {
+			if err := platform.RestartSSHD(ctx); err != nil {
+				rerr = errors.Join(rerr, fmt.Errorf("restart sshd after restore: %w", err))
+			}
 		}
 		if rerr != nil {
 			return fmt.Errorf("%s: %w; restore problems: %v", why, cause, rerr)
@@ -502,6 +504,14 @@ func (a *Agent) installEnrollment(ctx context.Context, r enrollReply, out func(s
 	if _, err := sysexec.Run(ctx, 15*time.Second, "sshd", "-t"); err != nil {
 		return rollback("sshd rejected the new configuration (sshd -t)", err)
 	}
+	valid := r.HostCertValidBefore
+	if t, err := time.Parse(time.RFC3339, valid); err == nil {
+		valid = t.Local().Format("2006-01-02 15:04")
+	}
+	if a.Offline {
+		out(fmt.Sprintf("SSH enrollment installed offline: host certificate for %s (zone %s) valid until %s; sshd -t OK, sshd not reloaded (serves it from its next start)", r.FQDN, r.Zone, valid))
+		return nil
+	}
 	out("sshd -t OK; reloading sshd")
 	if err := platform.ReloadSSHD(ctx); err != nil {
 		out("reload failed (" + err.Error() + "); restarting sshd")
@@ -517,10 +527,6 @@ func (a *Agent) installEnrollment(ctx context.Context, r enrollReply, out func(s
 		if err := waitServing(ctx); err != nil {
 			return rollback("sshd is not serving the new identity", err)
 		}
-	}
-	valid := r.HostCertValidBefore
-	if t, err := time.Parse(time.RFC3339, valid); err == nil {
-		valid = t.Local().Format("2006-01-02 15:04")
 	}
 	out(fmt.Sprintf("SSH refreshed: host certificate for %s (zone %s) valid until %s; sshd serving it with the User CA", r.FQDN, r.Zone, valid))
 	return nil
