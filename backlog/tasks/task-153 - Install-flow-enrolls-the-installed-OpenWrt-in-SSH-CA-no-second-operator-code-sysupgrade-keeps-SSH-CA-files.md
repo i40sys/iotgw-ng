@@ -3,11 +3,11 @@ id: TASK-153
 title: >-
   Install flow enrolls the installed OpenWrt in SSH-CA (no second operator code)
   + sysupgrade keeps SSH-CA files
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-06 06:54'
-updated_date: '2026-10-06 07:28'
+updated_date: '2026-10-06 11:25'
 labels:
   - ssh-ca
   - openwrt
@@ -31,7 +31,7 @@ priority: high
 - [x] #3 iotgw-kestra install: tasks/ssh_ca_install.yaml enrolls the installed rootfs; the install fails with a clear message if enrollment fails; agent pin bumped
 - [x] #4 sysupgrade keeps the SSH-CA files (same keep list as the agent)
 - [x] #5 QEMU/OpenWrt verification: installed rootfs boots serving the host certificate and trusting the User CA; sshd config accepted by OpenWrt's openssh-server
-- [ ] #6 Real gateway (office LAN, never the banned ranges): PXE code typed once, install → reboot → SSH PKI HEALTHY, provisioning connects with no extra code
+- [x] #6 Real gateway (office LAN, never the banned ranges): PXE code typed once, install → reboot → SSH PKI HEALTHY, provisioning connects with no extra code
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -60,4 +60,10 @@ priority: high
 - Tag v0.6.3 (CI green, cosign-verified backend sha256:fa55a5d0…); OVH backend rolled out via tf.sh platform apply; release manifest v0.6.3 generated + verified; Kestra namespace files synced.
 
 **Pending:** AC#6 on gw-c3 (PXE code once → install → reboot → SSH PKI HEALTHY → provisioning with no extra code).
+
+**Hardware test passed (gw-c3, 2026-10-06):**
+- Codes used: `vpn` + `ssh-live-enroll` at 07:37 (the single operator code, PXE), `ssh-enroll` at 07:47 (backend code, install flow) — no console code.
+- Install 3lTLhtoaMJIzBzeyhO0z8l: "SSH enrollment installed offline … valid until 2027-01-04; sshd -t OK"; sshd -T assertion passed; failed=0.
+- Provisioning 64sDmLuODis9oVTH1zV6VL: connected with the iotgw-ops certificate, took the renew path (no code); failed=0.
+- `iotgw ssh status` on the gateway: User CA / Host CA / Host identity / sshd all HEALTHY; /etc/sysupgrade.conf carries the SSH-CA entries.
 <!-- SECTION:NOTES:END -->
