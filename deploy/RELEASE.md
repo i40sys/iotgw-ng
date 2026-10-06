@@ -160,7 +160,9 @@ build**. Local kind builds pass their local revision and dirty state. Without
 provenance the About dialog reports unknown/unverified fields.
 
 After building/verifying the images and pinning their digests, declare the
-release from the intended overlay (Python 3 + PyYAML and kubectl are required):
+release from the intended overlay. Pin **all three** custom images from the same
+tag, even when only one changed: the manifest declares each of them at the tag's
+revision, so an image left over from an older release shows as a mismatch (Python 3 + PyYAML and kubectl are required):
 
 ```bash
 python3 deploy/release-manifest.py generate \
