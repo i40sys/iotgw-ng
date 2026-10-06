@@ -33,7 +33,7 @@ images:
     digest: sha256:6db2b8ddc6f800fd469644363cb9eeaba21f32329470e3aa5ebd71eac9305e92
   - name: iotgw-ui-backend
     newName: ghcr.io/i40sys/iotgw-ui-backend
-    digest: sha256:090f7212eb2acb5c0fba1e1469b42977dfc14a6ca8a128e0d13a86e9869a3994
+    digest: sha256:fa55a5d02b2656bd3b0ca313f05d06a7d2c498a5873fa1f3f0e3f02dcb4cd0e8
   - name: iotgw-ui-frontend
     newName: ghcr.io/i40sys/iotgw-ui-frontend
     digest: sha256:432c29a5dbd9ecfcfe1bd159200747fcb0b463053d8094f5290b09702dee4393

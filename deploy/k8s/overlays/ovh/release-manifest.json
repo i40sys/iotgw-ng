@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "product": "Edge Manager",
-  "release": "v0.5.0",
+  "release": "v0.6.3",
   "environment": "production",
-  "createdAt": "2026-09-29T15:09:27Z",
+  "createdAt": "2026-10-06T07:27:12Z",
   "components": [
     {
       "id": "backend",
       "name": "Backend API",
       "version": "1.1.0",
-      "revision": "64fec1f348222882cbc52ddd02fcbf94fd46417c",
-      "image": "ghcr.io/i40sys/iotgw-ui-backend@sha256:090f7212eb2acb5c0fba1e1469b42977dfc14a6ca8a128e0d13a86e9869a3994",
+      "revision": "67a17e290dc8ace2485b71113dfd6e4d4cb817f5",
+      "image": "ghcr.io/i40sys/iotgw-ui-backend@sha256:fa55a5d02b2656bd3b0ca313f05d06a7d2c498a5873fa1f3f0e3f02dcb4cd0e8",
       "workload": {
         "kind": "Deployment",
         "namespace": "iotgw-ui",
@@ -18,12 +18,12 @@
         "container": "backend"
       },
       "observation": {
-        "checkedAt": "2026-09-29T15:10:18Z",
+        "checkedAt": "2026-10-06T07:28:14Z",
         "images": [
-          "ghcr.io/i40sys/iotgw-ui-backend@sha256:090f7212eb2acb5c0fba1e1469b42977dfc14a6ca8a128e0d13a86e9869a3994"
+          "ghcr.io/i40sys/iotgw-ui-backend@sha256:fa55a5d02b2656bd3b0ca313f05d06a7d2c498a5873fa1f3f0e3f02dcb4cd0e8"
         ],
         "imageIds": [
-          "ghcr.io/i40sys/iotgw-ui-backend@sha256:090f7212eb2acb5c0fba1e1469b42977dfc14a6ca8a128e0d13a86e9869a3994"
+          "ghcr.io/i40sys/iotgw-ui-backend@sha256:fa55a5d02b2656bd3b0ca313f05d06a7d2c498a5873fa1f3f0e3f02dcb4cd0e8"
         ],
         "ready": true
       }
@@ -32,7 +32,7 @@
       "id": "frontend",
       "name": "User interface",
       "version": "0.11.0",
-      "revision": "64fec1f348222882cbc52ddd02fcbf94fd46417c",
+      "revision": "67a17e290dc8ace2485b71113dfd6e4d4cb817f5",
       "image": "ghcr.io/i40sys/iotgw-ui-frontend@sha256:432c29a5dbd9ecfcfe1bd159200747fcb0b463053d8094f5290b09702dee4393",
       "workload": {
         "kind": "Deployment",
@@ -41,7 +41,7 @@
         "container": "frontend"
       },
       "observation": {
-        "checkedAt": "2026-09-29T15:10:18Z",
+        "checkedAt": "2026-10-06T07:28:14Z",
         "images": [
           "ghcr.io/i40sys/iotgw-ui-frontend@sha256:432c29a5dbd9ecfcfe1bd159200747fcb0b463053d8094f5290b09702dee4393"
         ],
@@ -64,12 +64,35 @@
         "container": "kestra"
       },
       "observation": {
-        "checkedAt": "2026-09-29T15:10:18Z",
+        "checkedAt": "2026-10-06T07:28:14Z",
         "images": [
           "kestra/kestra:v1.3.35"
         ],
         "imageIds": [
           "docker.io/kestra/kestra@sha256:0b880e20e403ef635a6bc7e9e72786c7a6dde143858723449dc57500830868e2"
+        ],
+        "ready": true
+      }
+    },
+    {
+      "id": "netboot/netboot/nginx",
+      "name": "netboot",
+      "version": null,
+      "revision": null,
+      "image": "nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de",
+      "workload": {
+        "kind": "Deployment",
+        "namespace": "netboot",
+        "name": "netboot",
+        "container": "nginx"
+      },
+      "observation": {
+        "checkedAt": "2026-10-06T07:28:14Z",
+        "images": [
+          "nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de"
+        ],
+        "imageIds": [
+          "docker.io/library/nginx@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de"
         ],
         "ready": true
       }
@@ -87,7 +110,7 @@
         "container": "auth"
       },
       "observation": {
-        "checkedAt": "2026-09-29T15:10:18Z",
+        "checkedAt": "2026-10-06T07:28:14Z",
         "images": [
           "supabase/gotrue:v2.189.0"
         ],
@@ -101,7 +124,7 @@
       "id": "functions",
       "name": "Edge functions",
       "version": null,
-      "revision": "64fec1f348222882cbc52ddd02fcbf94fd46417c",
+      "revision": "67a17e290dc8ace2485b71113dfd6e4d4cb817f5",
       "image": "ghcr.io/i40sys/iotgw-functions@sha256:6db2b8ddc6f800fd469644363cb9eeaba21f32329470e3aa5ebd71eac9305e92",
       "workload": {
         "kind": "Deployment",
@@ -110,7 +133,7 @@
         "container": "functions"
       },
       "observation": {
-        "checkedAt": "2026-09-29T15:10:18Z",
+        "checkedAt": "2026-10-06T07:28:14Z",
         "images": [
           "ghcr.io/i40sys/iotgw-functions@sha256:6db2b8ddc6f800fd469644363cb9eeaba21f32329470e3aa5ebd71eac9305e92"
         ],
@@ -133,7 +156,7 @@
         "container": "kong"
       },
       "observation": {
-        "checkedAt": "2026-09-29T15:10:18Z",
+        "checkedAt": "2026-10-06T07:28:14Z",
         "images": [
           "kong/kong:3.9.1"
         ],
@@ -156,7 +179,7 @@
         "container": "meta"
       },
       "observation": {
-        "checkedAt": "2026-09-29T15:10:18Z",
+        "checkedAt": "2026-10-06T07:28:14Z",
         "images": [
           "supabase/postgres-meta:v0.96.6"
         ],
@@ -179,7 +202,7 @@
         "container": "rest"
       },
       "observation": {
-        "checkedAt": "2026-09-29T15:10:18Z",
+        "checkedAt": "2026-10-06T07:28:14Z",
         "images": [
           "postgrest/postgrest:v14.12"
         ],
@@ -202,7 +225,7 @@
         "container": "postgres"
       },
       "observation": {
-        "checkedAt": "2026-09-29T15:10:18Z",
+        "checkedAt": "2026-10-06T07:28:14Z",
         "images": [
           "postgres:16"
         ],
@@ -225,7 +248,7 @@
         "container": "kms"
       },
       "observation": {
-        "checkedAt": "2026-09-29T15:10:18Z",
+        "checkedAt": "2026-10-06T07:28:14Z",
         "images": [
           "ghcr.io/cosmian/kms:5.27.1"
         ],
@@ -248,7 +271,7 @@
       "id": "kestra-flows",
       "name": "Kestra workflows",
       "version": null,
-      "revision": null,
+      "revision": "5f3327df14b32251783f928358449663a98b70df",
       "image": null,
       "workload": null,
       "observation": null
@@ -257,7 +280,7 @@
       "id": "database-migrations",
       "name": "Database migration target",
       "version": "20260926000000_drop_devices_totp_counter.sql",
-      "revision": "64fec1f348222882cbc52ddd02fcbf94fd46417c",
+      "revision": "67a17e290dc8ace2485b71113dfd6e4d4cb817f5",
       "image": null,
       "workload": null,
       "observation": null
