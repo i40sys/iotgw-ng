@@ -8,6 +8,11 @@
 #   device.iotgw.i40sys.com   -> kong:8000 /functions/v1/{vpn,ssh-ca} only
 #   netboot.iotgw.i40sys.com  -> netboot:80 (iPXE menu + CI-built live image,
 #                                task-149.02) — HTTP and HTTPS, no redirect
+#   kestra.145-239-127-187.sslip.io -> kestra.kestra:8080 (UI + API for
+#                                operators; Kestra basic auth on every API
+#                                call). sslip.io (public wildcard DNS for the
+#                                LB IP) until kestra.iotgw.i40sys.com exists:
+#                                the Cloudflare token was rejected (2026-10-06).
 #
 # The first three use Let's Encrypt (HTTP-01 solved through default-gateway's
 # port-80 listener). The DEVICE host is served with a certificate from the
@@ -55,6 +60,21 @@ spec:
     - api.iotgw.i40sys.com
     - netboot.iotgw.i40sys.com
 ---
+# Kestra gets its own certificate so an issuance problem on this host can never
+# hold back the renewal of the shared one above.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: iotgw-kestra
+  namespace: iotgw-gateway
+spec:
+  secretName: iotgw-kestra-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-iotgw
+  dnsNames:
+    - kestra.145-239-127-187.sslip.io
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -95,6 +115,14 @@ spec:
         mode: Terminate
         certificateRefs: [{ kind: Secret, name: iotgw-public-tls }]
       allowedRoutes: { namespaces: { from: All } }
+    - name: kestra
+      hostname: kestra.145-239-127-187.sslip.io
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs: [{ kind: Secret, name: iotgw-kestra-tls }]
+      allowedRoutes: { namespaces: { from: All } }
     - name: device
       hostname: device.iotgw.i40sys.com
       port: 443
@@ -119,6 +147,7 @@ spec:
     - backend.iotgw.i40sys.com
     - api.iotgw.i40sys.com
     - device.iotgw.i40sys.com
+    - kestra.145-239-127-187.sslip.io
   rules:
     - filters:
         - type: RequestRedirect
@@ -193,3 +222,17 @@ spec:
   hostnames: [netboot.iotgw.i40sys.com]
   rules:
     - backendRefs: [{ name: netboot, port: 80 }]
+---
+# Kestra UI + API for operators. Kestra's basic auth guards the API (the UI
+# shell is a static login page); never route this host without it.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kestra
+  namespace: kestra
+spec:
+  parentRefs:
+    - { name: iotgw, namespace: iotgw-gateway, sectionName: kestra }
+  hostnames: [kestra.145-239-127-187.sslip.io]
+  rules:
+    - backendRefs: [{ name: kestra, port: 8080 }]
