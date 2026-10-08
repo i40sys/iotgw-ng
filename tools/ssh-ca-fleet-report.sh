@@ -87,7 +87,7 @@ EOF
 
 echo
 echo "Work queue (ssh_ca_enrolled_at IS NULL): ${work} gateway(s) — enroll on their next provisioning run (AC#2)."
-echo "Renewal queue (cert < now()+${RENEW_WINDOW_DAYS}d): ${renew} gateway(s) — the ssh-ca-renewal flow re-signs them."
+echo "Renewal queue (cert < now()+${RENEW_WINDOW_DAYS}d): ${renew} gateway(s) — each gateway's iotgw daemon re-signs its own (selfRenew)."
 echo
 
 # ── AC#3 / AC#4 — log-derived, needs a collector ────────────────────────────

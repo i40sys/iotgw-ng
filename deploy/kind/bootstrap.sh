@@ -506,8 +506,10 @@ SQL
 #      and survives restarts; re-applied on each deploy after flow syncs.
 #   2. dev_reset (explicit, destructive): drop the production copy of the app
 #      data WITHOUT firing the Netmaker webhooks, and seed a dev domain.
-# connectivity-check has no schedule since task-152.
-KIND_DISABLED_SCHEDULES=("ssh-ca-renewal:schedule")
+# connectivity-check has no schedule since task-152, and the ssh-ca-renewal
+# flow was removed (gateways self-renew), so the list is empty today. Add
+# "<flow>:<trigger>" here if a schedule that acts on gateways comes back.
+KIND_DISABLED_SCHEDULES=()
 kestra_api() {
   # $1 method, $2 path under /api/v1/main, stdin = body (optional)
   kubectl -n "$NS_KESTRA" exec -i deploy/kestra -- sh -c \
@@ -519,6 +521,7 @@ require_kind_context() {
 }
 disable_prod_schedules() {
   require_kind_context
+  [ "${#KIND_DISABLED_SCHEDULES[@]}" -gt 0 ] || { echo "==> kind is dev: no Kestra schedules act on gateways — nothing to disable"; return 0; }
   echo "==> kind is dev: disabling Kestra schedules that act on real gateways"
   kubectl -n "$NS_KESTRA" rollout status deploy/kestra --timeout=300s >/dev/null 2>&1 || true
   local entry flow trig ctx i
