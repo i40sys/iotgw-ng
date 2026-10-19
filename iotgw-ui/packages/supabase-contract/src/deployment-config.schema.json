@@ -162,7 +162,6 @@
           "telegraf",
           "duplicati",
           "nodered",
-          "bugfixing",
           "netxms",
           "lldpd",
           "plc_sniffer"
