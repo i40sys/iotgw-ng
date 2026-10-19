@@ -56,11 +56,6 @@
       "x-step": "provisioning"
     },
     {
-      "id": "glpi",
-      "title": "GLPI agent",
-      "x-step": "provisioning"
-    },
-    {
       "id": "duplicati",
       "title": "Duplicati",
       "x-step": "provisioning"
@@ -93,7 +88,6 @@
     "credentials",
     "obs",
     "mqtt",
-    "glpi-agent",
     "duplicati",
     "telegraf",
     "nodered",
@@ -158,13 +152,11 @@
           "vscode",
           "observability",
           "mosquitto",
-          "glpi-agent",
           "telegraf",
           "duplicati",
           "nodered",
           "netxms",
-          "lldpd",
-          "plc_sniffer"
+          "lldpd"
         ]
       },
       "uniqueItems": true,
@@ -205,7 +197,7 @@
     "local_ip_address": {
       "type": "string",
       "title": "LAN IP address",
-      "description": "Gateway address on br-lan (netmask: local_netmask); also DHCP DNS option, MQTT DNAT target, mosquitto listener, plc_sniffer destination.",
+      "description": "Gateway address on br-lan (netmask: local_netmask); also DHCP DNS option, MQTT DNAT target, mosquitto listener.",
       "format": "ipv4",
       "x-step": "provisioning",
       "x-group": "system"
@@ -372,7 +364,7 @@
     "management_cidrs": {
       "type": "array",
       "title": "Management networks",
-      "description": "Entries added to the ManagementIPs ipset (web UIs: LuCI, Dockge, Node-RED, Duplicati, VSCode, Alloy, GLPI, ttyd).",
+      "description": "Entries added to the ManagementIPs ipset (web UIs: LuCI, Dockge, Node-RED, Duplicati, VSCode, Alloy, ttyd).",
       "default": [],
       "items": {
         "type": "object",
@@ -403,7 +395,7 @@
     "ghcr_pat": {
       "type": "string",
       "title": "GHCR personal access token",
-      "description": "ghcr.io token (uci credentials.ghcr; also the `docker login ghcr.io` of the glpi-agent stack).",
+      "description": "ghcr.io token (uci credentials.ghcr).",
       "x-step": "provisioning",
       "x-group": "credentials",
       "writeOnly": true,
@@ -755,36 +747,6 @@
       },
       "x-step": "provisioning",
       "x-group": "users"
-    },
-    "glpi-agent": {
-      "type": "boolean",
-      "title": "GLPI agent",
-      "description": "GLPI inventory agent container (pulled from ghcr.io with ghcr_pat). The key is hyphenated like the tag; `glpi_agent` is accepted by the playbook as an alias. Enables the `glpi-agent` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
-      "default": false,
-      "x-step": "provisioning",
-      "x-group": "glpi",
-      "x-stack-tag": "glpi-agent"
-    },
-    "glpi_server": {
-      "type": "string",
-      "title": "GLPI server URL",
-      "format": "uri",
-      "x-step": "provisioning",
-      "x-group": "glpi"
-    },
-    "glpi_user": {
-      "type": "string",
-      "title": "GLPI user",
-      "x-step": "provisioning",
-      "x-group": "glpi"
-    },
-    "glpi_password": {
-      "type": "string",
-      "title": "GLPI password",
-      "x-step": "provisioning",
-      "x-group": "glpi",
-      "writeOnly": true,
-      "x-secret": true
     },
     "duplicati": {
       "type": "boolean",
@@ -1160,26 +1122,6 @@
           "emqx_api_url",
           "emqx_api_key",
           "emqx_api_secret"
-        ]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "glpi-agent": {
-            "const": true
-          }
-        },
-        "required": [
-          "glpi-agent"
-        ]
-      },
-      "then": {
-        "required": [
-          "glpi_server",
-          "glpi_user",
-          "glpi_password",
-          "ghcr_pat"
         ]
       }
     },

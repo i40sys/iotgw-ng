@@ -116,7 +116,7 @@ function SchemaGroupSection({
     : true;
 
   // A field stays visible while its stack is off if ANOTHER enabled stack
-  // requires it (e.g. ghcr_pat lives under Credentials but GLPI needs it).
+  // requires it (a field of one group listed in another stack's requirements).
   const visible = group.fields.filter(
     (field) =>
       isStackOn || field.requiredBy.some((flag) => enabledFlags.has(flag)),

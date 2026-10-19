@@ -51,11 +51,6 @@
   "mqtt_bridge_topics": ["site/line/5/# both 0"],
   "users": [{ "username": "hmi", "password": "CHANGE_ME" }],
 
-  "glpi-agent": false,
-  "glpi_server": "https://glpi.example.com",
-  "glpi_user": "glpi-agent",
-  "glpi_password": "CHANGE_ME",
-
   "duplicati": false,
   "duplicati_access_password": "CHANGE_ME",
   "duplicati_docker_target_url": "ftp://backup.example.com/iotgw-maq5/docker",
