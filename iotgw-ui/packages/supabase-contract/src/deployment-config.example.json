@@ -23,10 +23,6 @@
   "allowed_internet": [{ "ip": "10.121.105.20" }],
   "management_cidrs": [{ "cidr": "10.2.0.0/24" }],
 
-  "credentials": true,
-  "ghcr_pat": "CHANGE_ME",
-  "notion_api_key": "CHANGE_ME",
-
   "obs": true,
   "alloy_log_level": "warn",
   "prometheus_url": "https://prometheus.example.com/api/v1/write",

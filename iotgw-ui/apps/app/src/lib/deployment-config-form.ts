@@ -193,7 +193,7 @@ export function setIn<T>(obj: T, path: ConfigPath, value: unknown): T {
 
 const TAGS_KEY = "__tags__";
 
-/** Stack flag key → its Ansible tag (`x-stack-tag`), e.g. credentials → credentials. */
+/** Stack flag key → its Ansible tag (`x-stack-tag`), e.g. obs → observability. */
 function stackTagsByFlag(): Map<string, string> {
   const map = new Map<string, string>();
   for (const [key, node] of Object.entries(deploymentConfigJsonSchema.properties)) {

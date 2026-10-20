@@ -36,11 +36,6 @@
       "x-step": "provisioning"
     },
     {
-      "id": "credentials",
-      "title": "Credentials",
-      "x-step": "provisioning"
-    },
-    {
       "id": "observability",
       "title": "Observability",
       "x-step": "provisioning"
@@ -85,7 +80,6 @@
     "main_local_dns",
     "primary_ntp",
     "firewall",
-    "credentials",
     "obs",
     "mqtt",
     "duplicati",
@@ -147,7 +141,6 @@
           "firewall",
           "syslog",
           "shell",
-          "credentials",
           "dockge",
           "vscode",
           "observability",
@@ -382,33 +375,6 @@
       },
       "x-step": "provisioning",
       "x-group": "firewall"
-    },
-    "credentials": {
-      "type": "boolean",
-      "title": "Credentials",
-      "description": "Writes /etc/config/credentials (uci) with the GHCR PAT and Notion API key. Enables the `credentials` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
-      "default": false,
-      "x-step": "provisioning",
-      "x-group": "credentials",
-      "x-stack-tag": "credentials"
-    },
-    "ghcr_pat": {
-      "type": "string",
-      "title": "GHCR personal access token",
-      "description": "ghcr.io token (uci credentials.ghcr).",
-      "x-step": "provisioning",
-      "x-group": "credentials",
-      "writeOnly": true,
-      "x-secret": true
-    },
-    "notion_api_key": {
-      "type": "string",
-      "title": "Notion API key",
-      "description": "uci credentials.notion.api_key.",
-      "x-step": "provisioning",
-      "x-group": "credentials",
-      "writeOnly": true,
-      "x-secret": true
     },
     "obs": {
       "type": "boolean",
@@ -1056,24 +1022,6 @@
     }
   },
   "allOf": [
-    {
-      "if": {
-        "properties": {
-          "credentials": {
-            "const": true
-          }
-        },
-        "required": [
-          "credentials"
-        ]
-      },
-      "then": {
-        "required": [
-          "ghcr_pat",
-          "notion_api_key"
-        ]
-      }
-    },
     {
       "if": {
         "properties": {
