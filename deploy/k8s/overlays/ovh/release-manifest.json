@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "product": "Edge Manager",
-  "release": "v0.6.6",
+  "release": "v0.6.7",
   "environment": "production",
-  "createdAt": "2026-10-20T04:43:43Z",
+  "createdAt": "2026-10-20T04:55:51Z",
   "components": [
     {
       "id": "backend",
       "name": "Backend API",
       "version": "1.2.0",
-      "revision": "6588cd72c77725dafcadb09defa9f2eb436cf0fb",
-      "image": "ghcr.io/i40sys/iotgw-ui-backend@sha256:aafb94e2528c992835837a9c52d1ccce544f70394e912a00536d03324803cbb4",
+      "revision": "d673dba0a5799a83c4a02b110c21a23c4061cfab",
+      "image": "ghcr.io/i40sys/iotgw-ui-backend@sha256:0f8d7f3b79ff3a4a473873653e2e456604935d47b9e37856cfc9882b58ebde07",
       "workload": {
         "kind": "Deployment",
         "namespace": "iotgw-ui",
@@ -18,12 +18,12 @@
         "container": "backend"
       },
       "observation": {
-        "checkedAt": "2026-10-20T04:44:46Z",
+        "checkedAt": "2026-10-20T04:56:36Z",
         "images": [
-          "ghcr.io/i40sys/iotgw-ui-backend@sha256:aafb94e2528c992835837a9c52d1ccce544f70394e912a00536d03324803cbb4"
+          "ghcr.io/i40sys/iotgw-ui-backend@sha256:0f8d7f3b79ff3a4a473873653e2e456604935d47b9e37856cfc9882b58ebde07"
         ],
         "imageIds": [
-          "ghcr.io/i40sys/iotgw-ui-backend@sha256:aafb94e2528c992835837a9c52d1ccce544f70394e912a00536d03324803cbb4"
+          "ghcr.io/i40sys/iotgw-ui-backend@sha256:0f8d7f3b79ff3a4a473873653e2e456604935d47b9e37856cfc9882b58ebde07"
         ],
         "ready": true
       }
@@ -31,9 +31,9 @@
     {
       "id": "frontend",
       "name": "User interface",
-      "version": "0.12.0",
-      "revision": "6588cd72c77725dafcadb09defa9f2eb436cf0fb",
-      "image": "ghcr.io/i40sys/iotgw-ui-frontend@sha256:1bdeb5057b368dd71f0578e38d77033435a38a6798cf2621a7cb1c019e83a5c0",
+      "version": "0.12.1",
+      "revision": "d673dba0a5799a83c4a02b110c21a23c4061cfab",
+      "image": "ghcr.io/i40sys/iotgw-ui-frontend@sha256:5663c87183900b0f35fdb16a411439b0a7219f4de3bb58cf0056a93367c37c1b",
       "workload": {
         "kind": "Deployment",
         "namespace": "iotgw-ui",
@@ -41,12 +41,12 @@
         "container": "frontend"
       },
       "observation": {
-        "checkedAt": "2026-10-20T04:44:46Z",
+        "checkedAt": "2026-10-20T04:56:36Z",
         "images": [
-          "ghcr.io/i40sys/iotgw-ui-frontend@sha256:1bdeb5057b368dd71f0578e38d77033435a38a6798cf2621a7cb1c019e83a5c0"
+          "ghcr.io/i40sys/iotgw-ui-frontend@sha256:5663c87183900b0f35fdb16a411439b0a7219f4de3bb58cf0056a93367c37c1b"
         ],
         "imageIds": [
-          "ghcr.io/i40sys/iotgw-ui-frontend@sha256:1bdeb5057b368dd71f0578e38d77033435a38a6798cf2621a7cb1c019e83a5c0"
+          "ghcr.io/i40sys/iotgw-ui-frontend@sha256:5663c87183900b0f35fdb16a411439b0a7219f4de3bb58cf0056a93367c37c1b"
         ],
         "ready": true
       }
@@ -64,7 +64,7 @@
         "container": "kestra"
       },
       "observation": {
-        "checkedAt": "2026-10-20T04:44:46Z",
+        "checkedAt": "2026-10-20T04:56:36Z",
         "images": [
           "kestra/kestra:v1.3.35"
         ],
@@ -87,7 +87,7 @@
         "container": "nginx"
       },
       "observation": {
-        "checkedAt": "2026-10-20T04:44:46Z",
+        "checkedAt": "2026-10-20T04:56:36Z",
         "images": [
           "nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de"
         ],
@@ -110,7 +110,7 @@
         "container": "auth"
       },
       "observation": {
-        "checkedAt": "2026-10-20T04:44:46Z",
+        "checkedAt": "2026-10-20T04:56:36Z",
         "images": [
           "supabase/gotrue:v2.189.0"
         ],
@@ -124,8 +124,8 @@
       "id": "functions",
       "name": "Edge functions",
       "version": null,
-      "revision": "6588cd72c77725dafcadb09defa9f2eb436cf0fb",
-      "image": "ghcr.io/i40sys/iotgw-functions@sha256:d3abf22bbb3dc1cd0349263287089c1a84dd1128eb98f0920c8b92ea79d5086c",
+      "revision": "d673dba0a5799a83c4a02b110c21a23c4061cfab",
+      "image": "ghcr.io/i40sys/iotgw-functions@sha256:a195d2e56ee95d3a0b4cf2592f376b06a9888bad7c4aef2f7669fadbbbadf4c5",
       "workload": {
         "kind": "Deployment",
         "namespace": "supabase-app",
@@ -133,12 +133,12 @@
         "container": "functions"
       },
       "observation": {
-        "checkedAt": "2026-10-20T04:44:46Z",
+        "checkedAt": "2026-10-20T04:56:36Z",
         "images": [
-          "ghcr.io/i40sys/iotgw-functions@sha256:d3abf22bbb3dc1cd0349263287089c1a84dd1128eb98f0920c8b92ea79d5086c"
+          "ghcr.io/i40sys/iotgw-functions@sha256:a195d2e56ee95d3a0b4cf2592f376b06a9888bad7c4aef2f7669fadbbbadf4c5"
         ],
         "imageIds": [
-          "ghcr.io/i40sys/iotgw-functions@sha256:d3abf22bbb3dc1cd0349263287089c1a84dd1128eb98f0920c8b92ea79d5086c"
+          "ghcr.io/i40sys/iotgw-functions@sha256:a195d2e56ee95d3a0b4cf2592f376b06a9888bad7c4aef2f7669fadbbbadf4c5"
         ],
         "ready": true
       }
@@ -156,7 +156,7 @@
         "container": "kong"
       },
       "observation": {
-        "checkedAt": "2026-10-20T04:44:46Z",
+        "checkedAt": "2026-10-20T04:56:36Z",
         "images": [
           "kong/kong:3.9.1"
         ],
@@ -179,7 +179,7 @@
         "container": "meta"
       },
       "observation": {
-        "checkedAt": "2026-10-20T04:44:46Z",
+        "checkedAt": "2026-10-20T04:56:36Z",
         "images": [
           "supabase/postgres-meta:v0.96.6"
         ],
@@ -202,7 +202,7 @@
         "container": "rest"
       },
       "observation": {
-        "checkedAt": "2026-10-20T04:44:46Z",
+        "checkedAt": "2026-10-20T04:56:36Z",
         "images": [
           "postgrest/postgrest:v14.12"
         ],
@@ -225,7 +225,7 @@
         "container": "postgres"
       },
       "observation": {
-        "checkedAt": "2026-10-20T04:44:46Z",
+        "checkedAt": "2026-10-20T04:56:36Z",
         "images": [
           "postgres:16"
         ],
@@ -248,7 +248,7 @@
         "container": "kms"
       },
       "observation": {
-        "checkedAt": "2026-10-20T04:44:46Z",
+        "checkedAt": "2026-10-20T04:56:36Z",
         "images": [
           "ghcr.io/cosmian/kms:5.27.1"
         ],
@@ -280,7 +280,7 @@
       "id": "database-migrations",
       "name": "Database migration target",
       "version": "20261020010000_split_uptime_kuma_from_observability.sql",
-      "revision": "6588cd72c77725dafcadb09defa9f2eb436cf0fb",
+      "revision": "d673dba0a5799a83c4a02b110c21a23c4061cfab",
       "image": null,
       "workload": null,
       "observation": null
