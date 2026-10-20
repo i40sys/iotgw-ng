@@ -6,13 +6,11 @@
   "__tags__": [],
 
   "iotgw_hostname": "iotgw-maq5",
-  "num_maquina": 5,
   "root_password": "CHANGE_ME",
   "local_ip_address": "10.121.105.1",
   "local_netmask": "255.255.255.0",
   "local_domain": "plant.example.com",
   "main_local_dns": "10.0.0.53",
-  "backup_local_dns": "10.0.1.53",
   "primary_ntp": "0.openwrt.pool.ntp.org",
   "secundary_ntp": "1.openwrt.pool.ntp.org",
   "dhcp_hosts": [
@@ -33,9 +31,11 @@
   "loki_oauth2_token_url": "https://auth.example.com/realms/example/protocol/openid-connect/token",
   "loki_oauth2_client_id": "iotgw-logs",
   "loki_oauth2_client_secret": "CHANGE_ME",
-  "kuma_exporter_username": "exporter",
-  "kuma_exporter_password": "CHANGE_ME",
   "containers_exporter_port": 9100,
+
+  "uptime_kuma": true,
+  "autokuma_username": "admin",
+  "autokuma_password": "CHANGE_ME",
 
   "mqtt": true,
   "emqx_api_url": "https://emqx.example.com/api/v5",

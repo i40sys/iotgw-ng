@@ -41,6 +41,11 @@
       "x-step": "provisioning"
     },
     {
+      "id": "uptime-kuma",
+      "title": "Uptime Kuma",
+      "x-step": "provisioning"
+    },
+    {
       "id": "mqtt",
       "title": "MQTT",
       "x-step": "provisioning"
@@ -81,6 +86,7 @@
     "primary_ntp",
     "firewall",
     "obs",
+    "uptime_kuma",
     "mqtt",
     "duplicati",
     "telegraf",
@@ -144,6 +150,7 @@
           "dockge",
           "vscode",
           "observability",
+          "uptime-kuma",
           "mosquitto",
           "telegraf",
           "duplicati",
@@ -165,15 +172,6 @@
       "examples": [
         "iotgw-maq5"
       ],
-      "x-step": "provisioning",
-      "x-group": "system"
-    },
-    "num_maquina": {
-      "type": "integer",
-      "title": "Machine number",
-      "description": "Machine index used by the uptime-kuma monitors (LOCAL_PREFIX 10.121.10<n>, so only 0–9 produce valid addresses).",
-      "minimum": 0,
-      "maximum": 9,
       "x-step": "provisioning",
       "x-group": "system"
     },
@@ -216,15 +214,7 @@
     "main_local_dns": {
       "type": "string",
       "title": "Main local DNS",
-      "description": "Upstream DNS server for `*.<local_domain>` (dnsmasq); also monitored by uptime-kuma.",
-      "format": "ipv4",
-      "x-step": "provisioning",
-      "x-group": "system"
-    },
-    "backup_local_dns": {
-      "type": "string",
-      "title": "Backup local DNS",
-      "description": "Only consumed by the uptime-kuma monitors (observability).",
+      "description": "Upstream DNS server for `*.<local_domain>` (dnsmasq).",
       "format": "ipv4",
       "x-step": "provisioning",
       "x-group": "system"
@@ -379,7 +369,7 @@
     "obs": {
       "type": "boolean",
       "title": "Observability",
-      "description": "Grafana Alloy (metrics+logs via OAuth2 remote write), containers exporter and uptime-kuma/autokuma. Enables the `observability` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "description": "Grafana Alloy (metrics+logs via OAuth2 remote write) and the containers exporter. Enables the `observability` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
       "default": false,
       "x-step": "provisioning",
       "x-group": "observability",
@@ -455,21 +445,6 @@
       "writeOnly": true,
       "x-secret": true
     },
-    "kuma_exporter_username": {
-      "type": "string",
-      "title": "Uptime-kuma exporter username",
-      "description": "Alloy scrapes uptime-kuma /metrics with these credentials.",
-      "x-step": "provisioning",
-      "x-group": "observability"
-    },
-    "kuma_exporter_password": {
-      "type": "string",
-      "title": "Uptime-kuma exporter password",
-      "x-step": "provisioning",
-      "x-group": "observability",
-      "writeOnly": true,
-      "x-secret": true
-    },
     "containers_exporter_port": {
       "type": [
         "integer",
@@ -483,138 +458,47 @@
       "x-step": "provisioning",
       "x-group": "observability"
     },
+    "uptime_kuma": {
+      "type": "boolean",
+      "title": "Uptime Kuma",
+      "description": "Uptime Kuma + AutoKuma, monitoring the gateway's own services (its containers, DNS, MQTT broker and Alloy). Enables the `uptime-kuma` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "default": false,
+      "x-step": "provisioning",
+      "x-group": "uptime-kuma",
+      "x-stack-tag": "uptime-kuma"
+    },
     "uptime_kuma_port": {
       "type": [
         "integer",
         "string"
       ],
       "title": "Uptime-kuma port",
-      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
+      "description": "Uptime Kuma web/API port on the gateway (default 3003). The firewall rule and the LuCI link use 3003.",
       "pattern": "^[0-9]{1,5}$",
       "minimum": 1,
       "maximum": 65535,
       "default": 3003,
       "x-advanced": true,
       "x-step": "provisioning",
-      "x-group": "observability"
+      "x-group": "uptime-kuma"
     },
     "autokuma_username": {
       "type": "string",
       "title": "Uptime-kuma admin user",
-      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly. Must match the admin account inside the stack's pre-seeded data_clean.tar.gz.",
-      "x-advanced": true,
+      "description": "Uptime Kuma admin account, created on the first start. AutoKuma logs in with it and Grafana Alloy scrapes Kuma's /metrics with it. No single quote.",
+      "pattern": "^[^'\\n]+$",
       "x-step": "provisioning",
-      "x-group": "observability"
+      "x-group": "uptime-kuma"
     },
     "autokuma_password": {
       "type": "string",
       "title": "Uptime-kuma admin password",
-      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly. Must match the pre-seeded data_clean.tar.gz admin account.",
-      "x-advanced": true,
+      "description": "Password of the Uptime Kuma admin account: at least 6 characters with letters and digits (Kuma rejects weaker ones). No single quote.",
+      "pattern": "^(?=.*[A-Za-z])(?=.*[0-9])[^'\\n]{6,}$",
       "x-step": "provisioning",
-      "x-group": "observability",
+      "x-group": "uptime-kuma",
       "writeOnly": true,
       "x-secret": true
-    },
-    "mqtt_username": {
-      "type": "string",
-      "title": "MQTT monitor username",
-      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly. Used by the MQTT monitors (local mosquitto + factory broker).",
-      "x-advanced": true,
-      "x-step": "provisioning",
-      "x-group": "observability"
-    },
-    "mqtt_password": {
-      "type": "string",
-      "title": "MQTT monitor password",
-      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
-      "x-advanced": true,
-      "x-step": "provisioning",
-      "x-group": "observability",
-      "writeOnly": true,
-      "x-secret": true
-    },
-    "mqtt_hostname": {
-      "type": "string",
-      "title": "MQTT hostname (DNS monitors)",
-      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
-      "format": "hostname",
-      "x-advanced": true,
-      "x-step": "provisioning",
-      "x-group": "observability"
-    },
-    "mqtt_port": {
-      "type": [
-        "integer",
-        "string"
-      ],
-      "title": "MQTT port (monitors)",
-      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
-      "pattern": "^[0-9]{1,5}$",
-      "minimum": 1,
-      "maximum": 65535,
-      "default": 1883,
-      "x-advanced": true,
-      "x-step": "provisioning",
-      "x-group": "observability"
-    },
-    "factory_mqtt_host": {
-      "type": "string",
-      "title": "Factory MQTT host (monitor)",
-      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
-      "anyOf": [
-        {
-          "format": "ipv4"
-        },
-        {
-          "format": "hostname"
-        }
-      ],
-      "x-advanced": true,
-      "x-step": "provisioning",
-      "x-group": "observability"
-    },
-    "factory_gw_host": {
-      "type": "string",
-      "title": "Factory gateway host (ping monitor)",
-      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
-      "anyOf": [
-        {
-          "format": "ipv4"
-        },
-        {
-          "format": "hostname"
-        }
-      ],
-      "x-advanced": true,
-      "x-step": "provisioning",
-      "x-group": "observability"
-    },
-    "iiot_server_host": {
-      "type": "string",
-      "title": "IIoT server host (ping monitor)",
-      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
-      "anyOf": [
-        {
-          "format": "ipv4"
-        },
-        {
-          "format": "hostname"
-        }
-      ],
-      "x-advanced": true,
-      "x-step": "provisioning",
-      "x-group": "observability"
-    },
-    "internet_dns": {
-      "type": "string",
-      "title": "Internet DNS (monitor)",
-      "description": "Optional uptime-kuma/autokuma knob. If omitted, files/stacks/uptime/env.j2 falls back to a LEGACY client-specific default — set it explicitly.",
-      "format": "ipv4",
-      "default": "8.8.8.8",
-      "x-advanced": true,
-      "x-step": "provisioning",
-      "x-group": "observability"
     },
     "mqtt": {
       "type": "boolean",
@@ -1044,9 +928,25 @@
           "loki_oauth2_token_url",
           "loki_oauth2_client_id",
           "loki_oauth2_client_secret",
-          "kuma_exporter_username",
-          "kuma_exporter_password",
           "containers_exporter_port"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "uptime_kuma": {
+            "const": true
+          }
+        },
+        "required": [
+          "uptime_kuma"
+        ]
+      },
+      "then": {
+        "required": [
+          "autokuma_username",
+          "autokuma_password"
         ]
       }
     },

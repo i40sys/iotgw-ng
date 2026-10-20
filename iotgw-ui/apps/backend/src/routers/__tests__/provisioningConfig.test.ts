@@ -191,6 +191,41 @@ describe("executeKestraDeployment — provisioning config validation", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("requires the Uptime Kuma admin account only when uptime_kuma is on", async () => {
+    const on = validConfig();
+    delete on.autokuma_password;
+    const { promise, fetchMock } = run(on);
+    await expect(promise).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: expect.stringContaining(
+        "autokuma_password is required when `uptime_kuma` is enabled",
+      ),
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const off = validConfig();
+    off.uptime_kuma = false;
+    delete off.autokuma_username;
+    delete off.autokuma_password;
+    await expect(run(off).promise).resolves.toMatchObject({ executionId: "exec-1" });
+  });
+
+  it("rejects an Uptime Kuma password that Kuma's setup would refuse", async () => {
+    for (const autokuma_password of ["short1", "lettersonly", "12345678", "it's-weak1"]) {
+      const config = validConfig();
+      config.autokuma_password = autokuma_password;
+      const { promise } = run(config);
+      if (autokuma_password === "short1") {
+        await expect(promise).resolves.toMatchObject({ executionId: "exec-1" });
+        continue;
+      }
+      await expect(promise).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        message: expect.stringContaining("autokuma_password has an invalid format"),
+      });
+    }
+  });
+
   it("leaves the install flow unaffected (no provisioning keys needed)", async () => {
     const { promise, fetchMock } = run(
       {
