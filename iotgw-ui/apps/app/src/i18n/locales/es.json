@@ -413,6 +413,7 @@
       "unsaved": "Cambios sin guardar",
       "saved": "Guardada",
       "restoredDraft": "Se ha recuperado tu borrador local. Revísalo antes de guardar o ejecutar una operación.",
+      "saveChangesVersion": "Guardar cambios (v{{version}} - {{name}})",
       "saveChanges": "Guardar cambios",
       "saveConfiguration": "Guardar configuración",
       "saveHelp": "Guardar almacena esta configuración. No modifica el dispositivo.",

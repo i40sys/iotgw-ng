@@ -9,6 +9,7 @@ import {
   ListChecks,
   Loader2,
   Radio,
+  Save,
   TriangleAlert,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -410,6 +411,33 @@ export function DeploymentWorkspace({
                     >
                       {t("deployments.workspace.nextStep")}
                       <ArrowRight className="size-4" />
+                    </Button>
+                  )}
+                  {isConfigStep && (
+                    <Button
+                      variant={
+                        workspace.hasChanges || !workspace.activeVersion
+                          ? "default"
+                          : "outline"
+                      }
+                      disabled={
+                        isBusy ||
+                        (!workspace.hasChanges && !!workspace.activeVersion) ||
+                        !draft.name.trim()
+                      }
+                      onClick={() => {
+                        void workspace.save();
+                      }}
+                    >
+                      <Save className="size-4" />
+                      {isBusy
+                        ? t("common.saving")
+                        : workspace.activeVersion
+                          ? t("deployments.workspace.saveChangesVersion", {
+                              version: workspace.activeVersion.version,
+                              name: workspace.activeVersion.name,
+                            })
+                          : t("deployments.workspace.saveConfiguration")}
                     </Button>
                   )}
                   {isConfigStep && (
