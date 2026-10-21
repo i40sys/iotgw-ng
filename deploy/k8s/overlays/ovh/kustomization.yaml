@@ -30,13 +30,13 @@ resources:
 images:
   - name: supabase/edge-runtime:v1.74.0
     newName: ghcr.io/i40sys/iotgw-functions
-    digest: sha256:ae0b62bb64a7b52bbfc37cd46c5f237f86c59c8e29cf10abd2e56a35d292354a
+    digest: sha256:25e40c454a4acf45483537f276b96c7ef8f5d82c315803118220bd110254f212
   - name: iotgw-ui-backend
     newName: ghcr.io/i40sys/iotgw-ui-backend
-    digest: sha256:da3b2d6b9cd5ba04e7a1dc64b292d27a327952432920e16e1951fcc914bd65fc
+    digest: sha256:5524e30f9d1ce472b90b711a79cd1ad3e9626d85e76c85f08622742c040f3320
   - name: iotgw-ui-frontend
     newName: ghcr.io/i40sys/iotgw-ui-frontend
-    digest: sha256:04a83504f22bd72ede2e0bb51032fd9450bd6575278a7c5806a63675cea87d0f
+    digest: sha256:78e18acc3f3b1ea63adf152d7448357f8d2264b7d56b10a619b006e302ee7dd7
 
 patches:
   # CI-built live image served by the netboot (task-149.02): the OCI artifact
