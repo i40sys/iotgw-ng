@@ -10,6 +10,7 @@
 import {
   deploymentConfigJsonSchema,
   formatConfigPath,
+  getActiveRequirementFlags,
   getStackRequirements,
   validateDeploymentConfigStep,
   type ConfigSchemaNode,
@@ -274,6 +275,20 @@ export function withStepDefaults(
     }
   }
   return next;
+}
+
+/**
+ * The requirement flags (`mqtt`, `mqtt_bridge`, …) whose if/then rule is on
+ * for `config`, reading absent flags as their schema default — as the form
+ * shows them.
+ */
+export function getEnabledFlags(config: ConfigObject): Set<string> {
+  return getActiveRequirementFlags((key) => {
+    const value = config[key];
+    return value === undefined
+      ? deploymentConfigJsonSchema.properties[key]?.default
+      : value;
+  });
 }
 
 /** Parse the configuration JSON; null when it is not a JSON object. */

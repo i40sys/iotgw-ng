@@ -118,14 +118,14 @@ describe("executeKestraDeployment — provisioning config validation", () => {
 
   it("rejects an enabled stack with a missing required field, naming it", async () => {
     const config = validConfig();
-    delete config.iiot_host; // mqtt: true requires it
+    delete config.iiot_host; // mqtt + mqtt_bridge require it
     const errorSpy = vi.spyOn(logger, "error");
     const { promise, fetchMock } = run(config);
 
     await expect(promise).rejects.toMatchObject({
       code: "BAD_REQUEST",
       message: expect.stringContaining(
-        "iiot_host is required when `mqtt` is enabled",
+        "iiot_host is required when `mqtt_bridge` is enabled",
       ),
     } satisfies Partial<TRPCError>);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -189,6 +189,36 @@ describe("executeKestraDeployment — provisioning config validation", () => {
     const { promise, fetchMock } = run(config);
     await expect(promise).resolves.toMatchObject({ executionId: "exec-1" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs mosquitto standalone: the EMQX bridge fields are optional", async () => {
+    const bridgeKeys = [
+      "iiot_host",
+      "iiot_mqtt_user",
+      "iiot_mqtt_password",
+      "mqtt_bridge_topics",
+      "emqx_api_url",
+      "emqx_api_key",
+      "emqx_api_secret",
+    ];
+    for (const mqtt_bridge of [false, undefined]) {
+      const config = validConfig();
+      expect(config.mqtt).toBe(true);
+      if (mqtt_bridge === undefined) delete config.mqtt_bridge;
+      else config.mqtt_bridge = mqtt_bridge;
+      for (const key of bridgeKeys) delete config[key];
+      const { promise } = run(config);
+      await expect(promise).resolves.toMatchObject({ executionId: "exec-1" });
+    }
+
+    // A bridge flag left on while the mqtt stack is off requires nothing.
+    const off = validConfig();
+    off.mqtt = false;
+    off.mqtt_bridge = true;
+    for (const key of bridgeKeys) delete off[key];
+    await expect(run(off).promise).resolves.toMatchObject({
+      executionId: "exec-1",
+    });
   });
 
   it("requires the Uptime Kuma admin account only when uptime_kuma is on", async () => {

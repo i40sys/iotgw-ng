@@ -123,15 +123,25 @@ describe("ConfigStepEditor (schema-driven)", () => {
     render(<Harness step="provisioning" onJson={onJson} />);
     expect(screen.queryByTestId("field-iiot_host")).toBeNull();
 
-    fireEvent.click(
-      screen.getByRole("switch", { name: "MQTT (mosquitto + EMQX bridge)" }),
-    );
+    fireEvent.click(screen.getByRole("switch", { name: "MQTT (mosquitto)" }));
     expect(lastConfig(onJson).mqtt).toBe(true);
-    expect(screen.getByTestId("field-iiot_host")).toBeTruthy();
-    // ...and now it is required.
+    expect(screen.getByTestId("field-users")).toBeTruthy();
+    // The EMQX bridge is optional: its fields appear only once it is on.
+    expect(lastConfig(onJson).mqtt_bridge).toBe(false);
+    expect(screen.queryByTestId("field-iiot_host")).toBeNull();
+  });
+
+  it("shows and requires the EMQX bridge fields only when the bridge is on", () => {
+    const onJson = vi.fn();
+    render(<Harness step="provisioning" onJson={onJson} />);
+    fireEvent.click(screen.getByRole("switch", { name: "MQTT (mosquitto)" }));
+
+    const bridge = screen.getByTestId("field-mqtt_bridge");
+    fireEvent.click(within(bridge).getByRole("switch"));
+    expect(lastConfig(onJson).mqtt_bridge).toBe(true);
     expect(
       within(screen.getByTestId("field-iiot_host")).getByText(
-        "is required when `mqtt` is enabled",
+        "is required when `mqtt_bridge` is enabled",
       ),
     ).toBeTruthy();
   });

@@ -30,6 +30,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   formatConfigPath,
+  getEnabledFlags,
   getIn,
   getStepGroups,
   type ConfigObject,
@@ -68,15 +69,7 @@ export function SchemaStepForm({
   errors,
 }: SchemaStepFormProps) {
   const groups = useMemo(() => getStepGroups(step), [step]);
-  const enabledFlags = useMemo(() => {
-    const flags = new Set<string>();
-    for (const group of groups) {
-      if (group.stackFlag && displayValue(config, group.stackFlag) === true) {
-        flags.add(group.stackFlag.key);
-      }
-    }
-    return flags;
-  }, [groups, config]);
+  const enabledFlags = useMemo(() => getEnabledFlags(config), [config]);
 
   return (
     <div className="space-y-3" data-testid={`schema-form-${step}`}>
@@ -117,10 +110,14 @@ function SchemaGroupSection({
 
   // A field stays visible while its stack is off if ANOTHER enabled stack
   // requires it (a field of one group listed in another stack's requirements).
-  const visible = group.fields.filter(
-    (field) =>
-      isStackOn || field.requiredBy.some((flag) => enabledFlags.has(flag)),
-  );
+  // An `x-enabled-by` field (the optional MQTT bridge) also needs its flag on.
+  const visible = group.fields.filter((field) => {
+    const enabledBy = field.schema["x-enabled-by"];
+    if (enabledBy && getIn(config, [enabledBy]) !== true) return false;
+    return (
+      isStackOn || field.requiredBy.some((flag) => enabledFlags.has(flag))
+    );
+  });
   const basic = visible.filter((f) => !f.isAdvanced && !f.isUnused);
   const advanced = visible.filter((f) => f.isAdvanced || f.isUnused);
   const hidden = group.fields.length - visible.length;

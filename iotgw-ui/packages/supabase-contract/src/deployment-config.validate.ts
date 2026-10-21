@@ -46,6 +46,8 @@ export interface ConfigSchemaNode {
   "x-unused"?: boolean;
   "x-stack-tag"?: string;
   "x-injected"?: boolean;
+  /** Boolean flag (e.g. `mqtt_bridge`) that must be on for this field to apply. */
+  "x-enabled-by"?: string;
 }
 
 export interface ConfigSchemaConditional {
@@ -73,12 +75,37 @@ export interface DeploymentConfigIssue {
   message: string;
 }
 
+/**
+ * The flag that names an if/then rule: its LAST `if` flag, the most specific
+ * one (`mqtt_bridge` in `mqtt && mqtt_bridge`).
+ */
+function ruleFlag(rule: ConfigSchemaConditional): string | undefined {
+  return rule.if.required[rule.if.required.length - 1];
+}
+
 /** Stack enable flag (e.g. `mqtt`) → the keys it makes required. */
 export function getStackRequirements(): Record<string, string[]> {
   const out: Record<string, string[]> = {};
   for (const rule of deploymentConfigJsonSchema.allOf) {
-    const flag = rule.if.required[0];
+    const flag = ruleFlag(rule);
     if (flag) out[flag] = rule.then.required;
+  }
+  return out;
+}
+
+/**
+ * The flags (keys of getStackRequirements) whose rule is active: every one of
+ * its `if` flags is true. `valueOf` resolves a flag (stored value or default).
+ */
+export function getActiveRequirementFlags(
+  valueOf: (flag: string) => unknown,
+): Set<string> {
+  const out = new Set<string>();
+  for (const rule of deploymentConfigJsonSchema.allOf) {
+    const flag = ruleFlag(rule);
+    if (flag && rule.if.required.every((key) => valueOf(key) === true)) {
+      out.add(flag);
+    }
   }
   return out;
 }
@@ -246,7 +273,8 @@ export function validateDeploymentConfigStep(
 
     const ruleMatch = /^#\/allOf\/(\d+)\/then\//.exec(error.schemaPath);
     if (ruleMatch && error.keyword === "required") {
-      const flag = stepSchema.allOf[Number(ruleMatch[1])]?.if.required[0];
+      const rule = stepSchema.allOf[Number(ruleMatch[1])];
+      const flag = rule && ruleFlag(rule);
       if (flag) message = `is required when \`${flag}\` is enabled`;
     }
 
@@ -260,8 +288,9 @@ export function validateDeploymentConfigStep(
   // Placeholders: only keys that are required right now matter.
   const record = config as Record<string, unknown>;
   const activeRequired = new Set(stepSchema.required);
-  for (const [flag, keys] of Object.entries(getStackRequirements())) {
-    if (record[flag] === true) keys.forEach((key) => activeRequired.add(key));
+  const requirements = getStackRequirements();
+  for (const flag of getActiveRequirementFlags((key) => record[key])) {
+    requirements[flag]?.forEach((key) => activeRequired.add(key));
   }
   for (const key of activeRequired) {
     if (!(key in stepSchema.properties)) continue;

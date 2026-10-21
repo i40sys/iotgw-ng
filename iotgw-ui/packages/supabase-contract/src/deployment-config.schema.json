@@ -198,7 +198,10 @@
       "title": "LAN netmask",
       "description": "br-lan netmask, dotted (255.255.255.0) or prefix length (24 or /24, 8-30). Leave empty to keep the gateway's current LAN netmask (task-131). The DHCP pool (.40-.89) and dhcp_hosts must fit in it.",
       "pattern": "^(255\\.((0|128|192|224|240|248|252|254)\\.0\\.0|255\\.(0|128|192|224|240|248|252|254)\\.0|255\\.255\\.(0|128|192|224|240|248|252))|/?([89]|[12][0-9]|30))$",
-      "examples": ["255.255.255.0", "24"],
+      "examples": [
+        "255.255.255.0",
+        "24"
+      ],
       "x-step": "provisioning",
       "x-group": "system"
     },
@@ -502,12 +505,20 @@
     },
     "mqtt": {
       "type": "boolean",
-      "title": "MQTT (mosquitto + EMQX bridge)",
-      "description": "Local mosquitto broker bridged to the IIoT EMQX broker; ensures the bridge user exists in EMQX. Enables the `mosquitto` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "title": "MQTT (mosquitto)",
+      "description": "Local mosquitto broker on the gateway LAN, with its own users. Enables the `mosquitto` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required. The bridge to the IIoT EMQX broker is optional (`mqtt_bridge`).",
       "default": false,
       "x-step": "provisioning",
       "x-group": "mqtt",
       "x-stack-tag": "mosquitto"
+    },
+    "mqtt_bridge": {
+      "type": "boolean",
+      "title": "Bridge to the IIoT EMQX broker",
+      "description": "Optional bi-directional bridge: syncs `mqtt_bridge_topics` with the upstream EMQX broker and ensures the bridge user exists in EMQX. When off, mosquitto runs standalone and the bridge fields below are neither required nor used.",
+      "default": false,
+      "x-step": "provisioning",
+      "x-group": "mqtt"
     },
     "emqx_api_url": {
       "type": "string",
@@ -515,14 +526,16 @@
       "description": "EMQX REST base, e.g. https://emqx.example.com/api/v5.",
       "format": "uri",
       "x-step": "provisioning",
-      "x-group": "mqtt"
+      "x-group": "mqtt",
+      "x-enabled-by": "mqtt_bridge"
     },
     "emqx_api_key": {
       "type": "string",
       "title": "EMQX API key",
       "description": "EMQX API key id (Basic auth user).",
       "x-step": "provisioning",
-      "x-group": "mqtt"
+      "x-group": "mqtt",
+      "x-enabled-by": "mqtt_bridge"
     },
     "emqx_api_secret": {
       "type": "string",
@@ -530,7 +543,8 @@
       "x-step": "provisioning",
       "x-group": "mqtt",
       "writeOnly": true,
-      "x-secret": true
+      "x-secret": true,
+      "x-enabled-by": "mqtt_bridge"
     },
     "iiot_host": {
       "type": "string",
@@ -538,14 +552,16 @@
       "description": "Bridge `address` (host[:port]) of the upstream EMQX broker.",
       "pattern": "^[A-Za-z0-9.-]+(:[0-9]{1,5})?$",
       "x-step": "provisioning",
-      "x-group": "mqtt"
+      "x-group": "mqtt",
+      "x-enabled-by": "mqtt_bridge"
     },
     "iiot_mqtt_user": {
       "type": "string",
       "title": "IIoT bridge user",
       "description": "Created/updated in EMQX's built-in database; used as the bridge remote_username.",
       "x-step": "provisioning",
-      "x-group": "mqtt"
+      "x-group": "mqtt",
+      "x-enabled-by": "mqtt_bridge"
     },
     "iiot_mqtt_password": {
       "type": "string",
@@ -553,7 +569,8 @@
       "x-step": "provisioning",
       "x-group": "mqtt",
       "writeOnly": true,
-      "x-secret": true
+      "x-secret": true,
+      "x-enabled-by": "mqtt_bridge"
     },
     "mqtt_bridge_topics": {
       "type": "array",
@@ -565,7 +582,8 @@
         "minLength": 1
       },
       "x-step": "provisioning",
-      "x-group": "mqtt"
+      "x-group": "mqtt",
+      "x-enabled-by": "mqtt_bridge"
     },
     "users": {
       "type": "array",
@@ -955,10 +973,14 @@
         "properties": {
           "mqtt": {
             "const": true
+          },
+          "mqtt_bridge": {
+            "const": true
           }
         },
         "required": [
-          "mqtt"
+          "mqtt",
+          "mqtt_bridge"
         ]
       },
       "then": {

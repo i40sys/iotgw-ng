@@ -38,6 +38,7 @@
   "autokuma_password": "CHANGE_ME",
 
   "mqtt": true,
+  "mqtt_bridge": true,
   "emqx_api_url": "https://emqx.example.com/api/v5",
   "emqx_api_key": "iotgw-provisioner",
   "emqx_api_secret": "CHANGE_ME",
