@@ -221,6 +221,33 @@ describe("executeKestraDeployment — provisioning config validation", () => {
     });
   });
 
+  it("runs Node-RED without a flows repo: github_org is optional", async () => {
+    const standalone = validConfig();
+    Object.assign(standalone, {
+      nodered: true,
+      nodered_user: "admin",
+      nodered_password: SECRET,
+    });
+    await expect(run(standalone).promise).resolves.toMatchObject({
+      executionId: "exec-1",
+    });
+
+    const noLogin = validConfig();
+    noLogin.nodered = true;
+    await expect(run(noLogin).promise).rejects.toMatchObject({
+      message: expect.stringContaining(
+        "nodered_user is required when `nodered` is enabled",
+      ),
+    });
+
+    const withRepo = { ...standalone, nodered_flows_repo: true };
+    await expect(run(withRepo).promise).rejects.toMatchObject({
+      message: expect.stringContaining(
+        "github_org is required when `nodered_flows_repo` is enabled",
+      ),
+    });
+  });
+
   it("requires the Uptime Kuma admin account only when uptime_kuma is on", async () => {
     const on = validConfig();
     delete on.autokuma_password;

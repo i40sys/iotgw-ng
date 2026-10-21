@@ -680,7 +680,7 @@
     "nodered": {
       "type": "boolean",
       "title": "Node-RED",
-      "description": "Node-RED with a per-gateway flows repo (github.com/<github_org>/flows.<iotgw_hostname>). KNOWN BROKEN: the stack's data/.config.projects.json.j2 and SSH deploy key are not vendored in iotgw-kestra, so preflight fails while this is on. Enables the `nodered` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required.",
+      "description": "Node-RED on the gateway, behind its admin login. Enables the `nodered` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required. Loading the flows from a Git repo is optional (`nodered_flows_repo`); without it Node-RED starts with an empty local workspace.",
       "default": false,
       "x-step": "provisioning",
       "x-group": "nodered",
@@ -701,13 +701,22 @@
       "writeOnly": true,
       "x-secret": true
     },
+    "nodered_flows_repo": {
+      "type": "boolean",
+      "title": "Load flows from a Git repo",
+      "description": "Optional: enables Node-RED projects and clones github.com/<github_org>/flows.<iotgw_hostname> as the active project. Needs the stack's Git access, which iotgw-kestra does not ship yet. When off, Node-RED starts with an empty local workspace and the field below is neither required nor used.",
+      "default": false,
+      "x-step": "provisioning",
+      "x-group": "nodered"
+    },
     "github_org": {
       "type": "string",
       "title": "GitHub org of the flows repo",
       "description": "Clones git@github.com:<github_org>/flows.<iotgw_hostname>.git.",
       "pattern": "^[A-Za-z0-9-]+$",
       "x-step": "provisioning",
-      "x-group": "nodered"
+      "x-group": "nodered",
+      "x-enabled-by": "nodered_flows_repo"
     },
     "netxms": {
       "type": "boolean",
@@ -1046,7 +1055,27 @@
       "then": {
         "required": [
           "nodered_user",
-          "nodered_password",
+          "nodered_password"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "nodered": {
+            "const": true
+          },
+          "nodered_flows_repo": {
+            "const": true
+          }
+        },
+        "required": [
+          "nodered",
+          "nodered_flows_repo"
+        ]
+      },
+      "then": {
+        "required": [
           "github_org"
         ]
       }
