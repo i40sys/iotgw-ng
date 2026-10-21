@@ -1,6 +1,6 @@
 {
   "name": "@iotgw/supabase-contract",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Shared Supabase database types for IoT Gateway",
   "type": "module",
   "main": "dist/index.js",
