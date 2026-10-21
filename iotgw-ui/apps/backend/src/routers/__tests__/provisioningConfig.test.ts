@@ -105,7 +105,9 @@ describe("executeKestraDeployment — provisioning config validation", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, any];
     expect(url).toMatch(/\/executions\/iotgw-ng\/provisioning$/);
-    const jsonData = JSON.parse((init.body as FormData).get("json_data") as string);
+    const jsonData = JSON.parse(
+      (init.body as FormData).get("json_data") as string,
+    );
     // Every provisioning key reaches Kestra as-is, plus the injected keys.
     expect(jsonData).toMatchObject(config);
     expect(jsonData).toMatchObject({
@@ -264,11 +266,18 @@ describe("executeKestraDeployment — provisioning config validation", () => {
     off.uptime_kuma = false;
     delete off.autokuma_username;
     delete off.autokuma_password;
-    await expect(run(off).promise).resolves.toMatchObject({ executionId: "exec-1" });
+    await expect(run(off).promise).resolves.toMatchObject({
+      executionId: "exec-1",
+    });
   });
 
   it("rejects an Uptime Kuma password that Kuma's setup would refuse", async () => {
-    for (const autokuma_password of ["short1", "lettersonly", "12345678", "it's-weak1"]) {
+    for (const autokuma_password of [
+      "short1",
+      "lettersonly",
+      "12345678",
+      "it's-weak1",
+    ]) {
       const config = validConfig();
       config.autokuma_password = autokuma_password;
       const { promise } = run(config);
@@ -278,7 +287,9 @@ describe("executeKestraDeployment — provisioning config validation", () => {
       }
       await expect(promise).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: expect.stringContaining("autokuma_password has an invalid format"),
+        message: expect.stringContaining(
+          "autokuma_password has an invalid format",
+        ),
       });
     }
   });
@@ -298,7 +309,10 @@ describe("executeKestraDeployment — provisioning config validation", () => {
     expect(url).toMatch(/\/executions\/iotgw-ng\/install$/);
     expect(
       JSON.parse((init.body as FormData).get("json_data") as string),
-    ).toMatchObject({ target_disk: "/dev/nvme0n1", openwrt_version: "23.05.4" });
+    ).toMatchObject({
+      target_disk: "/dev/nvme0n1",
+      openwrt_version: "23.05.4",
+    });
   });
 });
 

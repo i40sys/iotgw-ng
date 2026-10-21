@@ -100,10 +100,7 @@
       "title": "O.S. Installation",
       "description": "Used only by the Kestra `install` flow. The backend lifts these two keys to top-level `target_disk` / `openwrt_version` in json_data.",
       "additionalProperties": false,
-      "required": [
-        "openwrt_version",
-        "target_disk"
-      ],
+      "required": ["openwrt_version", "target_disk"],
       "properties": {
         "openwrt_version": {
           "type": "string",
@@ -111,9 +108,7 @@
           "description": "OpenWRT release written to the disk (x86_64).",
           "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
           "default": "23.05.4",
-          "examples": [
-            "23.05.4"
-          ],
+          "examples": ["23.05.4"],
           "x-step": "os-installation",
           "x-group": "os"
         },
@@ -123,10 +118,7 @@
           "description": "Block device on the gateway that is WIPED and receives OpenWRT.",
           "pattern": "^/dev/[A-Za-z0-9/_-]+$",
           "default": "/dev/nvme0n1",
-          "examples": [
-            "/dev/nvme0n1",
-            "/dev/sda"
-          ],
+          "examples": ["/dev/nvme0n1", "/dev/sda"],
           "x-step": "os-installation",
           "x-group": "os"
         }
@@ -169,9 +161,7 @@
       "title": "Hostname",
       "description": "Gateway hostname (/etc/config/system, /etc/machine-id; also the Node-RED flows repo name and the MQTT bridge client id).",
       "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$",
-      "examples": [
-        "iotgw-maq5"
-      ],
+      "examples": ["iotgw-maq5"],
       "x-step": "provisioning",
       "x-group": "system"
     },
@@ -198,10 +188,7 @@
       "title": "LAN netmask",
       "description": "br-lan netmask, dotted (255.255.255.0) or prefix length (24 or /24, 8-30). Leave empty to keep the gateway's current LAN netmask (task-131). The DHCP pool (.40-.89) and dhcp_hosts must fit in it.",
       "pattern": "^(255\\.((0|128|192|224|240|248|252|254)\\.0\\.0|255\\.(0|128|192|224|240|248|252|254)\\.0|255\\.255\\.(0|128|192|224|240|248|252))|/?([89]|[12][0-9]|30))$",
-      "examples": [
-        "255.255.255.0",
-        "24"
-      ],
+      "examples": ["255.255.255.0", "24"],
       "x-step": "provisioning",
       "x-group": "system"
     },
@@ -281,11 +268,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "name",
-          "ip",
-          "mac"
-        ],
+        "required": ["name", "ip", "mac"],
         "properties": {
           "name": {
             "type": "string",
@@ -333,9 +316,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "ip"
-        ],
+        "required": ["ip"],
         "properties": {
           "ip": {
             "type": "string",
@@ -355,9 +336,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "cidr"
-        ],
+        "required": ["cidr"],
         "properties": {
           "cidr": {
             "type": "string",
@@ -382,12 +361,7 @@
       "type": "string",
       "title": "Alloy log level",
       "description": "Grafana Alloy logging level.",
-      "enum": [
-        "debug",
-        "info",
-        "warn",
-        "error"
-      ],
+      "enum": ["debug", "info", "warn", "error"],
       "default": "warn",
       "x-step": "provisioning",
       "x-group": "observability"
@@ -449,10 +423,7 @@
       "x-secret": true
     },
     "containers_exporter_port": {
-      "type": [
-        "integer",
-        "string"
-      ],
+      "type": ["integer", "string"],
       "title": "Containers exporter port",
       "pattern": "^[0-9]{1,5}$",
       "minimum": 1,
@@ -471,10 +442,7 @@
       "x-stack-tag": "uptime-kuma"
     },
     "uptime_kuma_port": {
-      "type": [
-        "integer",
-        "string"
-      ],
+      "type": ["integer", "string"],
       "title": "Uptime-kuma port",
       "description": "Uptime Kuma web/API port on the gateway (default 3003). The firewall rule and the LuCI link use 3003.",
       "pattern": "^[0-9]{1,5}$",
@@ -593,10 +561,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "username",
-          "password"
-        ],
+        "required": ["username", "password"],
         "properties": {
           "username": {
             "type": "string",
@@ -728,10 +693,7 @@
       "x-stack-tag": "netxms"
     },
     "netxms_server_port": {
-      "type": [
-        "integer",
-        "string"
-      ],
+      "type": ["integer", "string"],
       "title": "NetXMS server port",
       "pattern": "^[0-9]{1,5}$",
       "minimum": 1,
@@ -741,10 +703,7 @@
       "x-group": "netxms"
     },
     "netxms_web_port": {
-      "type": [
-        "integer",
-        "string"
-      ],
+      "type": ["integer", "string"],
       "title": "NetXMS tunnel port",
       "description": "Rendered as NETXMS_TUNNEL_PORT.",
       "pattern": "^[0-9]{1,5}$",
@@ -776,10 +735,7 @@
       "x-group": "netxms"
     },
     "netxms_debug_level": {
-      "type": [
-        "integer",
-        "string"
-      ],
+      "type": ["integer", "string"],
       "title": "NetXMS debug level",
       "pattern": "^[0-9]$",
       "minimum": 0,
@@ -792,10 +748,7 @@
       "type": "string",
       "title": "Proxy agent",
       "description": "Enable agent proxying.",
-      "enum": [
-        "yes",
-        "no"
-      ],
+      "enum": ["yes", "no"],
       "default": "no",
       "x-step": "provisioning",
       "x-group": "netxms"
@@ -804,10 +757,7 @@
       "type": "string",
       "title": "Proxy SNMP",
       "description": "Enable SNMP proxying.",
-      "enum": [
-        "yes",
-        "no"
-      ],
+      "enum": ["yes", "no"],
       "default": "no",
       "x-step": "provisioning",
       "x-group": "netxms"
@@ -940,9 +890,7 @@
             "const": true
           }
         },
-        "required": [
-          "obs"
-        ]
+        "required": ["obs"]
       },
       "then": {
         "required": [
@@ -966,15 +914,10 @@
             "const": true
           }
         },
-        "required": [
-          "uptime_kuma"
-        ]
+        "required": ["uptime_kuma"]
       },
       "then": {
-        "required": [
-          "autokuma_username",
-          "autokuma_password"
-        ]
+        "required": ["autokuma_username", "autokuma_password"]
       }
     },
     {
@@ -987,10 +930,7 @@
             "const": true
           }
         },
-        "required": [
-          "mqtt",
-          "mqtt_bridge"
-        ]
+        "required": ["mqtt", "mqtt_bridge"]
       },
       "then": {
         "required": [
@@ -1011,15 +951,10 @@
             "const": true
           }
         },
-        "required": [
-          "telegraf"
-        ]
+        "required": ["telegraf"]
       },
       "then": {
-        "required": [
-          "telegraf_config_url",
-          "influx_token"
-        ]
+        "required": ["telegraf_config_url", "influx_token"]
       }
     },
     {
@@ -1029,9 +964,7 @@
             "const": true
           }
         },
-        "required": [
-          "duplicati"
-        ]
+        "required": ["duplicati"]
       },
       "then": {
         "required": [
@@ -1048,15 +981,10 @@
             "const": true
           }
         },
-        "required": [
-          "nodered"
-        ]
+        "required": ["nodered"]
       },
       "then": {
-        "required": [
-          "nodered_user",
-          "nodered_password"
-        ]
+        "required": ["nodered_user", "nodered_password"]
       }
     },
     {
@@ -1069,15 +997,10 @@
             "const": true
           }
         },
-        "required": [
-          "nodered",
-          "nodered_flows_repo"
-        ]
+        "required": ["nodered", "nodered_flows_repo"]
       },
       "then": {
-        "required": [
-          "github_org"
-        ]
+        "required": ["github_org"]
       }
     },
     {
@@ -1087,9 +1010,7 @@
             "const": true
           }
         },
-        "required": [
-          "netxms"
-        ]
+        "required": ["netxms"]
       },
       "then": {
         "required": [
