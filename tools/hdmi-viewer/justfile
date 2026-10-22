@@ -1,0 +1,33 @@
+# hdmi-viewer — build helpers. `just` lists recipes.
+
+default:
+    @just --list
+
+# Cross-compile the release .exe from Linux/WSL -> dist/hdmi-viewer.exe
+build:
+    ./build.sh
+
+# Debug build (console window kept, for log output)
+build-debug:
+    PROFILE=debug ./build.sh
+
+# Unit tests (pixel conversion, damaged-MJPEG detection) on the host
+test:
+    cargo test
+
+# Lint the Windows build
+lint:
+    cargo clippy --release --target x86_64-pc-windows-gnu -- -D warnings
+
+# WSL only: build, copy to the Windows temp dir and launch it on the desktop
+run: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    win_tmp=$(wslpath "$(/mnt/c/Windows/System32/cmd.exe /c 'echo %TEMP%' 2>/dev/null | tr -d '\r')")
+    cp dist/hdmi-viewer.exe "$win_tmp/hdmi-viewer.exe"
+    (cd "$win_tmp" && ./hdmi-viewer.exe >/dev/null 2>&1 &)
+    echo "Launched $win_tmp/hdmi-viewer.exe"
+
+clean:
+    cargo clean
+    rm -rf dist
