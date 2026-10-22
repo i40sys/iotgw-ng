@@ -30,13 +30,13 @@ resources:
 images:
   - name: supabase/edge-runtime:v1.74.0
     newName: ghcr.io/i40sys/iotgw-functions
-    digest: sha256:25e40c454a4acf45483537f276b96c7ef8f5d82c315803118220bd110254f212
+    digest: sha256:a52e47df595cd4337daa46a39ee2b1c6f3f4d1e4dfde42e3e40e7a0d15378e61
   - name: iotgw-ui-backend
     newName: ghcr.io/i40sys/iotgw-ui-backend
-    digest: sha256:5524e30f9d1ce472b90b711a79cd1ad3e9626d85e76c85f08622742c040f3320
+    digest: sha256:b3ddbd219c4c1e803725eb89ea1c9a52afacfd762def9afde1efbf5ed80889eb
   - name: iotgw-ui-frontend
     newName: ghcr.io/i40sys/iotgw-ui-frontend
-    digest: sha256:78e18acc3f3b1ea63adf152d7448357f8d2264b7d56b10a619b006e302ee7dd7
+    digest: sha256:df4182a7c845a6e9d51d55516c13f7cea90dc8812bde6f5f0f087be52bfe1d32
 
 patches:
   # CI-built live image served by the netboot (task-149.02): the OCI artifact
@@ -45,7 +45,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/template/spec/initContainers/0/env/0/value
-        value: ghcr.io/i40sys/iotgw-live-image@sha256:91408278f22b66e7c24defb25e05fbcac1c5f4a651dabeb3c7603e3640d8b00e # v0.6.0
+        value: ghcr.io/i40sys/iotgw-live-image@sha256:41d6034c5cb0e46f420c380081fc181cd7e27595f5258491ff369064901a3dd8 # v0.7.2
       # ipxe-local.efi ("Boot from local disk" on UEFI): a release asset, pinned
       # by its SHA256 (release asset chainloader-SHA256SUMS).
       - op: replace
