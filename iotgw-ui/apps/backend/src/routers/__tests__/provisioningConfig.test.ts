@@ -250,6 +250,42 @@ describe("executeKestraDeployment — provisioning config validation", () => {
     });
   });
 
+  it("runs Node-RED with a flows repo: token and branch are optional", async () => {
+    const withRepo = {
+      ...validConfig(),
+      nodered: true,
+      nodered_user: "admin",
+      nodered_password: SECRET,
+      nodered_flows_repo: true,
+      github_org: "i40sys",
+    };
+    // A public repo needs neither a token nor a branch.
+    await expect(run(withRepo).promise).resolves.toMatchObject({
+      executionId: "exec-1",
+    });
+    // A private repo: read-only token (a secret) + an explicit branch.
+    await expect(
+      run({
+        ...withRepo,
+        nodered_flows_token: SECRET,
+        nodered_flows_branch: "release/gw-1",
+      }).promise,
+    ).resolves.toMatchObject({ executionId: "exec-1" });
+
+    const badBranch = { ...withRepo, nodered_flows_branch: "-x" };
+    await expect(run(badBranch).promise).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: expect.stringContaining(
+        "nodered_flows_branch has an invalid format",
+      ),
+    });
+
+    // The token is redacted from logs like every other x-secret field.
+    expect(
+      redactForLog({ github_org: "i40sys", nodered_flows_token: SECRET }),
+    ).toEqual({ github_org: "i40sys", nodered_flows_token: "[redacted]" });
+  });
+
   it("requires the Uptime Kuma admin account only when uptime_kuma is on", async () => {
     const on = validConfig();
     delete on.autokuma_password;

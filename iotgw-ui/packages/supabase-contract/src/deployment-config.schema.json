@@ -645,7 +645,7 @@
     "nodered": {
       "type": "boolean",
       "title": "Node-RED",
-      "description": "Node-RED on the gateway, behind its admin login. Enables the `nodered` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required. Loading the flows from a Git repo is optional (`nodered_flows_repo`); without it Node-RED starts with an empty local workspace.",
+      "description": "Node-RED on the gateway, behind its admin login. Enables the `nodered` stack. The playbook runs it only when this is not false AND its tag is selected (`__tags__` empty = all tags). When false, the stack's fields are not required. Loading the flows from a Git repo is optional (`nodered_flows_repo`); without it Node-RED keeps its flows in a local workspace on the gateway (data/flows.json). Flow credentials are encrypted with a key generated once on the gateway, so they survive re-provisioning.",
       "default": false,
       "x-step": "provisioning",
       "x-group": "nodered",
@@ -669,7 +669,7 @@
     "nodered_flows_repo": {
       "type": "boolean",
       "title": "Load flows from a Git repo",
-      "description": "Optional: enables Node-RED projects and clones github.com/<github_org>/flows.<iotgw_hostname> as the active project. Needs the stack's Git access, which iotgw-kestra does not ship yet. When off, Node-RED starts with an empty local workspace and the field below is neither required nor used.",
+      "description": "Optional: enables Node-RED projects mode with github.com/<github_org>/flows.<iotgw_hostname> as the active project. The provisioning runner clones the repo over HTTPS (public, or private with `nodered_flows_token`) and copies the checkout, with its git history but no credential, to the gateway; the gateway never holds a Git credential. Re-provisioning refreshes the project only when the gateway copy has no uncommitted change and no unpushed commit; otherwise it keeps the gateway copy and warns. When off, the fields below are neither required nor used.",
       "default": false,
       "x-step": "provisioning",
       "x-group": "nodered"
@@ -677,10 +677,30 @@
     "github_org": {
       "type": "string",
       "title": "GitHub org of the flows repo",
-      "description": "Clones git@github.com:<github_org>/flows.<iotgw_hostname>.git.",
+      "description": "Clones https://github.com/<github_org>/flows.<iotgw_hostname>.git.",
       "pattern": "^[A-Za-z0-9-]+$",
       "x-step": "provisioning",
       "x-group": "nodered",
+      "x-enabled-by": "nodered_flows_repo"
+    },
+    "nodered_flows_branch": {
+      "type": "string",
+      "title": "Flows repo branch",
+      "description": "Optional branch to check out; empty = the repo's default branch.",
+      "pattern": "^$|^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$",
+      "x-step": "provisioning",
+      "x-group": "nodered",
+      "x-enabled-by": "nodered_flows_repo"
+    },
+    "nodered_flows_token": {
+      "type": "string",
+      "title": "Flows repo read token",
+      "description": "Optional, for a private flows repo: a read-only GitHub token (fine-grained, Contents: read). Used only by the provisioning runner for the clone; never sent to the gateway nor stored in the checkout. Leave empty for a public repo.",
+      "pattern": "^\\S*$",
+      "x-step": "provisioning",
+      "x-group": "nodered",
+      "writeOnly": true,
+      "x-secret": true,
       "x-enabled-by": "nodered_flows_repo"
     },
     "netxms": {
