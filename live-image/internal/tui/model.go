@@ -21,9 +21,13 @@ import (
 // Model is the dashboard state.
 type Model struct {
 	width, height int
-	vp            viewport.Model
-	ready         bool
-	showDetails   bool
+	// termW, termH: the size the terminal reported (before the 80x24 fallback),
+	// replayed to force a full repaint (repaint.go).
+	termW, termH int
+	repaintGen   int
+	vp           viewport.Model
+	ready        bool
+	showDetails  bool
 
 	host  *collect.Host
 	net   *collect.Network
@@ -145,9 +149,9 @@ func (m *Model) refreshAll() tea.Cmd {
 // when that is missing or stale.
 func (m Model) Init() tea.Cmd {
 	if m.owrt {
-		return tea.Batch(readSnapCmd(), fastTick(), slowTick(), hostTick())
+		return tea.Batch(readSnapCmd(), fastTick(), slowTick(), hostTick(), repaintAfter(0, repaintInterval))
 	}
-	return tea.Batch(m.refreshAll(), fastTick(), slowTick(), hostTick())
+	return tea.Batch(m.refreshAll(), fastTick(), slowTick(), hostTick(), repaintAfter(0, repaintInterval))
 }
 
 // Update handles input, collector results and ticks.
@@ -282,7 +286,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc":
 			m.showDetails = false
 		}
+	case repaintTickMsg:
+		if msg.gen == m.repaintGen {
+			cmds = append(cmds, m.repaintNow(), repaintAfter(m.repaintGen, m.nextRepaint(time.Now())))
+		}
 	case tea.WindowSizeMsg:
+		m.termW, m.termH = msg.Width, msg.Height
 		// A serial console often reports 0x0: assume a classic 80x24.
 		if msg.Width < 40 {
 			msg.Width = 80
@@ -357,6 +366,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case actionStartMsg:
 		m.action = &action{title: msg.title, cmdline: msg.cmdline, started: time.Now()}
 		m.actionCh = msg.ch
+		m.repaintGen++ // the network is about to change: repaint every second from now
+		cmds = append(cmds, repaintAfter(m.repaintGen, repaintActionInterval))
 		m.notice, m.noticeBad = "", false
 		m.vp.GotoTop()
 		cmds = append(cmds, nextAction(m.actionCh))
