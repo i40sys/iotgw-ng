@@ -146,6 +146,37 @@ describe("ConfigStepEditor (schema-driven)", () => {
     ).toBeTruthy();
   });
 
+  it("shows the Node-RED flows repo fields only when the flows repo is on", () => {
+    const onJson = vi.fn();
+    render(<Harness step="provisioning" onJson={onJson} />);
+    fireEvent.click(screen.getByRole("switch", { name: "Node-RED" }));
+    expect(lastConfig(onJson).nodered).toBe(true);
+    expect(lastConfig(onJson).nodered_flows_repo).toBe(false);
+    for (const key of ["github_org", "nodered_flows_branch", "nodered_flows_token"]) {
+      expect(screen.queryByTestId(`field-${key}`)).toBeNull();
+    }
+
+    const repo = screen.getByTestId("field-nodered_flows_repo");
+    fireEvent.click(within(repo).getByRole("switch"));
+    expect(lastConfig(onJson).nodered_flows_repo).toBe(true);
+    expect(
+      within(screen.getByTestId("field-github_org")).getByText(
+        "is required when `nodered_flows_repo` is enabled",
+      ),
+    ).toBeTruthy();
+    // The read token is an optional secret (private repos only); the branch is optional.
+    const token = screen.getByTestId("field-nodered_flows_token");
+    expect((token.querySelector("input") as HTMLInputElement).type).toBe(
+      "password",
+    );
+    expect(within(token).queryByText(/is required/)).toBeNull();
+    expect(
+      within(screen.getByTestId("field-nodered_flows_branch")).queryByText(
+        /is required/,
+      ),
+    ).toBeNull();
+  });
+
   it("round-trips Form → JSON → Form without losing keys", () => {
     const onJson = vi.fn();
     render(<Harness step="provisioning" onJson={onJson} />);
