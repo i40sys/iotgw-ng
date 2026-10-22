@@ -435,11 +435,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.owrt || !m.snapFresh {
 			cmds = append(cmds, m.start(kHost, collectHostCmd()))
 		}
-		if m.owrt {
-			// A console on an installed gateway is shared with the kernel and
-			// procd: repaint fully now and then so stray output never sticks.
-			cmds = append(cmds, tea.ClearScreen)
-		}
+		// Stray console output is handled by the periodic full repaint
+		// (repaint.go), which, unlike tea.ClearScreen, does not flash.
 	}
 
 	if m.ready {
