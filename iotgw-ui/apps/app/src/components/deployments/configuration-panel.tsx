@@ -1,11 +1,4 @@
-import {
-  FileSliders,
-  MoreHorizontal,
-  Save,
-  Copy,
-  RotateCcw,
-  Trash2,
-} from "lucide-react";
+import { FileSliders, Save, Copy, RotateCcw, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,13 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import type {
   DeploymentDraft,
   DeploymentVersion,
@@ -65,7 +51,7 @@ export function DeploymentConfigurationPanel({
       aria-labelledby="configuration-heading"
       data-slot="deployment-configuration"
     >
-      <div className="flex items-center justify-between gap-2 border-b p-5 sm:p-6">
+      <div className="flex items-center gap-2 border-b p-5 sm:p-6">
         <h2
           id="configuration-heading"
           className="flex min-w-0 items-center gap-2 text-lg font-semibold"
@@ -73,41 +59,6 @@ export function DeploymentConfigurationPanel({
           <FileSliders className="text-muted-foreground size-4" />
           {t("deployments.workspace.configuration")}
         </h2>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              disabled={isBusy}
-              aria-label={t("deployments.workspace.configurationActions")}
-            >
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onSelect={onSaveNew}
-              disabled={!draft.name.trim()}
-            >
-              <Copy className="size-4" />
-              {t("deployments.workspace.saveNewVersion")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onDiscard} disabled={!hasChanges}>
-              <RotateCcw className="size-4" />
-              {t("deployments.workspace.discardEdits")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={onDelete}
-              disabled={!version}
-              className="text-destructive"
-            >
-              <Trash2 className="size-4" />
-              {t("deployments.workspace.deleteVersion")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
       <fieldset
         id="configuration-fields"
@@ -196,19 +147,54 @@ export function DeploymentConfigurationPanel({
             className="mt-2"
           />
         </details>
-        <Button
-          variant={hasChanges || !version ? "default" : "outline"}
-          className="w-full sm:w-auto"
-          disabled={isBusy || (!hasChanges && !!version) || !draft.name.trim()}
-          onClick={onSave}
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label={t("deployments.workspace.configurationActions")}
         >
-          <Save className="size-4" />
-          {isBusy
-            ? t("common.saving")
-            : version
-              ? t("deployments.workspace.saveChanges")
-              : t("deployments.workspace.saveConfiguration")}
-        </Button>
+          <Button
+            variant={hasChanges || !version ? "default" : "outline"}
+            className="w-full sm:w-auto"
+            disabled={
+              isBusy || (!hasChanges && !!version) || !draft.name.trim()
+            }
+            onClick={onSave}
+          >
+            <Save className="size-4" />
+            {isBusy
+              ? t("common.saving")
+              : version
+                ? t("deployments.workspace.saveChanges")
+                : t("deployments.workspace.saveConfiguration")}
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            disabled={isBusy || !draft.name.trim()}
+            onClick={onSaveNew}
+          >
+            <Copy className="size-4" />
+            {t("deployments.workspace.saveNewVersion")}
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full sm:w-auto"
+            disabled={isBusy || !hasChanges}
+            onClick={onDiscard}
+          >
+            <RotateCcw className="size-4" />
+            {t("deployments.workspace.discardEdits")}
+          </Button>
+          <Button
+            variant="destructive"
+            className="w-full sm:ml-auto sm:w-auto"
+            disabled={isBusy || !version}
+            onClick={onDelete}
+          >
+            <Trash2 className="size-4" />
+            {t("deployments.workspace.deleteVersion")}
+          </Button>
+        </div>
         <p className="text-muted-foreground text-xs leading-relaxed">
           {t("deployments.workspace.saveHelp")}
         </p>

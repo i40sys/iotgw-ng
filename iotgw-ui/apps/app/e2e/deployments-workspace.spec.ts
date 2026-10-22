@@ -539,8 +539,9 @@ test("explicit new versions have matching record and JSON version numbers", asyn
   const state = await setup(page);
   await openInstallation(page);
   await openConfiguration(page);
-  await page.getByRole("button", { name: "Configuration actions" }).click();
-  await page.getByRole("menuitem", { name: "Save as new version" }).click();
+  await page
+    .getByRole("button", { name: "Save as new version", exact: true })
+    .click();
   await expect(
     page.getByRole("combobox", { name: "Saved version" }),
   ).toContainText("v3");
