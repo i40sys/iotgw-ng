@@ -1,5 +1,5 @@
 ---
-id: task-012
+id: task-173
 title: Update deployment execution to persist jobs to database
 status: Done
 assignee:
@@ -9,8 +9,8 @@ updated_date: "2025-10-02 05:22"
 labels:
   - backend
 dependencies:
-  - task-010
-  - task-011
+  - task-171
+  - task-172
 priority: high
 ---
 

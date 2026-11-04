@@ -1,5 +1,5 @@
 ---
-id: task-019
+id: task-180
 title: Add auto-refresh for active deployment jobs
 status: Done
 assignee:
@@ -9,7 +9,7 @@ updated_date: "2025-10-02 05:45"
 labels:
   - frontend
 dependencies:
-  - task-015
+  - task-176
 priority: low
 ---
 

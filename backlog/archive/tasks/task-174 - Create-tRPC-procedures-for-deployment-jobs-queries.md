@@ -1,5 +1,5 @@
 ---
-id: task-013
+id: task-174
 title: Create tRPC procedures for deployment jobs queries
 status: Done
 assignee:
@@ -9,8 +9,8 @@ updated_date: "2025-10-02 05:25"
 labels:
   - backend
 dependencies:
-  - task-010
-  - task-011
+  - task-171
+  - task-172
 priority: high
 ---
 

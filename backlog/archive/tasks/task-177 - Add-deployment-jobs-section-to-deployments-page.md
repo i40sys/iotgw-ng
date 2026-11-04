@@ -1,5 +1,5 @@
 ---
-id: task-016
+id: task-177
 title: Add deployment jobs section to deployments page
 status: Done
 assignee:
@@ -9,7 +9,7 @@ updated_date: "2025-10-02 05:36"
 labels:
   - frontend
 dependencies:
-  - task-015
+  - task-176
 priority: medium
 ---
 

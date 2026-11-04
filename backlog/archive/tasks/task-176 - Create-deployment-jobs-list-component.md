@@ -1,5 +1,5 @@
 ---
-id: task-015
+id: task-176
 title: Create deployment jobs list component
 status: Done
 assignee:
@@ -9,7 +9,7 @@ updated_date: "2025-10-02 05:32"
 labels:
   - frontend
 dependencies:
-  - task-013
+  - task-174
 priority: medium
 ---
 

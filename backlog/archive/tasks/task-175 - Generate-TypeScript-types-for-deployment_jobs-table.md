@@ -1,5 +1,5 @@
 ---
-id: task-014
+id: task-175
 title: Generate TypeScript types for deployment_jobs table
 status: Done
 assignee:
@@ -10,7 +10,7 @@ labels:
   - database
   - backend
 dependencies:
-  - task-010
+  - task-171
 priority: high
 ---
 

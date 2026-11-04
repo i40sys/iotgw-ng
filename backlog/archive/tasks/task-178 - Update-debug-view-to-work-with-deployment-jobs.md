@@ -1,5 +1,5 @@
 ---
-id: task-017
+id: task-178
 title: Update debug view to work with deployment jobs
 status: Done
 assignee:
@@ -9,8 +9,8 @@ updated_date: "2025-10-02 05:40"
 labels:
   - frontend
 dependencies:
-  - task-013
-  - task-015
+  - task-174
+  - task-176
 priority: medium
 ---
 

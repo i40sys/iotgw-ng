@@ -1,5 +1,5 @@
 ---
-id: task-018
+id: task-179
 title: Add i18n translations for deployment jobs feature
 status: Done
 assignee:
@@ -9,7 +9,7 @@ updated_date: "2025-10-02 05:43"
 labels:
   - frontend
 dependencies:
-  - task-015
+  - task-176
 priority: low
 ---
 
