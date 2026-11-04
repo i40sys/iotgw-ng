@@ -1,0 +1,14 @@
+{
+	"name": "IoT Gateway NG",
+	"short_name": "IoTGW NG",
+	"display": "standalone",
+	"theme_color": "#13162b",
+	"background_color": "#13162b",
+	"icons": [
+		{
+			"src": "android-icon-192x192.png",
+			"sizes": "192x192",
+			"type": "image/png"
+		}
+	]
+}

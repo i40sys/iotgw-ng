@@ -70,6 +70,24 @@ openwrt arch="amd64": (build arch)
     tar --owner=0 --group=0 --numeric-owner --mode=go-w -C {{DIST}}/openwrt-{{arch}} \
       -czf {{DIST}}/iotgw-openwrt-linux-{{arch}}.tar.gz .
 
+# compile the LuCI theme stylesheet from LESS (lessc 4.1.3, as upstream Argon)
+theme-css:
+    cd openwrt/luci-theme-iotgw && npx -y less@4.1.3 less/cascade.less htdocs/luci-static/argon/css/cascade.css
+
+# build the luci-theme-iotgw .ipk with the OpenWrt 23.05.4 SDK -> dist/theme/
+theme: theme-css
+    mkdir -p {{DIST}}/theme && chmod 777 {{DIST}}/theme
+    docker run --rm -v "$PWD/openwrt/luci-theme-iotgw:/src:ro" -v "$PWD/{{DIST}}/theme:/out" \
+      openwrt/sdk:x86-64-23.05.4 bash -euc ' \
+        cp feeds.conf.default feeds.conf; \
+        ./scripts/feeds update -a >/out/feeds.log 2>&1; ./scripts/feeds install -a >>/out/feeds.log 2>&1; \
+        cp -r /src package/luci-theme-iotgw; \
+        printf "%s\n" CONFIG_ALL_NONSHARED=n CONFIG_ALL_KMODS=n CONFIG_ALL=n CONFIG_AUTOREMOVE=n CONFIG_PACKAGE_luci-theme-iotgw=m > .config; \
+        make defconfig >/dev/null; \
+        make package/luci-theme-iotgw/compile -j"$(nproc)" V=s >/out/build.log 2>&1 || { tail -30 /out/build.log; exit 1; }; \
+        find bin -name "luci-theme-iotgw*.ipk" -exec cp {} /out/ \;'
+    ls -l {{DIST}}/theme/*.ipk
+
 # release artifacts for every architecture + SHA256SUMS (what CI publishes)
 dist: check
     rm -rf {{DIST}}

@@ -1,0 +1,61 @@
+// out: false
+// IoT Gateway NG: product brand (logo + name + tagline + small hostname)
+// for the sidebar and the login page. Text comes from luci.iotgw-product.
+
+.iotgw-brand-text,
+.iotgw-login-brand {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.iotgw-brand-name {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.iotgw-brand-tagline {
+  font-weight: 600;
+  font-size: .68rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.iotgw-brand-host {
+  margin-top: .3rem;
+  font-weight: 400;
+  font-size: .7rem;
+  color: var(--muted-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.main .main-left .sidenav-header .brand.iotgw-brand {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  margin: 0 .75rem;
+  font-size: 1.2rem;
+  text-align: left;
+  color: var(--text-strong);
+
+  .iotgw-brand-logo {
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+.login-page .login-container .login-form .brand .brand-text.iotgw-login-brand {
+  font-size: 1.4rem;
+
+  .iotgw-brand-host {
+    color: inherit;
+    opacity: .7;
+  }
+}

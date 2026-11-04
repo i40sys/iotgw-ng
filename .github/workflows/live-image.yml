@@ -5,7 +5,8 @@
 #
 # Every run: gofmt/vet/tests (`just check`) and a full `just dist`
 # (linux/amd64 + linux/arm64 static binaries, rootfs overlay tarballs,
-# SHA256SUMS), uploaded as a workflow artifact.
+# SHA256SUMS), uploaded as a workflow artifact. The `theme` job builds the
+# gateways' LuCI theme package (luci-theme-iotgw, OpenWrt SDK).
 # Pushes (not PRs): signed SLSA build provenance for every artifact.
 # v* tags: the artifacts are attached to the GitHub release of that tag.
 name: live-image
@@ -199,6 +200,55 @@ jobs:
           for i in $(seq 1 30); do gh release view "$TAG" >/dev/null 2>&1 && break; sleep 20; done
           cp dist/image-amd64/SHA256SUMS dist/live-image-SHA256SUMS
           gh release upload "$TAG" --clobber dist/live-image-oci.txt dist/live-image-SHA256SUMS
+
+  # LuCI theme of the gateways (luci-theme-iotgw, an Argon fork;
+  # live-image/openwrt/luci-theme-iotgw, decision-039). Built with the OpenWrt
+  # 23.05.4 SDK (`just theme`). v* tags attach luci-theme-iotgw_all.ipk + its
+  # SHA256SUMS to the release; iotgw-kestra pins both (vars/iotgw.yml).
+  theme:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write # attach assets to the release (tags only)
+      id-token: write
+      attestations: write
+    defaults:
+      run:
+        working-directory: live-image
+    steps:
+      - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the theme package
+        run: |
+          just theme
+          # The compiled stylesheet is committed: it must match its LESS sources.
+          git diff --exit-code -- openwrt/luci-theme-iotgw/htdocs/luci-static/argon/css/cascade.css
+          cp dist/theme/luci-theme-iotgw_*_all.ipk dist/theme/luci-theme-iotgw_all.ipk
+          (cd dist/theme && sha256sum luci-theme-iotgw_all.ipk > luci-theme-iotgw-SHA256SUMS && cat luci-theme-iotgw-SHA256SUMS)
+      - name: Attest build provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: live-image/dist/theme/luci-theme-iotgw_all.ipk
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-theme-iotgw
+          if-no-files-found: error
+          path: |
+            live-image/dist/theme/luci-theme-iotgw_all.ipk
+            live-image/dist/theme/luci-theme-iotgw-SHA256SUMS
+      - name: Attach to the GitHub release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          for i in $(seq 1 30); do gh release view "$TAG" >/dev/null 2>&1 && break; sleep 20; done
+          gh release upload "$TAG" --clobber dist/theme/luci-theme-iotgw_all.ipk dist/theme/luci-theme-iotgw-SHA256SUMS
 
   e2e:
     runs-on: ubuntu-latest

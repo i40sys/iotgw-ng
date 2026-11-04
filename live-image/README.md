@@ -400,6 +400,7 @@ live-image/
 ├── openwrt/overlay/                files of the installed-OpenWRT package
 │   ├── etc/init.d/iotgw            procd service: `iotgw daemon`
 │   └── usr/libexec/iotgw-console   tty1 / serial launcher: `iotgw status`, then login
+├── openwrt/luci-theme-iotgw/       the gateways' LuCI theme "IoT GW NG · Edge Console" (Argon fork, decision-039; README.md, UPSTREAM.md)
 ├── test/
 │   ├── fakeapi/                    vpn + ssh-ca stand-in (own seed, single-use codes, sealed reply, renew) + tests
 │   └── qemu/run.sh                 end-to-end test on two OpenWRT VMs
@@ -538,7 +539,9 @@ The image gets **binaries only**, no Go toolchain.
 | `just overlay [arch]` | live-image rootfs overlay `dist/iotgw-live-overlay-linux-<arch>.tar.gz`: `iotgw` + its two symlinks, `overlay/`, `/etc/iotgw-live-release` |
 | `just openwrt [arch]` | installed-OpenWRT package `dist/iotgw-openwrt-linux-<arch>.tar.gz`: `/usr/sbin/iotgw`, `/etc/init.d/iotgw`, `/usr/libexec/iotgw-console`, the LuCI page, `/etc/iotgw/api-ca.pem` |
 | `just dist` | `check`, then binaries, overlays and OpenWRT packages for **amd64 and arm64**, `remove.list`, `SHA256SUMS`. This is what CI publishes |
-| `just e2e` | the QEMU end-to-end test of the OpenWRT agent (`test/qemu/run.sh`) |
+| `just e2e` | the QEMU end-to-end test of the OpenWRT agent (`test/qemu/run.sh`). `KEEP=1` leaves the VMs running (gateway LuCI on `127.0.0.1:12224`); needs `/usr/sbin` on `PATH` (`sfdisk`, `debugfs`) |
+| `just theme-css` | compile the LuCI theme's LESS into the committed `cascade.css` (lessc 4.1.3) |
+| `just theme` | the LuCI theme package `dist/theme/luci-theme-iotgw_<ver>_all.ipk`, built with the OpenWrt 23.05.4 SDK in docker |
 | `just version` | the version the build stamps (`git describe`, `-dirty` only for changes under `live-image/`) |
 | `just clean` | remove `dist/` |
 
@@ -566,7 +569,11 @@ tag, and on demand. It:
    `iotgw-openwrt-linux-{amd64,arm64}.tar.gz`, `remove.list` and
    `SHA256SUMS`;
 4. on `v*` tags, **attaches the same files to the GitHub release** of that tag,
-   creating the release if it does not exist.
+   creating the release if it does not exist;
+5. job `theme`: `just theme`, checks that `cascade.css` matches its LESS
+   sources, and on `v*` tags attaches `luci-theme-iotgw_all.ipk` +
+   `luci-theme-iotgw-SHA256SUMS`. iotgw-kestra pins both
+   (`vars/iotgw.yml`: `iotgw_theme_version`, `iotgw_theme_sha256`).
 
 ### Deploying to a netboot server
 

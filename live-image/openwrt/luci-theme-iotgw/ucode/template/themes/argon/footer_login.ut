@@ -1,0 +1,32 @@
+{#
+	Argon is a clean HTML5 theme for LuCI. It is based on luci-theme-material Argon Template
+
+	luci-theme-argon
+	Copyright 2020 Jerrykuku <jerrykuku@qq.com>
+
+	Have a bug? Please create an issue here on GitHub!
+	https://github.com/jerrykuku/luci-theme-argon/issues
+
+	luci-theme-material:
+	Copyright 2015 Lutty Yang <lutty@wcan.in>
+
+	Agron Theme
+	https://demos.creative-tim.com/argon-dashboard/index.html
+
+	Licensed to the public under the Apache License 2.0
+-#}
+
+</div>
+{%
+	import { get_product } from 'luci.iotgw-product';
+	const product = get_product();
+	const base_info = version.distname + ' ' + version.distversion + '-' + version.distrevision + ' · ' + version.luciname + ' (' + version.luciversion + ')';
+%}
+<footer>
+	<span class="iotgw-footer" title="{{ entityencode('Base: ' + base_info + ' · Theme based on Argon', true) }}">{{ product.name }} {{ product.tagline }} · i40sys</span>
+</footer>
+</div>
+</div>
+{% include('themes/' + theme + '/page_scripts', { is_login: true }) %}
+</body>
+</html>

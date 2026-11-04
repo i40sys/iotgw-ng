@@ -1,0 +1,22 @@
+// out: false
+
+// ==========================================================================
+// IoT Gateway NG: Victor Mono Nerd Font (SIL OFL 1.1, fonts/VictorMono-OFL.txt)
+// Subset: Latin, punctuation, arrows, math, box drawing, shapes, Powerline.
+// ==========================================================================
+
+.victor-face(@weight, @style, @file) {
+    @font-face {
+        font-family: 'VictorMono Nerd Font';
+        src: local('VictorMono Nerd Font'),
+            url('../fonts/@{file}.woff2') format('woff2');
+        font-weight: @weight;
+        font-style: @style;
+        font-display: swap;
+    }
+}
+
+.victor-face(400, normal, 'VictorMonoNerdFont-Regular');
+.victor-face(600, normal, 'VictorMonoNerdFont-SemiBold');
+.victor-face(700, normal, 'VictorMonoNerdFont-Bold');
+.victor-face(400, italic, 'VictorMonoNerdFont-Italic');

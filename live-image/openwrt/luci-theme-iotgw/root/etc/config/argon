@@ -1,0 +1,12 @@
+config global
+	option login_style 'classic'
+	option primary '#ff6600'
+	option dark_primary '#ff6600'
+	option dark_primary_mode 'custom'
+	option dark_glass_mode 'inherit'
+	option blur '6'
+	option blur_dark '6'
+	option transparency '0.82'
+	option transparency_dark '0.78'
+	option mode 'normal'
+	option online_wallpaper 'none'
