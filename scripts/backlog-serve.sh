@@ -41,11 +41,21 @@ is_ours() { local c; c="$(pid_cwd "$1")"; [[ "$c" == "$REPO" || "$c" == "$REPO"/
 # or our runner (covers an instance still starting, and the old mprocs-child
 # layout), (c) the group this script started last (pidfile; trusted only while
 # its leader still runs from this repo — a recycled pgid is ignored).
+# Match on exact argv words, never on a substring of the whole command line: a
+# shell / editor whose ARGUMENTS merely mention these names must not match.
 is_our_server() {
-  local a; a="$(pid_cmd_full "$1")"
-  [[ "$a" =~ (^|[/ ])backlog\ (browser|serve)\ .*-(p|-port)\ $BACKLOG_INT_PORT( |$) ]] ||
-    [[ "$a" =~ (^|/)socat\ TCP4?-LISTEN:$BACKLOG_PORT, ]] ||
-    [[ "$a" =~ scripts/backlog-run\.sh ]]
+  local -a a
+  mapfile -d '' -t a <"/proc/$1/cmdline" 2>/dev/null || return 1
+  ((${#a[@]})) || return 1
+  local i=0
+  case "${a[0]##*/}" in node | bun | bash | sh) i=1 ;; esac
+  local prog="${a[i]##*/}" args=" ${a[*]:i+1} "
+  case "$prog" in
+  backlog) [[ "${a[i + 1]:-}" =~ ^(browser|serve)$ && "$args" =~ \ (-p|--port)\ $BACKLOG_INT_PORT\  ]] ;;
+  socat) [[ "${a[i + 1]:-}" =~ ^TCP4?-LISTEN:$BACKLOG_PORT, ]] ;;
+  backlog-run.sh) [ "${a[i]}" = scripts/backlog-run.sh ] || [ "${a[i]}" = "$REPO/scripts/backlog-run.sh" ] ;;
+  *) return 1 ;;
+  esac
 }
 our_pids() {
   {
