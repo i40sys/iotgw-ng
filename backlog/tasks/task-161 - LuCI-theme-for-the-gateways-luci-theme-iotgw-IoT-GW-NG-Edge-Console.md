@@ -4,7 +4,7 @@ title: 'LuCI theme for the gateways: luci-theme-iotgw (IoT GW NG Edge Console)'
 status: Done
 assignee: []
 created_date: '2026-11-04T17:59:00Z'
-updated_date: '2026-11-04T18:31:00Z'
+updated_date: '2026-11-04T18:42:00Z'
 labels:
   - openwrt
   - luci
@@ -153,6 +153,11 @@ dependencies: []
 - No Kestra sync needed: the install/provisioning flows `git clone --depth 1`
   `i40sys/iotgw-kestra` `main` on every run. The next provisioning of a
   gateway (`system` tag) installs and selects the theme.
+
+**OVH rollout (2026-11-04):** v0.9.0 on `ovh-ymbihq` (`72caaf4`): the three
+images re-pinned to the v0.9.0 digests (cosign verified), `tf.sh platform
+apply` (4 changed), rollouts complete, `release-manifest.py verify` rc 0,
+manifest republished; flows revision `dbc4781`.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
