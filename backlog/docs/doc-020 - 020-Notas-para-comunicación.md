@@ -1,9 +1,9 @@
 ---
 id: doc-020
-title: Notas para comunicación
+title: '020: Notas para comunicación'
 type: other
 created_date: '2026-11-03T05:47:00Z'
-updated_date: '2026-11-04T09:33:00Z'
+updated_date: '2026-11-04T18:29:00Z'
 ---
 # Concepto a añadir
 
