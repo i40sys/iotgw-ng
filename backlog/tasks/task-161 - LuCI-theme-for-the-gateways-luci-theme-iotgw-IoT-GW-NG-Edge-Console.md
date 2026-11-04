@@ -150,9 +150,9 @@ dependencies: []
   commits, all present rebased on `origin/main`): reset to `origin/main`,
   old tip kept as branch `backup/main-stale-2026-11-04`. The user's one-line
   `tasks/dockge.yaml` edit is in `git stash` ("user: dockge.yaml …").
-- Kestra picks the flows up through the scheduled `sync-namespace-files`
-  (GitHub `i40sys/iotgw-kestra` main). The next provisioning of a gateway
-  (`system` tag) installs and selects the theme.
+- No Kestra sync needed: the install/provisioning flows `git clone --depth 1`
+  `i40sys/iotgw-kestra` `main` on every run. The next provisioning of a
+  gateway (`system` tag) installs and selects the theme.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
