@@ -1,0 +1,72 @@
+IoT Gateway NG — content scope, 2026-11-04
+
+The local website in web/ is the working copy requested by the owner.
+New sections follow the hero proof strip: #que-es-un-gateway and #capes-del-gateway.
+Diagram: logical responsibilities, not OSI layers or a mandatory pipeline.
+OT and IT are external connected networks. Hardware is an external prerequisite.
+Eight expandable layers show included capabilities, integration work and extension scope.
+Edge Manager is a separate management service, not a stage in the process-data flow.
+
+Evidence used for scope:
+- iotgw-ui/packages/supabase-contract/src/deployment-config.schema.json
+  OpenWrt x86_64 installation; gateway IP/DNS/NTP, firewall; optional Node-RED,
+  MQTT and MQTT bridge; versioned deployment configuration.
+- backlog/tasks/task-160 - Gateway-hardening-finished-Node-RED-stack-flows-repo-v3-settings-on-v5.md
+  Finished Node-RED runtime and optional per-gateway flow repository. Runtime
+  deployment is not a library of ready-to-use industrial applications.
+- backlog/tasks/task-130 - Provisioning-configuration-one-deployment-JSON-schema-playbook-variable-contract.md
+  Schema/playbook deployment contract and selected service flags.
+- /home/oriol/iotgw-kestra/files/stacks/mosquitto/etc/mosquitto.conf.j2
+  persistence true, autosave_interval 60, persistent_client_expiration 1d.
+  This supports the claim of an MQTT persistence building block, not universal
+  store-and-forward guarantees. Source buffering, retention, replay, duplicates,
+  limits and failure tests remain project work.
+- backlog/docs/doc-014 - OpenWRT-Wireguard-Setup-Guide.md and SSH-CA decisions:
+  Gateway connectivity and identity mechanisms.
+
+Editorial decisions:
+- Protocol examples Modbus/OPC UA are possibilities to validate, not a supported
+  protocol catalogue. A MQTT-to-MQTT bridge is not an industrial protocol converter.
+- Node-RED/MQTT/container foundation is included as selectable services. Machine
+  connectors, data maps, transforms and business logic require integration.
+- Store and Forward is an application-level delivery function: persist pending data,
+  retain it through communication failure, then resume delivery. Local SQL/TSDB
+  history is a separate function for queries and local applications after delivery.
+  Both require service integration/configuration, capacity and retention choices.
+  Keep the existing extensible scope; do not turn persistence alone into a proven
+  universal lossless-delivery claim. UDP needs application-level receipt confirmation.
+- Owner clarification, 2026-11-04: local apps include bespoke HMI, Grafana machine
+  dashboards and local AI agents reacting to process data. The site now leads with
+  these functions and benefits, not internal implementation product names.
+  Offline operation depends on local data, models and dependencies. Hardware resources
+  must match apps/AI. Examples describe project integrations, not turnkey installed apps.
+- Owner-supplied connectivity scope includes HTTP, TCP, UDP, MQTT, Kafka, Azure IoT Hub,
+  Azure Event Hubs and AWS. Separate protocols/transports from event platforms and cloud
+  destinations. Example AWS destinations: IoT Core, Kinesis Data Streams, Data Firehose,
+  S3. Each requires its connector, authentication, message mapping and delivery policy.
+- Primary references used to confirm cloud service names and roles (2026-11-04):
+  https://learn.microsoft.com/en-us/azure/iot-hub/iot-hub-compare-event-hubs
+  https://docs.aws.amazon.com/iot/latest/developerguide/kinesis-firehose-rule-action.html
+  https://docs.aws.amazon.com/firehose/latest/dev/
+  https://docs.aws.amazon.com/whitepapers/latest/building-data-lakes/data-ingestion-methods.html
+  These sources document destinations, not a verified NG compatibility matrix.
+- Deterministic machine control and machine safety stay with the relevant control and
+  safety systems. NG can host local HMI/visualization; the FAQ now states this explicitly.
+- The hardware recommendation does not imply arbitrary CPU/driver support; current
+  installation targets OpenWrt x86_64.
+
+Implementation:
+- Eight native disclosure controls; the named group keeps one open. Local apps open
+  initially. The cloud/transport catalogue stays visible below the diagram.
+- Edge Manager remains a separate management service, not the path for process data.
+- No additional JS, dependencies or external assets required.
+
+Validation of the functional revision (2026-11-04):
+- Isolated HTML previews at 1280 and 390 px use the site CSS and local fonts.
+  All eight native disclosure controls opened. The named group remained exclusive.
+  No horizontal overflow occurred while opening each layer.
+- The inline HTML view was checked at 728 px with the thread theme.
+- All nine referenced local assets exist. HTTP responses for index.html and
+  gateway-layers.css match the edited files byte for byte.
+- The former local server was no longer listening. Restarted the existing web/
+  service on 0.0.0.0:8766, detached from the tool session. Log: /tmp/iotgw-web-8766.log.
