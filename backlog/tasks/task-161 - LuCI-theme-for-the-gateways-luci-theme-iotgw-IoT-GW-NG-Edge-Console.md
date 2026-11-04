@@ -1,10 +1,10 @@
 ---
 id: TASK-161
 title: 'LuCI theme for the gateways: luci-theme-iotgw (IoT GW NG Edge Console)'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-04T17:59:00Z'
-updated_date: '2026-11-04T18:18:00Z'
+updated_date: '2026-11-04T18:31:00Z'
 labels:
   - openwrt
   - luci
@@ -39,7 +39,7 @@ dependencies: []
 - [x] #3 iotgw-ng palette, Victor Mono Nerd Font, iotgw logo and an industrial login background; online updater removed
 - [x] #4 just live-image::theme builds luci-theme-iotgw .ipk with the OpenWrt 23.05.4 SDK; CI attaches it and its SHA256SUMS to v* releases
 - [x] #5 iotgw-kestra tasks/luci_theme.yaml installs and selects the pinned release package; harness test_luci_theme.yaml passes twice
-- [ ] #6 iotgw-kestra pin set to a real release version and checksum, branch luci-theme-iotgw merged
+- [x] #6 iotgw-kestra pin set to a real release version and checksum, branch luci-theme-iotgw merged
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -137,4 +137,30 @@ dependencies: []
   processes whose cwd is `live-image/test/qemu/.work`. Stopped 2026-11-04.
 
 **Release:** v0.9.0 carries the theme (`deploy/releases/v0.9.0.md`).
+
+**Released and pinned (2026-11-04)**
+
+- iotgw-ng `v0.9.0` (tag on `d99b03d`): CI `live-image` job `theme` green;
+  release assets `luci-theme-iotgw_all.ipk` + `luci-theme-iotgw-SHA256SUMS`
+  (`ece16feedefe3cbad9b538bdf9084d77c8a50ff64cd4ed74a2abcc67eb9943d5`).
+- iotgw-kestra `dbc4781` on `main` (fast-forward on `origin/main`):
+  `iotgw_theme_version: v0.9.0` + that checksum. The harness passes twice
+  against the release asset (download + checksum + install + checks).
+- The local `~/iotgw-kestra` `main` was a stale pre-rebase history (64
+  commits, all present rebased on `origin/main`): reset to `origin/main`,
+  old tip kept as branch `backup/main-stale-2026-11-04`. The user's one-line
+  `tasks/dockge.yaml` edit is in `git stash` ("user: dockge.yaml …").
+- Kestra picks the flows up through the scheduled `sync-namespace-files`
+  (GitHub `i40sys/iotgw-kestra` main). The next provisioning of a gateway
+  (`system` tag) installs and selects the theme.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The gateways' LuCI is now **IoT GW NG · Edge Console**: `luci-theme-iotgw`
+(Argon v3.1.2 fork, `live-image/openwrt/luci-theme-iotgw`, decision-039),
+built with the OpenWrt 23.05.4 SDK, published with iotgw-ng v0.9.0 and
+installed by the iotgw-kestra provisioning (pinned version + SHA256) instead
+of `bootstrap-dark`.
+<!-- SECTION:FINAL_SUMMARY:END -->
