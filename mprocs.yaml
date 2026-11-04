@@ -7,11 +7,12 @@
 # projects in the Orca runtime (5173 = Keycloak, 6430 = pki-manager backlog):
 #   52173 = frontend (vite, pinned in apps/app/vite.config.ts)
 #   52174 = backend  (PORT in the SOPS-rendered .env; server.ts honors it)
-#   52175 = backlog browser
+#   52175 = backlog browser, public on 0.0.0.0 (socat; scripts/backlog-serve.sh = `just backlog`)
 #   52176 = kubectl port-forward to the kind KMS. The host NodePort (9998) is
 #           blocked by the task-057 NetworkPolicy; a port-forward enters the pod
 #           netns so it is not subject to it. The backend's KMS_URL (SOPS) points
 #           here. Looped because a port-forward dies when the KMS pod restarts.
+#   52177 = backlog browser internal port (127.0.0.1, behind the socat on 52175)
 # These must match scripts/dev-session.sh (which reclaims exactly these ports).
 procs:
   app:
@@ -26,10 +27,11 @@ procs:
 
   backlog:
     cwd: <CONFIG_DIR>
-    # capped at 1G RAM / no swap (backlog browser heap leak); OOM kill -> autorestart.
-    shell: systemd-run --user --scope -q -p MemoryMax=1G -p MemorySwapMax=0 backlog browser --no-open -p 52175
+    # Viewer only: (re)starts the DETACHED backlog browser (scripts/backlog-serve.sh,
+    # same as `just backlog`) on 0.0.0.0:52175 and follows its log. Restarting this
+    # proc restarts backlog; the OOM restart loop lives in backlog-serve.sh.
+    shell: scripts/backlog-web.sh
     autostart: true
-    autorestart: true
 
   kms:
     cwd: <CONFIG_DIR>

@@ -40,6 +40,12 @@ secrets-edit name:
 dev *args:
     scripts/dev-session.sh {{args}}
 
+# Every call restarts it: stops this repo's older instance, never another
+# project's. Also: `just backlog status`, `just backlog stop`.
+# Only this repo's backlog browser, detached, on fixed port 52175 (0.0.0.0)
+backlog *args:
+    @scripts/backlog-serve.sh {{args}}
+
 # Type-check + lint + test the app
 ui-check:
     cd iotgw-ui && pnpm typecheck && pnpm lint && pnpm test

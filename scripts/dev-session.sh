@@ -35,9 +35,10 @@ SESSION="dev-$(basename "$REPO")"
 # backlog -p, kms port-forward).
 FRONTEND_PORT=52173   # vite (strictPort)
 BACKEND_PORT=52174    # tRPC + WS (mprocs sets PORT; server.ts honors it)
-BACKLOG_PORT=52175    # backlog browser
+BACKLOG_PORT=52175    # backlog browser, public 0.0.0.0 (socat; scripts/backlog-serve.sh)
 KMS_PF_PORT=52176     # kubectl port-forward → kind KMS (backend KMS_URL)
-PORTS=("$FRONTEND_PORT" "$BACKEND_PORT" "$BACKLOG_PORT" "$KMS_PF_PORT")
+BACKLOG_INT_PORT=52177 # backlog browser internal 127.0.0.1 (behind the socat)
+PORTS=("$FRONTEND_PORT" "$BACKEND_PORT" "$BACKLOG_PORT" "$KMS_PF_PORT" "$BACKLOG_INT_PORT")
 
 FORCE=0
 CMD="up"

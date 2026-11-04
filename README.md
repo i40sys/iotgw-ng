@@ -47,6 +47,7 @@ just status             # pods in the iotgw namespace
 # iotgw-ui dev servers (pnpm) — optional, for live frontend/backend work:
 just secrets-render     # decrypt secrets/*.enc.env -> the pnpm-dev .env files
 just dev                # iotgw-ui frontend + backend (Vite + tsx)
+just backlog            # only the backlog browser, http://localhost:52175 (restarts; `status`, `stop`)
 ```
 
 Run `just` with no args to list every recipe.
