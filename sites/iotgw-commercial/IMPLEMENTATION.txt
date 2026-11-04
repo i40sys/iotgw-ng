@@ -1,0 +1,21 @@
+IoT Gateway NG — Commercial product site, Catalan
+2026-11-02. Isolated new Site: sites/iotgw-commercial. Existing sites/iotgw-ot and product app left unchanged.
+
+Purpose: communicate plant value and potential project acquisition/exploitation opportunity for industrial IT/OT integrators, service businesses, OEMs, plant management and operations.
+
+Evidence: authenticated Edge Manager v0.8.0 UI explored earlier in this thread (domains→networks→devices, SSH/WireGuard/SSH-CA status, USB→OpenWrt install→reboot verification→service provisioning, saved config versions separate from execution, jobs/logs). Project README confirms monorepo platform. Earlier Notion material supplies background only; obsolete netboot flow not presented as current main workflow.
+
+Claims: no invented customers, ROI percentages, certifications, uptime/SLA, licensing, IP ownership, exclusivity, protocol compatibility, or zero-touch promises. Business models are opportunities to evaluate. Main CTA connects to verified official contact https://oriolrius.me/contacto/ and agenda https://oriolrius.me/reunion. Contact dialog copies a local brief only, no submission, storage or external call. Demo entirely illustrative, no real customer/device data or gateway actions.
+
+Brand: established Oriol Rius orange #ff6600, dark navy adaptation #13162b, Ubuntu local licensed fonts. Editorial industrial direction with warm paper sections, distinct orange commercial opportunity, dark product explorer.
+
+Image: built-in image_gen generated conceptual factory, not a real installation. Asset dist/assets/factory-hero.webp (1672x941, 191 KB), original design/factory-hero-original.png.
+Prompt: Premium cinematic photorealistic wide industrial manufacturing hall with precise clean metal machinery and one orange robotic arm in the right third. Dark navy and graphite atmosphere, subtle warm rim lighting, realistic brushed steel and concrete, restrained credible environment. Factory depth toward background. Left 40 percent dark, subdued and visually quiet for white typography. No people, lettering, logos, watermarks, data visualizations or UI overlays. Sophisticated editorial industrial photography, not sci-fi. Conceptual factory, not identifiable real customer plant.
+
+Static HTML/CSS/JS, no runtime packages, no trackers. Accessible keyboard tabs, native dialog, mobile navigation, reduced-motion support, FAQ details, OpenGraph metadata, local favicon/fonts/hero. Site publication owner-private by default. Sharing beyond owner must be enabled deliberately.
+
+2026-11-04 buyer-focused revision
+User requested product-buyer positioning. Removed acquisition journey, closing pitch, rights/transfer note. Revised hero, audience heading, benefits, FAQ and contact dialog. Architecture now IT <- GW <- OT with separate Edge Manager management branch and cloud/on-premise choices.
+Hardware agnostic is explicit in proof strip, architecture, hardware section and FAQ. Protectli VP4651 with coreboot/iPXE is a recommendation, not exclusive requirement. 16GB (2x8GB) and 500GB NVMe reflect user-provided client example, not minimum specifications. No pricing or preinstalled Ubuntu claims. Demo now network iPXE with USB fallback.
+Sources checked: https://eu.protectli.com/product/vp4651/ and https://kb.protectli.com/kb/coreboot-information/ . Manufacturer gallery photos downloaded as assets/protectli-vp4651-angle.jpg and -front.jpg (gallery uses VP4600 chassis filenames). Photos credited and linked on page.
+QA: Chromium via T3 preview. Widths 1440,390,320: no overflow, broken image or internal-anchor errors; all audience and demo tabs, contact open/close, iPXE text and removed sections checked. Source JS syntax check passed. html_preview reviewed architecture and hardware layout.

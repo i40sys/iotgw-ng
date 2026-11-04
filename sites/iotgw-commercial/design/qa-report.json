@@ -1,0 +1,285 @@
+[
+  {
+    "width": 1440,
+    "checks": [
+      {
+        "test": "No horizontal overflow",
+        "pass": true,
+        "details": {
+          "client": 1440,
+          "scroll": 1440,
+          "offenders": [
+            {
+              "tag": "SPAN",
+              "cls": "closing-grid",
+              "id": "",
+              "rect": {
+                "left": 573.587158203125,
+                "right": 1786.412841796875,
+                "width": 1212.82568359375
+              }
+            }
+          ]
+        }
+      },
+      {
+        "test": "All five audience tabs, content, ARIA, roving keyboard Home/End/ArrowDown/ArrowRight",
+        "pass": true
+      },
+      {
+        "test": "All four demo steps, content, ARIA, Next including wrap",
+        "pass": true
+      },
+      {
+        "test": "Contact dialog fits viewport",
+        "pass": true,
+        "details": {
+          "dialogWidth": 560,
+          "width": 1440
+        }
+      },
+      {
+        "test": "Dialog, copy brief with honest feedback, Escape, focus return",
+        "pass": true
+      },
+      {
+        "test": "FAQ toggles",
+        "pass": true
+      },
+      {
+        "test": "No overflow after interactions",
+        "pass": true,
+        "details": {
+          "client": 1440,
+          "scroll": 1440
+        }
+      },
+      {
+        "test": "No JS exceptions or local asset errors",
+        "pass": true,
+        "details": {
+          "errors": [],
+          "badAssets": []
+        }
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "checks": [
+      {
+        "test": "No horizontal overflow",
+        "pass": true,
+        "details": {
+          "client": 390,
+          "scroll": 390,
+          "offenders": [
+            {
+              "tag": "BUTTON",
+              "cls": "",
+              "id": "audience-planta",
+              "rect": {
+                "left": 370,
+                "right": 720,
+                "width": 350
+              }
+            },
+            {
+              "tag": "BUTTON",
+              "cls": "",
+              "id": "audience-manteniment",
+              "rect": {
+                "left": 720,
+                "right": 1070,
+                "width": 350
+              }
+            },
+            {
+              "tag": "BUTTON",
+              "cls": "",
+              "id": "audience-oem",
+              "rect": {
+                "left": 1070,
+                "right": 1420,
+                "width": 350
+              }
+            },
+            {
+              "tag": "BUTTON",
+              "cls": "",
+              "id": "audience-serveis",
+              "rect": {
+                "left": 1420,
+                "right": 1770,
+                "width": 350
+              }
+            },
+            {
+              "tag": "SPAN",
+              "cls": "closing-grid",
+              "id": "",
+              "rect": {
+                "left": 24.22075653076172,
+                "right": 760.7792282104492,
+                "width": 736.5584716796875
+              }
+            }
+          ]
+        }
+      },
+      {
+        "test": "All five audience tabs, content, ARIA, roving keyboard Home/End/ArrowDown/ArrowRight",
+        "pass": true
+      },
+      {
+        "test": "All four demo steps, content, ARIA, Next including wrap",
+        "pass": true
+      },
+      {
+        "test": "Mobile menu open, link close, Escape",
+        "pass": true
+      },
+      {
+        "test": "Contact dialog fits viewport",
+        "pass": true,
+        "details": {
+          "dialogWidth": 352,
+          "width": 390
+        }
+      },
+      {
+        "test": "Dialog, copy brief with honest feedback, Escape, focus return",
+        "pass": true
+      },
+      {
+        "test": "FAQ toggles",
+        "pass": true
+      },
+      {
+        "test": "No overflow after interactions",
+        "pass": true,
+        "details": {
+          "client": 390,
+          "scroll": 390
+        }
+      },
+      {
+        "test": "No JS exceptions or local asset errors",
+        "pass": true,
+        "details": {
+          "errors": [],
+          "badAssets": []
+        }
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "checks": [
+      {
+        "test": "No horizontal overflow",
+        "pass": true,
+        "details": {
+          "client": 320,
+          "scroll": 320,
+          "offenders": [
+            {
+              "tag": "BUTTON",
+              "cls": "",
+              "id": "audience-planta",
+              "rect": {
+                "left": 300,
+                "right": 580,
+                "width": 280
+              }
+            },
+            {
+              "tag": "BUTTON",
+              "cls": "",
+              "id": "audience-manteniment",
+              "rect": {
+                "left": 580,
+                "right": 860,
+                "width": 280
+              }
+            },
+            {
+              "tag": "BUTTON",
+              "cls": "",
+              "id": "audience-oem",
+              "rect": {
+                "left": 860,
+                "right": 1140,
+                "width": 280
+              }
+            },
+            {
+              "tag": "BUTTON",
+              "cls": "",
+              "id": "audience-serveis",
+              "rect": {
+                "left": 1140,
+                "right": 1420,
+                "width": 280
+              }
+            },
+            {
+              "tag": "SPAN",
+              "cls": "closing-grid",
+              "id": "",
+              "rect": {
+                "left": -34.03181838989258,
+                "right": 714.0317802429199,
+                "width": 748.0635986328125
+              }
+            }
+          ]
+        }
+      },
+      {
+        "test": "All five audience tabs, content, ARIA, roving keyboard Home/End/ArrowDown/ArrowRight",
+        "pass": true
+      },
+      {
+        "test": "All four demo steps, content, ARIA, Next including wrap",
+        "pass": true
+      },
+      {
+        "test": "Mobile menu open, link close, Escape",
+        "pass": true
+      },
+      {
+        "test": "Contact dialog fits viewport",
+        "pass": true,
+        "details": {
+          "dialogWidth": 282,
+          "width": 320
+        }
+      },
+      {
+        "test": "Dialog, copy brief with honest feedback, Escape, focus return",
+        "pass": true
+      },
+      {
+        "test": "FAQ toggles",
+        "pass": true
+      },
+      {
+        "test": "No overflow after interactions",
+        "pass": true,
+        "details": {
+          "client": 320,
+          "scroll": 320
+        }
+      },
+      {
+        "test": "No JS exceptions or local asset errors",
+        "pass": true,
+        "details": {
+          "errors": [],
+          "badAssets": []
+        }
+      }
+    ]
+  }
+]
