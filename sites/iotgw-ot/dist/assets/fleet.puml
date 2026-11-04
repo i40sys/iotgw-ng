@@ -1,0 +1,42 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 15
+skinparam defaultFontColor #151652
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam ArrowColor #FF6600
+skinparam ArrowThickness 2
+skinparam nodesep 45
+skinparam ranksep 45
+skinparam rectangle {
+ BackgroundColor #F4F4F4
+ BorderColor #D8D9E1
+ FontColor #151652
+}
+skinparam package {
+ BackgroundColor #FFFFFF
+ BorderColor #D8D9E1
+ FontColor #151652
+}
+skinparam componentStyle rectangle
+skinparam sequence {
+ ParticipantBackgroundColor #F4F4F4
+ ParticipantBorderColor #D8D9E1
+ LifeLineBorderColor #D8D9E1
+ ArrowColor #FF6600
+}
+top to bottom direction
+rectangle "Domini\nUna agrupació de gestió" as domain #FFF0E5
+rectangle "Xarxa · planta A" as na
+rectangle "Xarxa · planta B" as nb
+rectangle "Gateway A1\nConfiguració + estat" as a
+rectangle "Gateway A2\nConfiguració + estat" as b
+rectangle "Gateway B1\nConfiguració + estat" as c
+domain --> na
+domain --> nb
+na --> a
+na --> b
+nb --> c
+
+@enduml

@@ -128,3 +128,10 @@ secrets/rendered/
 # decision-035: the device-API CA *certificate* is public and pinned by the
 # gateways (its key is in secrets/device-api-tls.enc.yaml).
 !live-image/overlay/etc/iotgw/api-ca.pem
+
+# sites/*/dist is hand-written static site source (no build step), served as is.
+!sites/*/dist/
+
+# Stray lock from an ad-hoc `deno` run in supabase/ (no deno.json there; the
+# edge functions are built from supabase/volumes/functions).
+/supabase/deno.lock
