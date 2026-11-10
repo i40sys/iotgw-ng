@@ -31,3 +31,5 @@ Nav order: La plataforma, Beneficis, Funcionalitats, Per a qui, Casos d’èxit,
 
 2026-11-10 trilingual restructure
 Source moved to src/ (Catalan pages = source of truth); build.py generates dist/ with /ca/, /es/, /en/ copies of every page, shared assets, and a root language router (saved localStorage choice > IP geolocation via ip.joor.net or api.ipify.org + geoip.joor.net > browser language > English). Spanish and English page strings live in i18n/es.json and i18n/en.json (687 strings each); JS-rendered strings live in IOTGW_I18N in src/app.js. Header has a CA · ES · EN switch that stores the choice. See README.md for the edit/build/deploy workflow.
+
+2026-11-10. sites/iotgw-commercial is now the only website. Removed sites/iotgw-ot (old OT site) and the root web/ working copy (port 8766); both stay in git history. Production: https://iotgw.industry40.systems (see README.md).
