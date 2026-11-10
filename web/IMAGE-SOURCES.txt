@@ -1,0 +1,16 @@
+IoT Gateway NG — furnace example visual, 2026-11-05
+
+Asset: assets/furnace-example-v1.png
+Generation mode: built-in image_gen, no CLI fallback.
+Role: illustrative industrial furnace photo for the local website example.
+Not a photograph of a customer site. Disclosure appears in the image caption.
+Original resolution: 1536 x 1024. Copied unchanged into web/assets/.
+
+Final generation prompt:
+Use case: ads-marketing
+Asset type: supporting editorial photograph for an industrial IoT gateway website, used in the left panel of a dark navy and orange case-study card.
+Primary request: a visually striking but credible industrial heat-treatment furnace in a clean working factory. The furnace is the clear subject, a large robust rectangular steel batch furnace with a partially open insulated door, a controlled vivid orange glow inside and metal components on a tray. No people.
+Style: premium industrial editorial photography, photorealistic, detailed brushed steel and matte graphite surfaces, restrained cinematic lighting. A real manufacturing environment, not science fiction. Cool blue-charcoal shadows contrast with the warm orange furnace interior.
+Composition: landscape 3:2 image. Keep the furnace door and orange glow in the middle third so the photograph also crops well to a tall portrait panel on a responsive website. Medium-close three-quarter view, with a little workshop depth in the background. Dark uncluttered bottom area for an HTML caption overlay added later.
+Constraints: no embedded text, no typography, no numbers, no logos, no watermark, no interface overlays, no charts, no glowing data cables. Not a blast furnace or molten-metal pour; an enclosed industrial heat-treatment oven. No exaggerated flames or sparks.
+

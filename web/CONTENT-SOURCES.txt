@@ -59,7 +59,7 @@ Implementation:
 - Eight native disclosure controls; the named group keeps one open. Local apps open
   initially. The cloud/transport catalogue stays visible below the diagram.
 - Edge Manager remains a separate management service, not the path for process data.
-- No additional JS, dependencies or external assets required.
+- The layer diagram uses native details controls; no additional JS or dependencies.
 
 Validation of the functional revision (2026-11-04):
 - Isolated HTML previews at 1280 and 390 px use the site CSS and local fonts.
@@ -70,3 +70,18 @@ Validation of the functional revision (2026-11-04):
   gateway-layers.css match the edited files byte for byte.
 - The former local server was no longer listening. Restarted the existing web/
   service on 0.0.0.0:8766, detached from the tool session. Log: /tmp/iotgw-web-8766.log.
+
+Visual furnace example (2026-11-05):
+- Replaced the text-only callout with an image-led case example at #exemple-forn.
+  Furnace photo generated with built-in image_gen and copied unchanged to
+  assets/furnace-example-v1.png. Generation prompt and provenance: IMAGE-SOURCES.txt.
+- The example is illustrative, not a customer installation or a live data display.
+  The image caption discloses AI generation. No numeric process readings are invented.
+- gateway-example.js switches only the illustrated server connection state.
+  PLC -> gateway -> local dashboard stays unchanged during a simulated outage.
+  Restoring the connection describes sending the pending data. No network operations
+  occur. The copy scopes this behavior to configured Store and Forward.
+- Native buttons use aria-pressed; the delivery message is a polite live region.
+  Controls appear only when JS initializes. Core explanatory content works without JS.
+- Checked at 1280 and 390 px: image loads, no horizontal overflow, offline/restore
+  transitions and selected states work. Served HTML/CSS/JS/PNG match local files.

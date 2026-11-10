@@ -306,3 +306,36 @@
     $$('.reveal').forEach((element) => element.classList.add('is-visible'));
   }
 })();
+
+// Architecture figure: keep each flow SVG in real pixels so packets (pathLength=100) run the full path.
+(() => {
+  const svgs = document.querySelectorAll('.fig-bus, .fig-split svg');
+  if (!svgs.length) return;
+  const toPoints = (d, vw, vh) => {
+    const pts = []; let x = 0, y = 0;
+    const re = /([MVH])\s*([\d.]+)(?:[ ,]+([\d.]+))?/g; let m;
+    while ((m = re.exec(d))) {
+      if (m[1] === 'M') { x = +m[2]; y = +m[3]; }
+      else if (m[1] === 'V') y = +m[2];
+      else x = +m[2];
+      pts.push([x / vw, y / vh]);
+    }
+    return pts;
+  };
+  svgs.forEach((svg) => {
+    const [, , vw, vh] = svg.getAttribute('viewBox').split(/\s+/).map(Number);
+    const paths = [...svg.querySelectorAll('path')].map((p) => ({ p, pts: toPoints(p.getAttribute('d'), vw, vh) }));
+    const fit = () => {
+      const { width: w, height: h } = svg.getBoundingClientRect();
+      if (!w || !h) return;
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      svg.setAttribute('preserveAspectRatio', 'none');
+      paths.forEach(({ p, pts }) => {
+        p.setAttribute('d', pts.map(([fx, fy], i) => `${i ? 'L' : 'M'}${(fx * w).toFixed(1)} ${(fy * h).toFixed(1)}`).join(''));
+        p.removeAttribute('vector-effect');
+      });
+    };
+    new ResizeObserver(fit).observe(svg);
+    fit();
+  });
+})();
