@@ -93,3 +93,11 @@
 @media(max-width:640px){.fig-tag.mgmt{transform:none}}
 .fig-tag.data{transform:translateX(calc(-100% - 14px))}
 @media(max-width:640px){.fig-tag.data{transform:none}}
+@media(max-width:640px){.fig-gw-top>span{font-size:10px;letter-spacing:1px}}
+.fig-card.manager .fig-arrow{flex:0 0 auto;display:grid;place-items:center;width:46px;height:46px;border-radius:10px;background:var(--fig-ink);color:#fff;font-size:22px;animation:send-badge 3.2s infinite}
+@keyframes send-badge{0%{box-shadow:0 0 0 6px #4b55d633,0 0 18px #4b55d6aa}25%,100%{box-shadow:0 0 0 0 #4b55d600,0 0 0 #4b55d600}}
+.fig-card.manager .fig-label{font-weight:700;letter-spacing:2px;margin-bottom:4px}
+.fig-card h4.fig-product{font-size:30px;line-height:1.1;letter-spacing:-1px}
+.fig-product em{font-style:normal;color:var(--orange)}
+.fig-card.manager p{color:var(--fig-ink);font-weight:500}
+@media(max-width:640px){.fig-card h4.fig-product{font-size:26px}.fig-card.manager .fig-arrow{width:40px;height:40px;font-size:19px}}
