@@ -56,6 +56,21 @@ python3 build.py
 cd dist && python3 -m http.server 12346 --bind 0.0.0.0   # http://wsl.ymbihq.local:12346/
 ```
 
-Deploy by publishing the contents of `dist/` to any static host (the root must
-serve `index.html`). All internal links are relative, so the site also works
-from a sub-path.
+All internal links are relative, so `dist/` works on any static host (the root
+must serve `index.html`), also from a sub-path.
+
+### Production: https://iotgw.industry40.systems
+
+```bash
+./publish.sh               # build, sync dist/ into the stack repo, push, deploy
+./publish.sh --no-deploy   # same, without the Dockhand deploy
+```
+
+| | |
+|---|---|
+| Stack repo | `git.oriolrius.cat/oriolrius/k5-stack-iotgw-web` (private); its `site/` is a copy of `dist/` |
+| Host | k5 — Dockhand git stack `iotgw-web` (id 43, env k5), container `iotgw-web` (`nginx:1.30-alpine`) |
+| Proxy | k5 NPM proxy host 81 → `http://iotgw-web:80`, Let's Encrypt cert 122, force-SSL |
+| DNS | PowerDNS lana2, zone `industry40.systems`: RID 22681 `CNAME iotgw → k5.joor.net.` (TTL 300) |
+
+The deploy step reads the Bitwarden item `dockhand admin`.
