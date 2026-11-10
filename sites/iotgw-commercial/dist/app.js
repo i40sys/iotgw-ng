@@ -31,59 +31,37 @@
 
   const audiences = {
     integradors: {
-      kicker: 'INTEGRADORS OT / IT',
-      title: 'Reutilitza la base. Dedica el criteri a la integració.',
-      copy: 'Parteix d’una configuració versionada, selecciona els serveis necessaris i adapta la connexió a cada instal·lació. El teu coneixement del procés continua sent la peça essencial.',
+      kicker: 'EMPRESA D’AUTOMATITZACIÓ / INTEGRADOR',
+      title: 'Més projectes amb el mateix equip tècnic.',
+      copy: 'Executa més projectes amb el mateix equip, redueix els desplaçaments i ofereix contractes de manteniment remot amb serveis recurrents.',
       benefits: [
-        'Una estructura comuna per organitzar clients, xarxes i gateways.',
-        'Configuracions i serveis que pots adaptar a cada projecte.',
-        'Historial d’execucions per revisar què s’ha aplicat i amb quin resultat.'
+        'Instal·lacions homogènies i repetibles, amb menys errors humans.',
+        'Manteniment en remot de la flota de cada client.',
+        'Un model de servei recurrent, no només de projecte.'
       ],
-      example: 'Un cas possible: validar la captura de dades d’una línia i adaptar el mateix patró a una altra instal·lació.'
+      example: 'Preparar els gateways de diversos clients amb la mateixa configuració estàndard i mantenir-los des d’Edge Manager.'
     },
-    planta: {
-      kicker: 'DIRECCIÓ I CAPS DE PLANTA',
-      title: 'Digitalitza amb una base que puguis mantenir.',
-      copy: 'Organitza els gateways i les xarxes, defineix un patró de desplegament i conserva el registre de les operacions. Comença per un objectiu de planta concret abans d’ampliar l’abast.',
+    industria: {
+      kicker: 'CLIENT INDUSTRIAL / FÀBRICA',
+      title: 'Més fiabilitat. Menys intervencions presencials.',
+      copy: 'Obté més fiabilitat, millor control de la ciberseguretat, menys temps de resolució d’incidències i menys dependència d’intervencions presencials.',
       benefits: [
-        'Inventari organitzat per domini, xarxa i dispositiu.',
-        'Configuracions identificades per nom i versió.',
-        'Una base compartida per coordinar planta, manteniment i integradors.'
+        'Actualitzacions de seguretat controlades a tots els gateways.',
+        'Visibilitat centralitzada de l’estat i les incidències.',
+        'Recuperació més ràpida quan cal substituir un equip.'
       ],
-      example: 'Un cas possible: preparar els gateways d’una àrea de producció i validar-ne les integracions abans d’estendre el projecte.'
-    },
-    manteniment: {
-      kicker: 'OPERACIÓ I MANTENIMENT',
-      title: 'Més context quan alguna cosa falla.',
-      copy: 'Un gateway identificat, una configuració coneguda i un historial d’operacions ajuden l’equip tècnic a acotar una incidència. El control de la màquina continua als sistemes industrials corresponents.',
-      benefits: [
-        'Informació de xarxa i identitat del gateway en un mateix lloc.',
-        'Accés als resultats i als logs dels desplegaments.',
-        'Serveis de supervisió configurables segons les necessitats de la instal·lació.'
-      ],
-      example: 'Un cas possible: revisar la configuració i l’última execució amb l’integrador abans de planificar una intervenció.'
+      example: 'Substituir un gateway avariat i recuperar-ne la configuració sense tornar-lo a configurar a mà.'
     },
     oem: {
-      kicker: 'FABRICANTS DE MAQUINÀRIA / OEM',
-      title: 'Acompanya la màquina més enllà de l’entrega.',
-      copy: 'Avalua una capa de connectivitat i serveis locals per a les teves màquines, amb gestió dels gateways desplegats i configuracions adaptades als teus equips.',
+      kicker: 'FABRICANT DE MAQUINÀRIA (OEM)',
+      title: 'La màquina, connectada després de l’entrega.',
+      copy: 'Lliura màquines amb gateways preparats per ser gestionats remotament, mantén les instal·lacions dels teus clients i evoluciona les aplicacions sense substituir el hardware.',
       benefits: [
-        'Una base per integrar dades i serveis al costat de la màquina.',
-        'Configuracions de referència adaptables a cada instal·lació.',
-        'Gestió del gateway separada del control industrial de la màquina.'
+        'Gateways preparats per a la gestió remota des de l’entrega.',
+        'Aplicacions que evolucionen sense canviar el hardware.',
+        'Suport a les instal·lacions dels clients, amb menys desplaçaments.'
       ],
-      example: 'Un cas possible: definir una configuració de gateway per a una família de màquines i validar-la amb el teu equip tècnic.'
-    },
-    serveis: {
-      kicker: 'EMPRESES DE SERVEIS INDUSTRIALS',
-      title: 'Gestiona els gateways dels teus clients.',
-      copy: 'Organitza instal·lacions, aplica configuracions i consulta les execucions. Un mateix entorn per al desplegament i el manteniment dels gateways.',
-      benefits: [
-        'Un flux de treball compartit entre instal·lacions.',
-        'Serveis locals seleccionables segons cada necessitat.',
-        'Traçabilitat tècnica per donar suport a l’operació.'
-      ],
-      example: 'Un cas possible: revisar els gateways de diverses plantes des d’un sol entorn.'
+      example: 'Definir un gateway de referència per a una família de màquines i actualitzar-ne les aplicacions a tota la base instal·lada.'
     }
   };
 
@@ -146,56 +124,53 @@
     }
   }, 'audience-tab');
 
-  const steps = [
-    {
-      title: 'Arrenca. Identifica. Connecta.',
-      description: 'Arrenca per xarxa amb iPXE al VP4651 amb coreboot. Identifica el gateway amb un codi d’un sol ús. En altres equips compatibles, el Live USB és una alternativa.',
-      body: '<div class="demo-field"><span>Dispositiu d’exemple</span><strong>Gateway · Línia 01</strong></div><div class="demo-field"><span>Entorn d’arrencada</span><strong>iPXE · arrencada per xarxa</strong></div><div class="demo-field"><span>Identificació inicial</span><strong>Codi d’un sol ús</strong></div><p class="demo-note">L’equip s’identifica abans de preparar la instal·lació. Aquesta demostració no genera codis ni connecta amb cap gateway.</p>'
-    },
-    {
-      title: 'Una instal·lació amb el destí clar.',
-      description: 'Selecciona la versió d’OpenWrt i el disc de destí. Revisa l’equip i els paràmetres abans d’iniciar l’operació.',
-      body: '<div class="demo-field"><span>Sistema base</span><strong>OpenWrt · versió seleccionada</strong></div><div class="demo-field"><span>Destí d’exemple</span><strong>Disc intern del gateway</strong></div><div class="demo-review"><span class="demo-status">Revisió prèvia</span><p>La instal·lació modifica el disc de destí. A l’eina, una revisió separada precedeix l’execució.</p></div><p class="demo-note">Aquí només mostrem el flux. No s’executa cap instal·lació.</p>'
-    },
-    {
-      title: 'Verifica abans de continuar.',
-      description: 'Arrenca des del disc intern i comprova l’accés al gateway amb el sistema instal·lat. Si has utilitzat un USB, retira’l abans de reiniciar.',
-      body: '<ol class="demo-checks"><li><span>01</span><div><strong>Seleccionar el disc intern</strong><small>El següent inici es fa des del disc intern.</small></div></li><li><span>02</span><div><strong>Arrencar el sistema instal·lat</strong><small>El gateway posa en marxa OpenWrt.</small></div></li><li><span>03</span><div><strong>Comprovar l’accés</strong><small>L’operador verifica que l’equip és accessible.</small></div></li></ol><p class="demo-note">La comprovació real es fa des de la plataforma. Aquesta vista no informa de l’estat de cap equip.</p>'
-    },
-    {
-      title: 'Els serveis que cada planta necessita.',
-      description: 'Defineix la configuració amb formularis o JSON, selecciona els serveis i revisa els paràmetres abans d’aplicar-los al gateway.',
-      body: '<div class="demo-services" aria-label="Exemples de serveis disponibles"><span class="demo-service">Node-RED</span><span class="demo-service">MQTT</span><span class="demo-service">Observabilitat</span><span class="demo-service">Còpies de seguretat</span><span class="demo-service">Telegraf</span><span class="demo-service">Uptime Kuma</span></div><div class="demo-field"><span>Configuració</span><strong>Versionada · formulari o JSON</strong></div><div class="demo-field"><span>Seguiment</span><strong>Resultat i logs de l’execució</strong></div><p class="demo-note">Guardar una configuració i aplicar-la al dispositiu són accions separades. Serveis mostrats a títol il·lustratiu.</p>'
+  // Benefits page: "equip a equip" vs "flota gestionada" comparison.
+  const compare = $('.compare');
+  if (compare) {
+    const cards = $$('.cmp-card', compare);
+    const count = $('.compare-count', compare);
+    const summary = $('.compare-summary', compare);
+    const choices = $$('[data-mode-choice]', compare);
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const texts = {
+      sense: 'Sense la plataforma: equips instal·lats que cal mantenir un a un.',
+      amb: 'Amb IoT Gateway NG + Edge Manager: una flota de gateways gestionada centralitzadament durant tot el seu cicle de vida.'
+    };
+    let timer = null;
+    let touched = false;
+    const setMode = (mode) => {
+      if (compare.dataset.mode === mode) return;
+      compare.dataset.mode = mode;
+      choices.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.modeChoice === mode)));
+      if (summary) summary.textContent = texts[mode];
+      clearInterval(timer);
+      const target = mode === 'amb' ? cards.length : 0;
+      let value = mode === 'amb' ? 0 : cards.length;
+      const show = () => { if (count) count.textContent = `${value} / ${cards.length}`; };
+      if (still) { value = target; show(); return; }
+      show();
+      timer = setInterval(() => {
+        value += mode === 'amb' ? 1 : -1;
+        show();
+        if (value === target) clearInterval(timer);
+      }, 70);
+    };
+    choices.forEach((button) => button.addEventListener('click', () => {
+      touched = true;
+      setMode(button.dataset.modeChoice);
+    }));
+    compare.classList.add('is-ready');
+    // Play the change once when the grid comes into view, unless the visitor already chose.
+    if (!still && 'IntersectionObserver' in window) {
+      const grid = $('.compare-grid', compare);
+      const watcher = new IntersectionObserver((entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        watcher.disconnect();
+        setTimeout(() => { if (!touched) setMode('amb'); }, 900);
+      }, { threshold: 0.35 });
+      if (grid) watcher.observe(grid);
     }
-  ];
-
-  const demoTabs = createTabs('[data-step]', '#demo-panel', (button, index) => {
-    const stepIndex = Number(button.dataset.step);
-    const step = steps[stepIndex] || steps[index];
-    if (!step) return;
-    setText('#demo-step-number', String(stepIndex + 1).padStart(2, '0'));
-    setText('#demo-title', step.title);
-    setText('#demo-description', step.description);
-    const body = $('#demo-body');
-    // All markup comes from the fixed local demonstration above, never user input.
-    if (body) body.innerHTML = step.body;
-    const progress = $('#demo-progress');
-    if (progress) {
-      progress.setAttribute('role', 'progressbar');
-      progress.setAttribute('aria-valuemin', '0');
-      progress.setAttribute('aria-valuemax', '4');
-      progress.setAttribute('aria-valuenow', String(stepIndex + 1));
-      progress.setAttribute('aria-valuetext', `Etapa ${stepIndex + 1} de 4`);
-      const fill = $('.progress-fill', progress);
-      if (fill) fill.style.width = `${((stepIndex + 1) / steps.length) * 100}%`;
-    }
-    const next = $('#demo-next');
-    if (next) {
-      next.setAttribute('aria-label', stepIndex === steps.length - 1 ? 'Tornar a la primera etapa de la demostració' : `Veure l’etapa ${stepIndex + 2} de la demostració`);
-      next.dataset.lastStep = String(stepIndex === steps.length - 1);
-    }
-  }, 'demo-tab');
-  $('#demo-next')?.addEventListener('click', () => demoTabs?.next());
+  }
 
   const dialog = $('#contact-dialog');
   let contactOpener = null;
@@ -337,5 +312,47 @@
     };
     new ResizeObserver(fit).observe(svg);
     fit();
+  });
+})();
+
+// Deployment page: highlight the step in view on the side rail and fill its progress line.
+(() => {
+  const links = [...document.querySelectorAll('[data-step-link]')];
+  const cards = [...document.querySelectorAll('.step-card')];
+  const fill = document.querySelector('.rail-progress b');
+  if (!links.length || !cards.length || !('IntersectionObserver' in window)) return;
+  const activate = (index) => {
+    links.forEach((link, i) => {
+      link.classList.toggle('is-active', i === index);
+      link.classList.toggle('is-done', i < index);
+      if (i === index) link.setAttribute('aria-current', 'step'); else link.removeAttribute('aria-current');
+    });
+    cards.forEach((card, i) => card.classList.toggle('is-active', i === index));
+    if (fill) fill.style.height = `${((index + 1) / cards.length) * 100}%`;
+  };
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) activate(cards.indexOf(entry.target));
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  cards.forEach((card) => observer.observe(card));
+})();
+
+// Success cases: simulate a cloud outage on the isolated-lines diagram.
+(() => {
+  const iso = document.querySelector('.iso');
+  if (!iso) return;
+  const status = iso.querySelector('.iso-status');
+  const texts = {
+    on: 'Telemetria de cada línia, processada i contextualitzada, cap al MES i l’ERP en temps real.',
+    off: 'El núvol no respon. Les 6 línies continuen produint, cadascuna en el seu entorn aïllat.'
+  };
+  iso.querySelectorAll('[data-cloud-choice]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const state = button.dataset.cloudChoice;
+      iso.dataset.cloud = state;
+      iso.querySelectorAll('[data-cloud-choice]').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+      if (status) status.textContent = texts[state];
+    });
   });
 })();
