@@ -71,6 +71,6 @@ must serve `index.html`), also from a sub-path.
 | Stack repo | `git.oriolrius.cat/oriolrius/k5-stack-iotgw-web` (private); its `site/` is a copy of `dist/` |
 | Host | k5 — Dockhand git stack `iotgw-web` (id 43, env k5), container `iotgw-web` (`nginx:1.30-alpine`) |
 | Proxy | k5 NPM proxy host 81 → `http://iotgw-web:80`, Let's Encrypt cert 122, force-SSL |
-| DNS | PowerDNS lana2, zone `industry40.systems`: RID 22681 `CNAME iotgw → k5.joor.net.` (TTL 300) |
+| DNS | Public: PowerDNS lana2, zone `industry40.systems`, RID 22681 `CNAME iotgw → k5.joor.net.` (TTL 300). LAN: Pi-hole `CNAME iotgw.industry40.systems → k5.joor.net` (→ 10.2.0.134, ZeroTier) |
 
 The deploy step reads the Bitwarden item `dockhand admin`.
