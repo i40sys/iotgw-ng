@@ -461,3 +461,15 @@ document.querySelectorAll('.lang-switch [data-lang]').forEach((link) => {
     try { localStorage.setItem('iotgw-lang', link.dataset.lang); } catch { /* storage blocked: the link still works */ }
   });
 });
+
+// Hero video: big centred play button (YouTube-style). Reveal native controls on first play.
+document.querySelectorAll('.hero-video').forEach((fig) => {
+  const v = fig.querySelector('video');
+  const btn = fig.querySelector('.video-play');
+  if (!v || !btn) return;
+  const start = () => { v.setAttribute('controls', ''); const p = v.play(); if (p) p.catch(() => {}); };
+  btn.addEventListener('click', start);
+  v.addEventListener('play', () => fig.classList.add('playing'));
+  v.addEventListener('pause', () => fig.classList.remove('playing'));
+  v.addEventListener('ended', () => fig.classList.remove('playing'));
+});
