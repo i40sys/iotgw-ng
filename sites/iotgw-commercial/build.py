@@ -119,8 +119,11 @@ def translate(source, table, lang, missing):
 def localise(page_html, name, lang):
     s = page_html.replace('<html lang="ca">', f'<html lang="{lang}">', 1)
     s = s.replace('content="ca_ES"', f'content="{LOCALE[lang]}"')
-    # shared files live one level up
-    s = re.sub(r'(href|src)="(styles\.css|app\.js|assets/)', r'\1="../\2', s)
+    # shared files live one level up (poster= too, for <video>)
+    s = re.sub(r'(href|src|poster)="(styles\.css|app\.js|assets/)', r'\1="../\2', s)
+    # Localised video: use this language's renditions when they exist, else keep the Catalan ones.
+    if lang != DEFAULT and (SRC / 'assets' / 'video' / f'plataforma.{lang}.720.mp4').exists():
+        s = s.replace(f'plataforma.{DEFAULT}.', f'plataforma.{lang}.')
     alternates = ''.join(f'<link rel="alternate" hreflang="{l}" href="../{l}/{name}">' for l in LANGS)
     alternates += f'<link rel="alternate" hreflang="x-default" href="../">'
     s = s.replace('</head>', alternates + '\n</head>', 1)

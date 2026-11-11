@@ -599,6 +599,8 @@
  "Cada part,",
  "el seu paper.",
  "Una sola base.",
+ "El teu navegador no pot reproduir aquest vídeo.",
+ "Com funciona, en poc més de quatre minuts.",
  "El fabricant aporta el hardware, el proveïdor de software aporta les aplicacions i",
  "IoT Gateway NG s’encarrega que tota la infraestructura funcioni, estigui actualitzada i es pugui gestionar remotament.",
  "Automatitza tot el cicle de vida del gateway: instal·lació inicial, configuració, manteniment, actualitzacions de seguretat, supervisió i recuperació davant d’incidències. Sense intervenir físicament sobre els equips.",
@@ -685,5 +687,6 @@
  "Open source. Cicle de vida automatitzat. Gestió remota. Independència del hardware.",
  "Escena industrial il·lustrativa amb un braç robòtic i una línia de producció",
  "Descobreix la plataforma",
+ "Vídeo: com funciona IoT Gateway NG",
  "Màquines, PLC i sensors envien dades al gateway IoT Gateway NG, que funciona sobre hardware de qualsevol fabricant i executa aplicacions pròpies o de tercers. El gateway envia les dades als teus sistemes. Edge Manager gestiona en remot tot el cicle de vida del gateway per un canal separat."
 ]
