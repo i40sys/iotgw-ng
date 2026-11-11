@@ -685,5 +685,8 @@
   "Open source. Cicle de vida automatitzat. Gestió remota. Independència del hardware.": "Open source. Ciclo de vida automatizado. Gestión remota. Independencia del hardware.",
   "Escena industrial il·lustrativa amb un braç robòtic i una línia de producció": "Escena industrial ilustrativa con un brazo robótico y una línea de producción",
   "Descobreix la plataforma": "Descubre la plataforma",
-  "Màquines, PLC i sensors envien dades al gateway IoT Gateway NG, que funciona sobre hardware de qualsevol fabricant i executa aplicacions pròpies o de tercers. El gateway envia les dades als teus sistemes. Edge Manager gestiona en remot tot el cicle de vida del gateway per un canal separat.": "Máquinas, PLC y sensores envían datos al gateway IoT Gateway NG, que funciona sobre hardware de cualquier fabricante y ejecuta aplicaciones propias o de terceros. El gateway envía los datos a tus sistemas. Edge Manager gestiona en remoto todo el ciclo de vida del gateway por un canal separado."
+  "Màquines, PLC i sensors envien dades al gateway IoT Gateway NG, que funciona sobre hardware de qualsevol fabricant i executa aplicacions pròpies o de tercers. El gateway envia les dades als teus sistemes. Edge Manager gestiona en remot tot el cicle de vida del gateway per un canal separat.": "Máquinas, PLC y sensores envían datos al gateway IoT Gateway NG, que funciona sobre hardware de cualquier fabricante y ejecuta aplicaciones propias o de terceros. El gateway envía los datos a tus sistemas. Edge Manager gestiona en remoto todo el ciclo de vida del gateway por un canal separado.",
+  "Vídeo: com funciona IoT Gateway NG": "Vídeo: cómo funciona IoT Gateway NG",
+  "El teu navegador no pot reproduir aquest vídeo.": "Tu navegador no puede reproducir este vídeo.",
+  "Com funciona, en poc més de quatre minuts.": "Cómo funciona, en poco más de cuatro minutos."
 }
