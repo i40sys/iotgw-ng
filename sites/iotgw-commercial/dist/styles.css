@@ -2,6 +2,15 @@
 .hero-video video{width:100%;height:auto;display:block;aspect-ratio:16/9;border-radius:14px;background:#0b1020;box-shadow:0 26px 60px -26px rgba(0,0,0,.7);outline:1px solid rgba(255,255,255,.14)}
 .hero-video figcaption{margin-top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#c3c8d4;text-shadow:0 1px 6px rgba(5,8,18,.85)}
 .video-fallback{color:#fff;padding:24px;text-align:center}
+.video-frame{position:relative;line-height:0}
+.hero-video .video-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76px;height:76px;padding:0;border:0;background:none;cursor:pointer;transition:transform .15s ease,opacity .2s ease;filter:drop-shadow(0 8px 20px rgba(0,0,0,.5))}
+.hero-video .video-play svg{width:100%;height:100%;display:block}
+.hero-video .video-play circle{fill:rgba(12,16,28,.74)}
+.hero-video .video-play path{fill:#fff}
+.hero-video .video-play:hover,.hero-video .video-play:focus-visible{transform:translate(-50%,-50%) scale(1.08)}
+.hero-video .video-play:hover circle,.hero-video .video-play:focus-visible circle{fill:var(--orange)}
+.hero-video.playing .video-play{opacity:0;pointer-events:none}
+@media(max-width:600px){.hero-video .video-play{width:62px;height:62px}}
 .hero-content{overflow-wrap:break-word}
 @media(max-width:760px){.hero-description br{display:none}.image-note{display:none}}
 @media(min-width:901px){.hero-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,48%);column-gap:52px;align-items:center;grid-template-areas:"eyebrow video" "title video" "desc video" "bottom bottom"}.hero-content>.eyebrow{grid-area:eyebrow}.hero-content>#hero-title{grid-area:title}.hero-content>.hero-description{grid-area:desc}.hero-content>.hero-video{grid-area:video;margin:0;max-width:100%;width:100%;justify-self:end}.hero-content>.hero-bottom{grid-area:bottom}}
