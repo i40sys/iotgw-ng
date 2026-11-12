@@ -7,6 +7,8 @@ Full-size PNG sources of the captures on the commercial site's Screenshots page
 - `gateway/*.png` — LuCI on the LAN demo gateway. Public IPs, WireGuard keys, MACs and
   customer names were blurred in the page before capture.
 
-Only captures whose full content is published on the site are committed (this repo is
-public). Logs, password and SSH-key pages, and the full-length process and Docker event
-lists stay out. Inventory and gaps: `sites/iotgw-commercial/design/screenshots-inventory.md`.
+All raw captures are here, also the ones the site does not show (empty logs, password,
+SSH keys, reboot, full process and Docker event lists). They were checked before commit:
+no public IPs, keys or customer names. `estats.json` holds the element boxes used to
+annotate the Edge Manager captures. Inventory and gaps:
+`sites/iotgw-commercial/design/screenshots-inventory.md`.
