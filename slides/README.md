@@ -5,7 +5,7 @@ English content, English speaker notes, original **oriolrius.me** theme.
 
 ## Run
 
-Requirements: Node.js 22.19 or later; pnpm 12.4.1.
+Requirements: Linux/WSL with Python 3 and pidfd support; Node.js 22.19 or later; pnpm 12.4.1.
 
 ```bash
 cd slides
@@ -13,7 +13,11 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open <http://localhost:3030>. Use the arrow keys or PageDown/PageUp to change slides.
+Open <http://localhost:48763> or `http://<machine-ip-or-hostname>:48763`.
+The server listens on `0.0.0.0` and accepts every hostname.
+Each start replaces only an old listener with this exact deck path, working directory, Node executable and CLI arguments.
+If another project or an unidentified process occupies the port, startup stops with an error and leaves that process running.
+The port stays fixed; startup never selects another port. Use the arrow keys or PageDown/PageUp to change slides.
 Use the Slidev presenter view for speaker notes.
 
 ## Build and export

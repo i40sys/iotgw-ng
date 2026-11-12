@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "EDITOR=true slidev slides.md --port 3030",
+    "dev": "python3 scripts/dev.py",
     "build": "slidev build slides.md --out dist",
     "export": "slidev export slides.md --output exports/iotgw-ng-business.pdf --wait 1500 --timeout 90000",
     "export:png": "slidev export slides.md --format png --per-slide --output exports/png --wait 1500 --timeout 90000"
