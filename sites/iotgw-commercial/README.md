@@ -17,7 +17,8 @@ dependencies, no trackers. `dist/` is the deployable output (the hosting root in
 | `design/`, `IMPLEMENTATION.txt` | Original design assets and the change log of decisions. |
 
 Pages: `index` (platform), `beneficis`, `funcionalitats`, `casos-exit`,
-`hardware`, `desplegament`.
+`hardware`, `desplegament`, `screenshots` (gallery; inventory and gaps in
+`design/screenshots-inventory.md`).
 
 ## Build
 

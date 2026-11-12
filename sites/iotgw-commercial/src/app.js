@@ -473,3 +473,30 @@ document.querySelectorAll('.hero-video').forEach((fig) => {
   v.addEventListener('pause', () => fig.classList.remove('playing'));
   v.addEventListener('ended', () => fig.classList.remove('playing'));
 });
+
+// Screenshots page: open a screenshot in a dialog, step with the buttons or the arrow keys.
+(function () {
+  const dlg = document.getElementById('shot-dialog');
+  const items = Array.from(document.querySelectorAll('.shot'));
+  if (!dlg || !items.length || typeof dlg.showModal !== 'function') return;
+  const img = dlg.querySelector('img'), title = dlg.querySelector('figcaption strong'), text = dlg.querySelector('figcaption span');
+  let at = 0;
+  const show = (i) => {
+    at = (i + items.length) % items.length;
+    const fig = items[at];
+    img.src = fig.querySelector('img').src.replace('.thumb.webp', '.webp');
+    img.alt = fig.querySelector('img').alt;
+    title.textContent = fig.querySelector('figcaption strong').textContent;
+    text.textContent = fig.querySelector('figcaption span').textContent;
+    dlg.scrollTop = 0;
+  };
+  items.forEach((fig, i) => fig.querySelector('[data-shot]').addEventListener('click', () => { show(i); dlg.showModal(); }));
+  dlg.querySelectorAll('[data-shot-step]').forEach(b => b.addEventListener('click', () => show(at + Number(b.dataset.shotStep))));
+  dlg.querySelector('[data-shot-close]').addEventListener('click', () => dlg.close());
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+  dlg.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); show(at + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); show(at - 1); }
+  });
+  dlg.addEventListener('close', () => { img.removeAttribute('src'); items[at].querySelector('[data-shot]').focus(); });
+})();
