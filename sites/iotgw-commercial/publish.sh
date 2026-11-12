@@ -19,6 +19,12 @@ DEPLOY=1
 [ "${1:-}" = "--no-deploy" ] && DEPLOY=0
 
 cd "$HERE"
+# Videos are Git LFS objects. A clone without `git lfs pull` holds pointer files, and
+# publishing them would break the hero video in production.
+if grep -lsq '^version https://git-lfs' src/assets/video/*.mp4; then
+  echo "src/assets/video holds Git LFS pointers. Run: git lfs install && git lfs pull" >&2
+  exit 1
+fi
 uv run python build.py
 
 WORK="$(mktemp -d)"
