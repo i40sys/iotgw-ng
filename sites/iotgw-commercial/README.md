@@ -75,3 +75,11 @@ must serve `index.html`), also from a sub-path.
 | DNS | Public: PowerDNS lana2, zone `industry40.systems`, RID 22681 `CNAME iotgw → k5.joor.net.` (TTL 300). LAN: Pi-hole `CNAME iotgw.industry40.systems → k5.joor.net` (→ 10.2.0.134, ZeroTier) |
 
 The deploy step reads the Bitwarden item `dockhand admin`.
+
+### Videos are in Git LFS
+
+The `*.mp4` files (in `src/` and `dist/`) are Git LFS objects (see the root
+`.gitattributes`). Run `git lfs install` once, and `git lfs pull` after a clone.
+`publish.sh` stops if it finds LFS pointer files instead of the videos. The stack
+repo does **not** use LFS: `publish.sh` copies the real files into it, because
+Dockhand git-sync does not fetch LFS objects. Keep each file below 10 MB.
