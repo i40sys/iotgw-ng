@@ -6,6 +6,7 @@
 mod capture;
 mod convert;
 mod props;
+mod relaunch;
 
 use std::sync::mpsc::Receiver;
 
@@ -655,6 +656,9 @@ fn init_logging() {
 fn main() -> eframe::Result {
     init_logging();
     log::info!("HDMI Viewer v{}", env!("CARGO_PKG_VERSION"));
+    if relaunch::relaunch_from_local_disk() {
+        return Ok(());
+    }
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("HDMI Viewer")

@@ -30,6 +30,10 @@ next to it, and no installer.
     window, fullscreen, hide the menu bar.
 - Remembers its settings in `%APPDATA%\hdmi-viewer`.
 - Writes a log to `%TEMP%\hdmi-viewer.log`.
+- Runs fine straight from WSL (`\\wsl.localhost\...\dist\hdmi-viewer.exe`). Windows
+  Media Foundation cannot open any camera for an .exe on a network path (error
+  "Element not found", 0x80070490), so in that case the viewer copies itself to
+  `%LOCALAPPDATA%\hdmi-viewer\` and restarts from there.
 
 ### Keyboard / mouse
 
@@ -71,6 +75,7 @@ Other recipes (`just --list`):
 | `just build` | Release `.exe` → `dist/` |
 | `just build-debug` | Debug `.exe` (keeps a console window for log output) |
 | `just run` | WSL only: build, copy to the Windows `%TEMP%` and launch on the desktop |
+| `just smoke` | WSL only: end-to-end check on the real card, started from the WSL path and from a local copy |
 | `just test` | Unit tests (pixel conversion, damaged-MJPEG detection) |
 | `just lint` | Clippy against the Windows target |
 | `just clean` | Remove `target/` and `dist/` |

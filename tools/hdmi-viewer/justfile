@@ -31,3 +31,19 @@ run: build
 clean:
     cargo clean
     rm -rf dist
+
+# WSL only: end-to-end check on the real card. Starts the .exe from the WSL path
+# (\\wsl.localhost\..., the case that breaks Media Foundation) and from a local
+# copy, waits for "stream open" in %TEMP%\hdmi-viewer.log. Needs the card plugged in.
+smoke: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ps=/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
+    win_tmp=$(wslpath "$(/mnt/c/Windows/System32/cmd.exe /c 'echo %TEMP%' 2>/dev/null | tr -d '\r')")
+    cp scripts/smoke.ps1 dist/hdmi-viewer.exe "$win_tmp/"
+    smoke=$(wslpath -w "$win_tmp/smoke.ps1")
+    rc=0
+    for exe in "$(wslpath -w dist/hdmi-viewer.exe)" "$(wslpath -w "$win_tmp/hdmi-viewer.exe")"; do
+        "$ps" -NoProfile -ExecutionPolicy Bypass -File "$smoke" -Exe "$exe" | tr -d '\r' || rc=1
+    done
+    exit $rc

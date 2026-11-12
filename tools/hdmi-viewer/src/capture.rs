@@ -330,7 +330,10 @@ impl Worker {
                         drop(s);
                         self.camera = Some(cam);
                     }
-                    Err(e) => self.set_status(Status::Error(format!("Cannot open {name}: {e}"))),
+                    Err(e) => {
+                        log::error!("cannot open {name} (#{index}): {e}");
+                        self.set_status(Status::Error(format!("Cannot open {name}: {e}")));
+                    }
                 }
             }
             Cmd::SetControl(id, value) => {
