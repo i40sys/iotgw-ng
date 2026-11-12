@@ -135,3 +135,6 @@ secrets/rendered/
 # Stray lock from an ad-hoc `deno` run in supabase/ (no deno.json there; the
 # edge functions are built from supabase/volumes/functions).
 /supabase/deno.lock
+
+# Windows download markers (WSL copies)
+*:Zone.Identifier

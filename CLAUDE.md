@@ -164,6 +164,12 @@ Release + verify runbook: [deploy/RELEASE.md](deploy/RELEASE.md).
 
 ## Working Instructions
 
+- **Media goes to Git LFS** (`.gitattributes`): every video (`*.mp4`, `*.webm`,
+  `*.mov`, `*.m4v`, `*.mkv`) and the raw captures in `screenshots/`. Run
+  `git lfs install` once and `git lfs pull` after a clone. Never commit a video as a
+  plain blob. The website deploy (`sites/iotgw-commercial/publish.sh`) refuses LFS
+  pointer files, and its Dockhand stack repo keeps real files (no LFS there). The repo
+  is **public**: check a capture for IPs, keys and customer names before you commit it.
 - **Secrets**: real values are SOPS-encrypted in `secrets/`. Run
   `just secrets-render` before bringing up a stack. **Never** commit a
   plaintext `.env`/key or hardcode a secret in tracked source (`decision-014`).
