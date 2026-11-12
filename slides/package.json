@@ -1,0 +1,24 @@
+{
+  "name": "iotgw-ng-business-deck",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "python3 scripts/dev.py",
+    "build": "slidev build slides.md --out dist",
+    "export": "slidev export slides.md --output exports/iotgw-ng-business.pdf --wait 1500 --timeout 90000",
+    "export:png": "slidev export slides.md --format png --per-slide --output exports/png --wait 1500 --timeout 90000"
+  },
+  "dependencies": {
+    "@slidev/cli": "52.19.1",
+    "qrcode": "1.5.4",
+    "slidev-theme-oriolrius": "github:oriolrius/oriolriusme-slidev-theme#v0.1.0",
+    "vue": "3.5.24"
+  },
+  "devDependencies": {
+    "playwright-chromium": "1.58.2"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "packageManager": "pnpm@12.4.1"
+}
