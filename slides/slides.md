@@ -96,50 +96,51 @@ layout: concepts
 cols: 3
 panels: true
 class: surface-mist
-title: Product Maturity — From MVP to Real-World Adoption
+title: Product Maturity — An MVP with Wider Potential
 ---
 
 ::title::
 <p class="or-aside">01 · Understand the Product</p>
 
-# From MVP to Real-World Adoption
+# An MVP with Wider Potential
 
-## Start with a real need. Use field evidence to guide the product.
+## Real needs shaped the product. New opportunities define what comes next.
 
 ::icon1::
-<i class="fas fa-cube"></i>
-
-::concept1::
-### Today · MVP
-
-A working product base for gateway infrastructure and central fleet management.
-
-::icon2::
 <i class="fas fa-industry"></i>
 
-::concept2::
-### Next · Field validation
+::concept1::
+### Built from real projects
 
-Select a customer problem. Test the workflow, support needs and operating limits.
+We built and evolved the MVP around real customer needs and practical projects.
+
+::icon2::
+<i class="fas fa-circle-check"></i>
+
+::concept2::
+### Successful use cases
+
+Those projects became successful use cases. Their experience continues to improve the MVP.
 
 ::icon3::
-<i class="fas fa-repeat"></i>
+<i class="fas fa-code-branch"></i>
 
 ::concept3::
-### Then · Repeat adoption
+### Multiple directions
 
-Turn proven deployments into repeatable projects. Set priorities from real use.
+This base opens several paths: platforms for different sectors, services and business opportunities.
 
 ::footer::
-A proposed path to maturity. Scope and timing follow the selected use case.
+One current MVP. Multiple possible platforms.
 
 <!--
 03. Product Maturity — From MVP to Real-World Adoption
-State the current maturity clearly: MVP. Avoid a claim of a finished industrial product.
-The three panels describe the proposed path, not a dated roadmap or adoption metrics.
-Discuss what a first real use case needs to prove: installation, remote operation, recovery and support.
-Do not add customer counts, uptime figures or certification claims without evidence.
-Source: supplied outline, slide 03.
+The owner clarified the product story: real projects shaped and evolved the current MVP, and those projects became successful use cases.
+The current product remains an MVP. The idea has wider potential than its present scope.
+Use the MVP as a starting point for several possible platforms, each shaped by a different business opportunity.
+The third panel describes future potential. It does not claim that those platforms already exist or promise a fixed roadmap.
+No customer counts, performance metrics or named references are implied.
+Sources: supplied outline, slide 03; owner’s follow-up on real use cases and multiple platform opportunities.
 -->
 
 ---
@@ -240,126 +241,120 @@ Source: supplied outline, slide 05.
 
 ---
 layout: cards
-cols: 3
+cols: 2
 rows: 2
-card6Tone: navy
-title: Business Opportunities — How to Monetize It
+title: Business Opportunities · Operations
 ---
 
 ::title::
 <p class="or-aside">02 · Discover the Opportunity</p>
 
-# Business Opportunities
+# Business Opportunities · Operations
 
-## Services to develop around the infrastructure.
+## Managed services to protect and operate the edge infrastructure.
 
 ::icon1::
-<i class="fas fa-calendar-check"></i>
+<i class="fas fa-database"></i>
 
 ::card1::
-### Subscriptions
+### Data Backup & Recovery
 
-A recurring service for access, support and agreed operating scope.
+Managed backups of application data, with retention policies and tested recovery.
 
 ::icon2::
 <i class="fas fa-hard-drive"></i>
 
 ::card2::
-### Recovery images
+### Gateway Image Management
 
-Prepare and test a recovery image service for supported hardware.
+Central storage and management of gateway images for cloning, recovery and replacement.
 
 ::icon3::
-<i class="fas fa-database"></i>
+<i class="fas fa-chart-line"></i>
 
 ::card3::
-### Data backups
+### Monitoring & Observability
 
-Define protected data, retention and restore tests for each customer.
+A central service for gateway health, application status, logs and alerts.
 
 ::icon4::
-<i class="fas fa-screwdriver-wrench"></i>
+<i class="fas fa-shield-halved"></i>
 
 ::card4::
-### Maintenance
+### Private VPN Management
 
-Plan updates, configuration changes and support procedures.
-
-::icon5::
-<i class="fas fa-network-wired"></i>
-
-::card5::
-### Fleet operations
-
-Operate gateways across sites. Handle incidents and deployment changes.
-
-::icon6::
-<i class="fas fa-list-check"></i>
-
-::card6::
-### Define the offer
-
-Agree the scope, service level, cost and price. Validate delivery in a pilot.
+Managed private networks for secure access to gateways, machines and customer sites.
 
 ::footer::
-Proposed service packages. Scope and delivery need validation.
+Package these services as subscriptions, managed operations or project delivery.
 
 <!--
-06. Business Opportunities — How to Monetize It
-Discuss monetisation through services around the infrastructure.
-Do not present prices, subscriptions, service levels or complete recovery services as an existing offer.
-Recovery images and data backups are different services. The recovery path needs design and validation.
-Repository decision-037 is proposed. Duplicati configuration exists, but that does not establish a complete recovery service.
-Clarify support hours, ownership of operations, customer data scope and restore acceptance tests before pricing.
-Source: supplied outline, slide 06; backlog/decisions/decision-037.
+06. Business Opportunities — Operations
+Four proposed services: data backups, gateway images, monitoring and private VPN management.
+Data backups protect application data. Image management covers cloning, recovery and device replacement.
+Clonezilla is an example tool for the image service, subject to hardware and recovery-workflow validation. This does not claim an existing complete Clonezilla service.
+These are business opportunities to develop. Agree scope, support and recovery tests before delivery.
+Sources: original outline, slide 06; owner’s approved service list; backlog/decisions/decision-037 (proposed).
 -->
 
 ---
-layout: default
+layout: cards
+cols: 2
+rows: 2
 class: surface-mist
-title: Beyond the Gateway — Application & Project Management
+title: Business Opportunities · Data & Solutions
 ---
 
+::title::
 <p class="or-aside">02 · Discover the Opportunity</p>
 
-# Beyond the Gateway
+# Business Opportunities · Data & Solutions
 
-## Platform opportunity · Manage projects, applications and Docker stacks.
+## Build data services and repeatable customer solutions.
 
-<div class="or-box mt-8">
+::icon1::
+<i class="fas fa-diagram-project"></i>
 
-### 01 · Define the customer project
+::card1::
+### Managed MQTT & Unified Namespace
 
-Record the site, gateway group and required application stack.
+Managed MQTT infrastructure and a Unified Namespace (UNS) to organise and share industrial data across systems and sites.
 
-</div>
+::icon2::
+<i class="fas fa-clock-rotate-left"></i>
 
-<div class="or-box mt-6">
+::card2::
+### Industrial Historian & Time-Series Storage
 
-### 02 · Maintain a deployment catalogue
+Capture data from the UNS into a managed historian or time-series database (TSDB), with retention policies, historical queries and trend analysis.
 
-Select approved applications, versions and Docker stack templates.
+::icon3::
+<i class="fas fa-layer-group"></i>
 
-</div>
+::card3::
+### Application & Solution Catalogue
 
-<div class="or-box highlight mt-6">
+A deployment catalogue for custom solutions, code and third-party software.
 
-### 03 · Deploy and operate across the fleet
+::icon4::
+<i class="fas fa-network-wired"></i>
 
-Use the existing infrastructure as the base for deployment workflows and status control.
+::card4::
+### Multi-Edge Project Deployment
 
-</div>
+Reusable project templates to deploy and update coordinated solutions across multiple gateways.
 
-<p class="or-aside">“Marketplace” means a management and deployment space. No app store is implied.</p>
+::footer::
+Package these services as subscriptions, managed operations or project delivery.
 
 <!--
-07. Beyond the Gateway — Application & Project Management
-Present this as a platform opportunity to build on the current base.
-The source requests project, application and Docker stack management across the gateway fleet.
-A deployment catalogue is a useful working name for its marketplace concept.
-Do not imply a public app store, application sales, billing, reviews or an existing complete project-management product.
-The three steps describe a proposed user workflow, not a claim of implemented screens.
-Source: supplied outline, slide 07.
+07. Business Opportunities — Data & Solutions
+MQTT and the Unified Namespace organise and distribute industrial data. The historian or TSDB service stores data from that namespace for historical queries and analysis.
+Treat these as complementary service offers. Their implementation and scope need definition for each customer.
+The application catalogue covers custom solutions, code and third-party software. Komodo or Dockhand are possible deployment-tool examples, not a claim of tested integration.
+Multi-edge projects coordinate several gateways and application configurations through reusable project templates.
+The catalogue is a management and deployment space, not an app store.
+Sources: original outline, slide 06; owner’s approved eight-service proposal, including UNS and historian/TSDB.
 -->
 
 ---
@@ -465,42 +460,34 @@ Source: supplied outline, slide 09.
 -->
 
 ---
-layout: concepts
-cols: 3
-panels: true
+layout: journey
 class: surface-mist
-title: Partnership Vision — From Open Source to Your Catalogue
+title: Let’s Turn This Into Your Product
 ---
 
 ::title::
 <p class="or-aside">03 · Build Something Together</p>
 
-# From Open Source to Your Catalogue
+# Let’s Turn This Into Your Product
 
-## Consulting and mentoring for product adoption and team autonomy.
+## Combine your industry knowledge with my technical guidance to build your own offering.
 
-::icon1::
-<i class="fas fa-compass"></i>
-
-::concept1::
+::label1::
 ### Expert guidance
 
+::step1::
 Work with the project developer. Use a package of consulting hours to understand the platform and guide technical decisions.
 
-::icon2::
-<i class="fas fa-layer-group"></i>
-
-::concept2::
+::label2::
 ### Practical adoption
 
+::step2::
 Adapt the platform to your customer needs. Build a product offer for your catalogue and day-to-day projects.
 
-::icon3::
-<i class="fas fa-people-group"></i>
-
-::concept3::
+::label3::
 ### Team autonomy
 
+::step3::
 Train your team through practical work. Develop the skills to use, maintain and evolve the solution towards your priorities.
 
 ::footer::
@@ -508,6 +495,7 @@ Your investment funds consulting, mentoring and knowledge transfer. The product 
 
 <!--
 10. Partnership Vision — What I’m Looking For
+Visual: one connected three-stage journey from expert guidance through practical adoption to team autonomy. The original content is unchanged.
 The owner defined the relationship as a consulting and mentoring programme for clients that want to adopt the project.
 Understanding, using and evolving this platform requires advanced skills across several technical areas. Guided adoption and knowledge transfer address that complexity.
 The client purchases a package of consulting hours. Payment covers the accompaniment, training and technical guidance, not the software product.

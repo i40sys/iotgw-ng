@@ -47,8 +47,10 @@ The chapter labels preserve the three groups without adding divider slides.
 | 04–08 | Discover the Opportunity |
 | 09–10 | Build Something Together |
 
-Slide 10 presents a consulting and mentoring programme. Clients purchase guidance to adopt the platform, add a product offer to their catalogue and develop an internal team. Fees cover consulting and knowledge transfer. Numeric scope, price and duration stay outside the presentation and speaker notes.
+Slide 10 presents a consulting and mentoring programme as a connected three-stage journey: expert guidance, practical adoption and team autonomy. The local `layouts/journey.vue` layout uses the original theme colour and typography tokens. Clients purchase guidance to adopt the platform, add a product offer to their catalogue and develop an internal team. Fees cover consulting and knowledge transfer. Numeric scope, price and duration stay outside the presentation and speaker notes.
 Slides 03, 05–08 distinguish the MVP, proposed value and future services. No revenue, adoption, support or recovery guarantees appear in the deck.
+
+Slides 06–07 present eight proposed services in two groups: infrastructure operations, then data and solution platforms. MQTT/UNS and historian/TSDB have separate cards. The original source outline remains unchanged.
 
 ## Theme
 
