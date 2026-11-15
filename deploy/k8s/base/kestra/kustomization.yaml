@@ -6,5 +6,6 @@ namespace: kestra
 resources:
   - namespace.yaml
   - postgres.yaml
+  - networkpolicy.yaml
   - kestra-rbac.yaml
   - kestra.yaml

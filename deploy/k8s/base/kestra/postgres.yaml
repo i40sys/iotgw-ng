@@ -19,7 +19,9 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:16   # fresh cluster in k8s (compose used PG18 on disk; a new PVC starts empty)
+          # Pinned minor: postgres:16 floated and OVH kept 16.15, vulnerable to
+          # CVE-2026-116328 (fixed in 16.16). Bump the minor on purpose, never float.
+          image: postgres:16.16
           env:
             - name: POSTGRES_DB
               value: kestra
