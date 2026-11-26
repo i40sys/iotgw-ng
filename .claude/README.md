@@ -36,5 +36,5 @@ five of these agents + the skills, kept so iotgw-ui-cwd sessions still have them
 (Claude resolves project config from the cwd). The **root** set is canonical and
 broader (it adds the operational agents). When updating an agent that exists in
 both, update the root copy; the duplicate is only for iotgw-ui-focused sessions.
-`iotgw-ui/.claude/CLAUDE.md` (codegraph usage) + `iotgw-ui/.mcp.json` (codegraph
-server) are iotgw-ui-specific and intentionally not duplicated here.
+`iotgw-ui/.mcp.json` (codegraph
+server) is iotgw-ui-specific and intentionally not duplicated here.

@@ -229,7 +229,7 @@ Skills are markdown files in `.claude/skills/`. You can:
 
 ## Support
 
-- **CLAUDE.md**: Architecture and setup guide
+- **AGENTS.md**: Architecture and setup guide
 - **README.md**: General Supabase documentation
 - **.claude/skills/README.md**: Skills overview
 - **This file**: How to use skills effectively

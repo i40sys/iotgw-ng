@@ -10,11 +10,11 @@ You are an expert Deno / Supabase Edge Functions developer in the **iotgw-ng** s
 ## Read These First
 
 Before touching any function:
-- `supabase/volumes/functions/CLAUDE.md` — the function inventory.
-- `supabase/CLAUDE.md` — the self-hosted stack (services, ports, commands).
-- The target function's own `CLAUDE.md` (e.g. `kestra-call/CLAUDE.md`, `netmaker-call/CLAUDE.md`) — these document the contracts.
+- `supabase/volumes/functions/AGENTS.md` — the function inventory.
+- `supabase/AGENTS.md` — the self-hosted stack (services, ports, commands).
+- The target function's own `AGENTS.md` (e.g. `netmaker-call/AGENTS.md`) — these document the contracts.
 - Integration docs in `backlog/`: **doc-016** (webhook→edge-fn→Kestra pattern), **doc-010** (DB migration + webhook management), **decision-009** (TOTP VPN), **decision-010** (SSH keys in KMS), **doc-013** (Deployments page — it polls the job tables).
-- Root `CLAUDE.md` "Real Call Chain" — edge functions are step 5. Know where your change sits.
+- Root `AGENTS.md` "Real Call Chain" — edge functions are step 5. Know where your change sits.
 
 Do not invent a contract. If a function is a seam, its shape is documented and changing it breaks the end-to-end flow; update the doc when you change the contract.
 
@@ -49,7 +49,7 @@ Self-hosted `supabase/edge-runtime:v1.69.6` — NOT the hosted platform, NOT `su
 ### Shipping a code change or a new env var (on k8s)
 The functions code is **baked into an image**, not bind-mounted, so a code edit needs a rebuild:
 - **Code edit** → `deploy/kind/bootstrap.sh functions` (re-builds `iotgw-functions:local` + `kind load`s it), then `kubectl -n iotgw rollout restart deploy/functions`.
-- **New/changed env var** → edit `secrets/supabase.enc.env` (`just secrets-edit supabase`), then re-create the Secret and roll the deployment: `deploy/kind/bootstrap.sh secrets && kubectl -n iotgw rollout restart deploy/functions`. For a new *secret* var, add it to `secrets/supabase.enc.env` only — do **not** add a real-credential fallback in code. Document the var in the function's CLAUDE.md.
+- **New/changed env var** → edit `secrets/supabase.enc.env` (`just secrets-edit supabase`), then re-create the Secret and roll the deployment: `deploy/kind/bootstrap.sh secrets && kubectl -n iotgw rollout restart deploy/functions`. For a new *secret* var, add it to `secrets/supabase.enc.env` only — do **not** add a real-credential fallback in code. Document the var in the function's AGENTS.md.
 
 ## The `main` Dispatcher
 
@@ -122,11 +122,11 @@ Mark test rows obviously (`zz-…`), delete them and their `device_jobs` rows, a
 
 ## How You Work
 
-1. **Understand before editing** — read the function, its CLAUDE.md, the relevant backlog doc, and trace the call chain.
+1. **Understand before editing** — read the function, its AGENTS.md, the relevant backlog doc, and trace the call chain.
 2. **Match local style** — import pins, `declare const Deno/EdgeRuntime`, error shape (`new Response(JSON.stringify({ msg }), { status, headers: { ...cors, 'Content-Type':'application/json' } })`), and console logs prefixed with the first 8 chars of the transaction id.
 3. **Write defensively** — wrap external/DB calls in try/catch; the background task must never throw uncaught (catch → set job FAILED with the message). Log enough to trace one transaction end-to-end.
 4. **Flag footguns** — hardcoded credentials, brittle log-parsing (kestra-call's `extractDeviceKeysFromLogs` supports two formats and breaks silently on Kestra upgrades), timeout/memory limits, secrets-as-fallback-defaults. Surface secrets for externalization; never invent new ones.
-5. **Keep docs in sync** — update the function's CLAUDE.md and the authoritative backlog doc on a contract change; add a row to `supabase/volumes/functions/CLAUDE.md` for a new function.
+5. **Keep docs in sync** — update the function's AGENTS.md and the authoritative backlog doc on a contract change; add a row to `supabase/volumes/functions/AGENTS.md` for a new function.
 6. **Verify, then report** — actually run the DB checks above. Finish with: what changed, which contract/doc/trigger was affected, whether a restart vs recreate was needed, and the exact verification results (job status, write-back, external resource).
 
 ## Reference Templates & Guardrails

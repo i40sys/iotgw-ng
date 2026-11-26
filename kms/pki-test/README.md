@@ -4,26 +4,36 @@ This document describes the complete process to create a testing PKI infrastruct
 
 ## Environment Summary
 
-- **KMS Server**: Cosmian KMS 5.9.0 running at `http://localhost:9998`
+- **KMS Server**: Cosmian KMS 5.27.1 (StatefulSet `cosmian-kms`, namespace `kms`), reached at `http://localhost:9998` through a port-forward or in-cluster
+- **Auth**: the KMIP endpoint (`/kmip/2_1`) requires `Authorization: Bearer <KMS_AUTH_TOKEN>` (task-057); `/version` and `/health` are public
 - **CLI Tool**: Cosmian CLI 1.9.0
 - **Testing Domain**: `wsl.ymbihq.local`
 - **Algorithm**: RSA 4096 bits for CA, RSA 2048 bits for end-entity certificates
 - **Validity**: 10 years for CA, 1 year for end-entity certificates
 
-## Generated Files
+## Files
+
+In git: `create_ca.sh` (REST/KMIP sketch of Step 4), `ca.ext`, `server.ext`,
+`client.ext`, `README.md`. The `*.pem` / `*.p12` outputs are **gitignored**
+(`kms/.gitignore`); the certs are stored encrypted in `secrets/traefik-tls.enc.yaml`
+and used only by the `deploy/k8s/overlays/prod` sketch (kind uses
+`secrets/device-api-tls.enc.yaml`; OVH uses the Traefik Gateway).
 
 ```
 pki-test/
+├── create_ca.sh        # Root CA via the KMIP REST API (no Bearer header: add it when auth is on)
 ├── ca.ext              # X.509 extensions for CA certificate
 ├── server.ext          # X.509 extensions for server certificate
 ├── client.ext          # X.509 extensions for client certificate
-├── root_ca.pem         # CA certificate in PEM format
+├── root_ca.pem         # (generated, gitignored) CA certificate in PEM format
 ├── server_cert.pem     # Server certificate in PEM format
 ├── client_cert.pem     # Client certificate in PEM format
 ├── server.p12          # Server certificate and key in PKCS#12 format
 ├── client.p12          # Client certificate and key in PKCS#12 format
 └── README.md           # This documentation
 ```
+
+(`server_cert.pem` … `client.p12` are generated and gitignored, like `root_ca.pem`.)
 
 ## Step-by-Step Process
 
@@ -33,15 +43,16 @@ The KMS runs on the kind cluster (docker-compose was decommissioned — `decisio
 From the repo root:
 ```bash
 just bootstrap                                       # brings the platform (incl. KMS) up
-kubectl -n iotgw rollout status deploy/cosmian-kms
+kubectl -n kms rollout status statefulset/cosmian-kms
 ```
 
 Verify the service is running (reach the KMS in-cluster — the host `:9998` is
 blocked by the task-057 NetworkPolicy; port-forward or exec from an allowed pod):
 
 ```bash
-kubectl -n iotgw exec deploy/cosmian-kms -- /bin/sh -c 'curl -s http://localhost:9998/version'
-# Output: e.g. "5.20.0 (...)"
+kubectl -n kms port-forward statefulset/cosmian-kms 9998:9998 &   # then, from the host:
+curl -s http://localhost:9998/version
+# Output: e.g. "5.27.1 (...)"
 ```
 
 ### Step 2: Setup CLI
@@ -443,5 +454,5 @@ cosmian kms attributes get --id my_cert --attribute Link
 
 **Author**: Claude Code + Oriol
 **Date**: 2026-02-24
-**KMS Version**: 5.9.0
+**KMS Version**: 5.9.0 (original run); current deployment 5.27.1
 **CLI Version**: 1.9.0

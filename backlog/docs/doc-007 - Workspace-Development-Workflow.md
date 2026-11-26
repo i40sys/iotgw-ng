@@ -32,7 +32,7 @@ iotgw-ui/
 ├── pnpm-lock.yaml           # Lock file for all dependencies
 ├── mprocs.yaml              # Multi-process development configuration
 ├── .env                      # Environment variables
-├── CLAUDE.md                 # AI assistant guidelines
+├── AGENTS.md                 # AI assistant guidelines
 ├── backlog/                  # Project management with Backlog.md
 │   ├── tasks/               # Active tasks
 │   ├── completed/           # Completed tasks

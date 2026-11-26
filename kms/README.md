@@ -75,7 +75,7 @@ cosmian kms server-version
 > **Auth + NetworkPolicy (task-057):** on the cluster the KMS requires an
 > API-token bearer and a NetworkPolicy restricts `:9998` to in-namespace clients,
 > so the host `:9998` NodePort is blocked — the KMS is reached in-cluster (see the
-> security note in [CLAUDE.md](CLAUDE.md)). CLI calls below assume an in-cluster /
+> security note in [AGENTS.md](AGENTS.md)). CLI calls below assume an in-cluster /
 > port-forwarded path with the token presented as `Authorization: Bearer <token>`.
 
 > **Note**: Add `contrib/` to your PATH or use `./contrib/cosmian` for CLI commands.

@@ -196,5 +196,5 @@ pnpm typecheck           # verify types
 
 - [doc-016 — Database-Change Provisioning Automation Pattern](doc-016%20-%20Database-Change-Provisioning-Automation-Pattern.md)
 - [doc-008 — Domains/Networks/Devices architecture](doc-008%20-%20Domains-Networks-and-Devices-Architecture.md)
-- [netmaker-call edge function CLAUDE.md](../../supabase/volumes/functions/netmaker-call/CLAUDE.md)
+- [netmaker-call edge function AGENTS.md](../../supabase/volumes/functions/netmaker-call/AGENTS.md)
 - [Supabase CLI](https://supabase.com/docs/guides/cli)

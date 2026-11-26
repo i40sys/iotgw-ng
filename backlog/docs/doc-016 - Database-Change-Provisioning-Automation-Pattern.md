@@ -14,7 +14,7 @@ updated_date: "2026-06-17"
 > Netmaker REST API), and the webhook mechanism is a **Postgres trigger defined
 > in a migration**, not a Supabase Dashboard webhook. This doc describes the
 > current pattern. Kestra is still used for the OpenWRT flows — see
-> [kestra/CLAUDE.md](../../kestra/CLAUDE.md) and the note at the end.
+> [kestra/AGENTS.md](../../kestra/AGENTS.md) and the note at the end.
 
 > **Runtime forward-note (2026-06-18):** docker-compose was decommissioned in the
 > `TASK-062` milestone — the platform runs on **k8s/kind** (`decision-017`). The
@@ -93,7 +93,7 @@ The trigger sends the standard Supabase webhook payload
 ### 2. The `netmaker-call` edge function
 
 `supabase/volumes/functions/netmaker-call/` — see its own
-[CLAUDE.md](../../supabase/volumes/functions/netmaker-call/CLAUDE.md). Behaviour:
+[AGENTS.md](../../supabase/volumes/functions/netmaker-call/AGENTS.md). Behaviour:
 
 - **Responds 202 immediately**, then runs the Netmaker work in
   `EdgeRuntime.waitUntil()` so the trigger's HTTP call never blocks the DB.
@@ -190,7 +190,7 @@ functions (and the Dashboard-webhook setup they relied on) and the Kestra
 
 ## References
 
-- [netmaker-call edge function CLAUDE.md](../../supabase/volumes/functions/netmaker-call/CLAUDE.md)
+- [netmaker-call edge function AGENTS.md](../../supabase/volumes/functions/netmaker-call/AGENTS.md)
 - [doc-010 — Database Migration & Webhook Management](doc-010%20-%20Database-Migration-and-Webhook-Management-Guide.md)
 - [doc-008 — Domains/Networks/Devices architecture](doc-008%20-%20Domains-Networks-and-Devices-Architecture.md)
 - [decision-010 — SSH key management via Cosmian KMS](../decisions/decision-010%20-%20SSH-Key-Management-with-Cosmian-KMS.md)

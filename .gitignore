@@ -81,7 +81,6 @@ secrets/rendered/
 #    --vault $PWD/wiki --project . --project-only) ──
 #    The VAULT itself (wiki/) IS committed; only the machine-specific
 #    symlinked skills + agent bootstrap below are ignored.
-/AGENTS.md
 /.github/copilot-instructions.md
 /.claude/skills/claude-history-ingest
 /.claude/skills/codex-history-ingest

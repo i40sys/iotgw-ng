@@ -109,4 +109,4 @@ is that certificates, not raw keys, are how you get in.
 | host-cert signing | `ssh-ca` edge function | zone-scoped fleet token (`PKI_FLEET_TOKENS`) |
 
 See `backlog/decisions/decision-023..028` for the full design, and the root
-[`CLAUDE.md`](../../CLAUDE.md) → "The SSH-CA Access Path" for the call chain.
+[`AGENTS.md`](../../AGENTS.md) → "The SSH-CA Access Path" for the call chain.

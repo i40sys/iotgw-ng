@@ -40,7 +40,7 @@
 #
 #   PROD: a policy-capable CNI (Calico/Cilium) enforces this identically.
 #   In-cluster clients reach the KMS via the ClusterIP Service `cosmian-kms`,
-#   which this policy governs. Documented in decision-015 and kms/CLAUDE.md.
+#   which this policy governs. Documented in decision-015 and kms/AGENTS.md.
 # ──────────────────────────────────────────────────────────────────────────────
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

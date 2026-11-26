@@ -11,7 +11,7 @@ Status: implemented for review on `feat/deployments-ux-refactor` (task-141). Thi
 
 ## What the page actually does
 
-This is an operator workspace for one physical gateway. It combines four distinct activities: booting a live USB and obtaining a one-time login code; installing OpenWrt onto a disk; checking the installed system after reboot; and applying service configuration through provisioning. Installation, provisioning and connectivity checks run through Kestra. Device/network inventory provisioning follows the separate backend → Supabase → netmaker-call path described in CLAUDE.md.
+This is an operator workspace for one physical gateway. It combines four distinct activities: booting a live USB and obtaining a one-time login code; installing OpenWrt onto a disk; checking the installed system after reboot; and applying service configuration through provisioning. Installation, provisioning and connectivity checks run through Kestra. Device/network inventory provisioning follows the separate backend → Supabase → netmaker-call path described in the root AGENTS.md.
 
 A configuration version is a stored document, not proof that its contents were applied to the device. Job history is the evidence of execution. Likewise, passing form validation does not mean an installation or provisioning stage has completed.
 

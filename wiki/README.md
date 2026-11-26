@@ -47,9 +47,11 @@ uv tool install obsidian-wiki
 obsidian-wiki setup --vault "$PWD/wiki" --project . --project-only
 ```
 
-> The installer also symlinks `CLAUDE.md`/`GEMINI.md` to its own `AGENTS.md` and
-> drops other-agent skill mirrors; after running it, restore the project's
-> `CLAUDE.md` and `.claude/skills/skill-creator/` and remove the non-Claude dirs
+> The installer writes its own `AGENTS.md` at the project root (and may symlink
+> `CLAUDE.md`/`GEMINI.md` to it) and drops other-agent skill mirrors. The root
+> `AGENTS.md` holds this project's agent instructions: after running it,
+> restore it with `git checkout -- AGENTS.md .claude/skills/skill-creator`,
+> delete any `CLAUDE.md`/`GEMINI.md` it created, and remove the non-Claude dirs
 > (see this repo's `.gitignore` for the exact ignore set).
 
 ## Optional: QMD semantic search
