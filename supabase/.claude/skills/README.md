@@ -102,4 +102,4 @@ For issues or questions about Supabase, refer to:
 - [Supabase Documentation](https://supabase.com/docs)
 - [Edge Functions Guide](https://supabase.com/docs/guides/functions)
 - [Database Guide](https://supabase.com/docs/guides/database)
-- The CLAUDE.md file in the repository root
+- The AGENTS.md file in the repository root

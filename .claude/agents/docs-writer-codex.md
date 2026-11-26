@@ -20,7 +20,7 @@ You delegate the **drafting** to the `codex` CLI (OpenAI Codex) running non-inte
 - `deploy/` — Kubernetes migration manifests (decision-015, tested on kind); the Ingress here is the TLS-termination edge (replaced the former `traefik-poc/` PoC)
 - `secrets/` — SOPS+age encrypted secrets (decision-014); no secrets are hardcoded in tracked source
 
-Each subproject has (or should have) its own `CLAUDE.md` and `README.md`. Always read the relevant `CLAUDE.md` files before drafting — they encode the real architecture and call-chain. Device/network provisioning now runs directly through the Supabase `netmaker-call` edge function (direct Netmaker REST); the legacy chain went UI → tRPC → Supabase → pg_net webhook → `kestra-call` edge fn → Kestra → Ansible → Netmaker. Kestra still handles OpenWRT install/provisioning/connectivity flows (including SSH keys via Cosmian KMS).
+Each subproject has (or should have) its own `AGENTS.md` and `README.md`. Always read the relevant `AGENTS.md` files before drafting — they encode the real architecture and call-chain. Device/network provisioning now runs directly through the Supabase `netmaker-call` edge function (direct Netmaker REST); the legacy chain went UI → tRPC → Supabase → pg_net webhook → `kestra-call` edge fn → Kestra → Ansible → Netmaker. Kestra still handles OpenWRT install/provisioning/connectivity flows (including SSH keys via Cosmian KMS).
 
 ## Workflow (follow in order)
 
@@ -39,7 +39,7 @@ If unclear, ask the user a short, targeted question before proceeding. Do not gu
 
 Use your own tools (Read, Glob, Grep, Bash) — not codex — to collect:
 
-- The relevant `CLAUDE.md` (root + subproject + nested as applicable).
+- The relevant `AGENTS.md` (root + subproject + nested as applicable).
 - `package.json` / `pyproject.toml` / `Cargo.toml` / `go.mod` for stack, scripts, deps.
 - Entry points: `src/server.ts`, `src/main.*`, `index.*`, route files.
 - Config files: `.env.example`, `Dockerfile`, k8s manifests (`deploy/k8s/**`), `vite.config.*`, `tsconfig.json`.
@@ -51,7 +51,7 @@ Keep a short mental list of: stack, entry points, scripts/commands, ports, env v
 
 ### 3. Brief codex
 
-Invoke codex non-interactively from the **subproject directory** so its own context (CLAUDE.md, file tree) is available:
+Invoke codex non-interactively from the **subproject directory** so its own context (AGENTS.md, file tree) is available:
 
 ```bash
 codex exec \
@@ -91,7 +91,7 @@ Read `/tmp/docs-writer-codex.out.md`. Verify against the codebase:
 - Every command in a quick-start block actually exists in `package.json` scripts / `Makefile` / `justfile`.
 - Every env var matches `.env.example` or actual code references.
 - Every file path resolves.
-- Every port matches the table in `~/iotgw-ng/CLAUDE.md` (Supabase 3000/8000/5432, UI 5173, backend 4444, Kestra 8080, KMS 9998, Traefik 80/443).
+- Every port matches the Service Ports table in the root `AGENTS.md`.
 - No hallucinated dependencies.
 
 If anything is wrong, either fix it yourself with Edit, or re-prompt codex with corrections. Prefer your own Edit for small fixes; re-prompt only for structural rewrites.
@@ -124,7 +124,7 @@ Use these as the default outlines you give to codex. Adapt to subproject reality
 8. **Common commands** (dev, build, test, lint, typecheck)
 9. **How it fits in the call-chain** (link to relevant `decision-*` / `doc-*` in `backlog/`)
 10. **Troubleshooting** (only if there are real, known gotchas — don't fabricate)
-11. **References** (links to subproject's CLAUDE.md and key backlog docs)
+11. **References** (links to subproject's AGENTS.md and key backlog docs)
 
 ### Library/package subproject (e.g. `packages/supabase-contract`)
 
@@ -137,13 +137,13 @@ Use these as the default outlines you give to codex. Adapt to subproject reality
 
 ### Workspace root README (`~/iotgw-ng/README.md`)
 
-Mirror the structure of `~/iotgw-ng/CLAUDE.md`'s "Real Call Chain" and "Subprojects" table; do not duplicate, summarize and link.
+Mirror the structure of `~/iotgw-ng/AGENTS.md`'s "Real Call Chain" and "Subprojects" table; do not duplicate, summarize and link.
 
 ### CONTRIBUTING.md
 
 1. Branching / commit style (check `git log` for actual convention)
 2. Local dev setup (link to README)
-3. Task management (`backlog` CLI for `iotgw-ui` — see iotgw-ui/CLAUDE.md)
+3. Task management (`backlog` CLI for `iotgw-ui` — see iotgw-ui/AGENTS.md)
 4. Code style (Prettier/ESLint/Black/etc. — check configs)
 5. Tests & typecheck before submitting
 6. PR checklist

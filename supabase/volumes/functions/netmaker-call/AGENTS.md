@@ -57,6 +57,7 @@ Headers on every call: `Authorization: Bearer <NETMAKER_MASTER_KEY>`, `Content-T
 | GET | `/nodes/{network}` | Locate the ingress gateway |
 | POST | `/extclients/{network}/{gatewayId}` | Create extclient |
 | DELETE | `/extclients/{network}/{clientid}` | Remove extclient |
+| POST | `/nodes/{network}/{nodeId}/inet_gw` | Make the ingress gateway the network's Internet Gateway (`ensureInternetGateway`, body `{ inet_node_client_ids: [] }`) |
 
 ### Network endpoints
 
@@ -66,6 +67,24 @@ Headers on every call: `Authorization: Bearer <NETMAKER_MASTER_KEY>`, `Content-T
 | POST | `/networks` | Create new network |
 | PUT | `/networks/{netid}` | Update existing network (merged object) |
 | DELETE | `/networks/{netid}` | Remove network |
+| GET / POST | `/nodes/{netid}`, `/nodes/{netid}/{nodeId}/inet_gw` | After create/update: wait for the hub node, then make it the Internet Gateway |
+
+## ensureInternetGateway
+
+`ensureInternetGateway(network, txId, waitMs)` makes the network's ingress
+gateway (the Netmaker hub) its **Internet Gateway**, so a device with the
+full-tunnel config (the live image's "Internet via VPN" mode, decision-031)
+egresses through the hub. It is idempotent: GET `/nodes/{network}`, find the
+node with `isingressgateway === true || is_gw === true`; if `isinternetgateway`
+is already true it returns, else POST `/nodes/{network}/{nodeId}/inet_gw`.
+
+- **Devices** call it with `waitMs = 0` (one check) on every INSERT, also when
+  the extclient already exists — so older networks get fixed on their next
+  device provisioning.
+- **Networks** call it with `waitMs = 45_000`: a new network gets its hub node a
+  few seconds after creation, so it polls `/nodes` every 3 s for up to 45 s.
+  With no hub at the deadline it throws `"No ingress gateway in network <id> —
+  cannot make it an Internet Gateway"` and the job goes to FAILED.
 
 ## UUID-without-dashes naming convention
 
@@ -93,10 +112,13 @@ This mirrors the convention used by the `oriolrius.netmaker` Ansible collection
 | `NETMAKER_BASE_URL` | `https://api.netmaker.i40sys.com` | Override via `secrets/supabase.enc.env` |
 | `NETMAKER_MASTER_KEY` | `''` (no fallback) | **Required.** Sourced from the `supabase-env` Secret (decrypted from `secrets/supabase.enc.env`). The function logs FATAL and refuses to operate if unset — no key is baked into source. |
 
-The functions Deployment loads these via `envFrom` the `supabase-env` Secret. To
-add or change a var: edit `secrets/supabase.enc.env` (`just secrets-edit supabase`),
-then re-create the Secret and roll the deployment:
+There is no `envFrom`: `deploy/k8s/base/supabase-app/functions.yaml` maps each
+variable one by one (`SUPABASE_URL` is a literal `http://kong:8000`; the others
+are `secretKeyRef` into the `supabase-env` Secret). To change a value: edit
+`secrets/supabase.enc.env` (`just secrets-edit supabase`), then re-create the
+Secret and roll the deployment:
 `deploy/kind/bootstrap.sh secrets && kubectl -n supabase-app rollout restart deploy/functions`.
+A **new** variable also needs a new `env:` entry in `functions.yaml`.
 
 ## device_jobs lifecycle
 
@@ -127,8 +149,9 @@ Mirrors the device lifecycle. The Deployments UI reads these via the `get_networ
 ## Device INSERT flow (CREATE extclient)
 
 1. GET `/extclients/{network}` — find any existing entry with matching `clientid` (idempotent).
-2. If not found: GET `/nodes/{network}` — pick the first node where `isingressgateway === true || is_gw === true`; that node's `id` is the gateway.
+2. If not found: GET `/nodes/{network}` — an empty list throws `"No nodes found in network <id>"`; else pick the first node where `isingressgateway === true || is_gw === true`; that node's `id` is the gateway.
 3. POST `/extclients/{network}/{gatewayId}` with `{ clientid, enabled: true }`.
+3b. `ensureInternetGateway(network)` (no wait) — runs even when the extclient already existed.
 4. GET `/extclients/{network}` again — find the authoritative object by `clientid`. The POST response is NOT used for key extraction (Netmaker does not always return the full object).
 5. Extract `privatekey`, `publickey`, `address` (IP may be absent — tolerated).
 6. UPDATE `devices` SET `private_key`, `public_key`, `updated_at`, and `ip_address` (if address present).
@@ -145,6 +168,7 @@ DELETE `/extclients/{network}/{clientid}`. The `netmakerRequest` helper treats H
 4. If null (not found) → POST `/networks` with desired body.
 5. If exists and `addressrange` (and `addressrange6` if provided) already match → no-op.
 6. If exists and fields differ → PUT `/networks/{netid}` with `{ ...existingObject, ...desired }` (mirrors the Ansible module's `update_network`).
+7. `ensureInternetGateway(netid, 45_000)` — poll up to 45 s for the hub node, then make it the Internet Gateway. No hub → job FAILED.
 
 No write-back to the `networks` table — the function never UPDATEs `networks`. This makes it safe to fire on UPDATE events without creating a trigger loop.
 
@@ -154,7 +178,7 @@ DELETE `/networks/{netid}`. Idempotent via the same 404/500-"no result found" ha
 
 ## Known footguns
 
-1. **Master key is environment-only (no fallback).** `NETMAKER_MASTER_KEY` must be supplied via the environment (from `supabase/.env`, decrypted from `secrets/supabase.enc.env`). The source no longer carries a default; if the var is missing the function logs FATAL and every Netmaker call fails. Do not reintroduce an inline default. The previously-committed key is compromised and must be rotated at Netmaker — see `backlog/decisions/decision-014` and `backlog/tasks/task-045`.
+1. **Master key is environment-only (no fallback).** `NETMAKER_MASTER_KEY` must be supplied via the environment (the `supabase-env` Secret key, mapped by `secretKeyRef` in `functions.yaml`, decrypted from `secrets/supabase.enc.env`; the `supabase/.env` in the `index.ts` comment is compose-era). The source no longer carries a default; if the var is missing the function logs FATAL and every Netmaker call fails. Do not reintroduce an inline default. The previously-committed key is compromised and must be rotated at Netmaker — see `backlog/decisions/decision-014`.
 
 2. **Ingress gateway dependency (devices).** The target network must already exist in Netmaker with at least one node configured as an ingress gateway. If there is no ingress gateway the INSERT flow throws `"No ingress gateway found in network <id>"` and the job is set to FAILED. The error message is surfaced in `device_jobs.error_message`.
 
@@ -162,14 +186,15 @@ DELETE `/networks/{netid}`. Idempotent via the same 404/500-"no result found" ha
 
 4. **Read-back after create (devices).** The function never trusts the POST `/extclients/…` response for WireGuard keys. It always does a second GET to find the canonical object. If that second GET still cannot locate the extclient the job is set to FAILED.
 
-5. **No polling / no timeout.** Unlike the former kestra-call, there is no long-running poll loop. The entire Netmaker operation is synchronous inside the background function and completes in one or two HTTP round-trips. The worker timeout in `main/index.ts` (60s) is far more than enough.
+5. **Network hub poll vs. worker timeout.** Devices complete in a few HTTP round-trips. Networks poll `/nodes` every 3 s for up to **45 s** (`ensureInternetGateway`) after create/update. The worker timeout in `main/index.ts` is **60 s**, so a slow network create plus the full poll is close to the limit. Do not raise the 45 s wait without raising the worker timeout.
 
 6. **DELETE uses `old_record`.** Standard Supabase webhook shape for DELETE events has `record: null`. The function reads from `old_record`. A misconfigured webhook that sends DELETE without `old_record` returns 400.
 
 ## Deploy and verify
 
 After editing this function, re-bake the image and roll the deployment (the code
-is baked into `iotgw-functions:local`, not bind-mounted):
+is baked into `iotgw-functions:local` on kind, not bind-mounted; OVH pulls the
+digest-pinned `ghcr.io/i40sys/iotgw-functions` built from a release tag):
 
 ```bash
 deploy/kind/bootstrap.sh functions          # docker build + kind load iotgw-functions:local

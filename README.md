@@ -16,19 +16,19 @@ and key-management tiers, and the Kubernetes deployment definitions.
 | `supabase/` | **platform** | Self-hosted Supabase (Postgres, Kong, GoTrue, edge functions…). System of record + webhook hub. |
 | `kestra/` | **platform** | Kestra workflow orchestration (OpenWRT provisioning / install / connectivity flows). |
 | `kms/` | **platform** | Cosmian KMS — authoritative store for device SSH keys + the PoC PKI. |
-| `deploy/` | **infra** | Kubernetes manifests (kustomize) + local `kind` cluster + bootstrap. |
+| `deploy/` | **infra** | Kubernetes manifests (kustomize): `kind` overlay (local dev) + bootstrap, `ovh` overlay + `terraform/ovh/` (the real environment). |
 | `secrets/` | **infra** | SOPS+age encrypted secrets (the only secret source of truth). |
 | `tools/` | **infra** | Workspace tooling (`secrets/secrets.sh`, …). |
 | `backlog/` | **docs** | ADRs (`decisions/`), docs (`docs/`), tasks (Backlog.md CLI). |
 | `.claude/` | **meta** | Claude Code agents, skills, settings for this workspace. |
-| `BACKUP/` | (gitignored) | Pre-consolidation `.git` archives + DB snapshot. Reversibility net; do not delete. |
 
 The call chain (UI → tRPC → Supabase → webhook → edge function → Netmaker/Kestra
-→ Ansible → device) is documented in `CLAUDE.md`.
+→ Ansible → device) is documented in `AGENTS.md`.
 
 ## Quickstart
 
-The platform runs on **Kubernetes** (a local `kind` cluster for development);
+The platform runs on **Kubernetes**: OVH Managed Kubernetes is the real
+environment (`deploy/terraform/ovh/`), a local `kind` cluster is for development;
 docker-compose was decommissioned in the task-062 milestone (`decision-017`).
 
 ```bash
@@ -38,11 +38,11 @@ docker-compose was decommissioned in the task-062 milestone (`decision-017`).
 just secrets-check      # audit the encrypted store
 
 # Bring the whole platform up on kind — see deploy/README.md:
-just bootstrap          # = kind-up + k8s-deploy + k8s-smoke
+just bootstrap          # = kind-up + k8s-deploy + k8s-smoke + e2e
 #   just kind-up        #   create the cluster (+ ingress-nginx + StackGres operator)
 #   just k8s-deploy     #   create Secrets from SOPS, build/load images, apply the kind overlay
 #   just k8s-smoke      #   smoke checks
-just status             # pods in the iotgw namespace
+just status             # iotgw-ng pods in all namespaces
 
 # iotgw-ui dev servers (pnpm) — optional, for live frontend/backend work:
 just secrets-render     # decrypt secrets/*.enc.env -> the pnpm-dev .env files
@@ -61,7 +61,7 @@ Run `just` with no args to list every recipe.
   `secrets/`; `.gitignore` + `just secrets-check` enforce it. See
   `backlog/decisions/decision-014`.
 - **Task management** goes through the Backlog.md CLI against `backlog/`
-  (see `iotgw-ui/CLAUDE.md`).
+  (see `iotgw-ui/AGENTS.md`).
 - **Cross-project changes** follow the call chain top-down: schema
   (`iotgw-ui/supabase/migrations`) → contract types → backend/edge function →
   Kestra flow → Ansible.

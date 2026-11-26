@@ -185,7 +185,7 @@ You are helping create or run database migrations for Supabase. Follow these ste
 
 10. **Document the migration**:
     - Add comments in SQL file
-    - Update CLAUDE.md if it changes architecture
+    - Update AGENTS.md if it changes architecture
     - Note any breaking changes
     - Document new tables/columns
 

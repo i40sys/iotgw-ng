@@ -15,7 +15,7 @@ Generation). The **sole source layer is the project `backlog/`** directory:
 - `backlog/completed/`  — finished tasks (keep their outcomes/notes).
 - `backlog/archive/`    — superseded tasks/milestones (mark as historical).
 
-The repo `README.md` and `CLAUDE.md` are context, not primary sources — consult
+The repo `README.md` and `AGENTS.md` are context, not primary sources — consult
 them for naming/architecture but cite the backlog file a fact comes from.
 
 ## Project scoping

@@ -351,7 +351,7 @@ Claude Code should be familiar with:
 
 1. **Decision Documents** (backlog/decisions/): Architectural decisions and rationale
 2. **Technical Docs** (backlog/docs/): Implementation patterns and guidelines
-3. **CLAUDE.md**: Code style preferences and AI assistant guidelines
+3. **AGENTS.md**: Code style preferences and AI assistant guidelines
 4. **README.md**: Project overview and setup instructions
 
 ### Key Documentation Files
@@ -472,7 +472,7 @@ The project uses the Context7 MCP server for accessing up-to-date library docume
 2. **Use MCP tools**: Leverage Context7 for up-to-date library documentation
 3. **Follow patterns**: Reference existing code examples when explaining patterns
 4. **Validate assumptions**: Check documentation before making changes
-5. **Respect conventions**: Follow CLAUDE.md guidelines strictly
+5. **Respect conventions**: Follow AGENTS.md guidelines strictly
 
 ### For Code Contributions
 
