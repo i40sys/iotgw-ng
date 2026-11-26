@@ -1,0 +1,57 @@
+iotgw-ng — IoT Gateway Next Generation
+Copyright 2025-2026 Oriol Rius and the iotgw-ng contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+iotgw-ng is a non-profit project with no commercial interest.
+Author: Oriol Rius — https://oriolrius.cat
+
+This product includes or deploys third-party software. Each component keeps
+its own license. Most of them run as separate services (containers) and are
+not linked into the iotgw-ng code.
+
+-------------------------------------------------------------------------------
+Cosmian KMS — license notice and planned removal
+-------------------------------------------------------------------------------
+
+The deployment includes Cosmian KMS (ghcr.io/cosmian/kms, Copyright Cosmian
+Tech SAS). It is licensed under the Business Source License 1.1 (BUSL-1.1),
+NOT under an open-source license. It is not covered by the Apache License of
+this project. Its Additional Use Grant permits production use only up to
+2 vCPUs (or 1 physical core) and does not permit offering the Licensed Work
+to third parties. Each version changes to MPL-2.0 four years after its
+publication. See https://github.com/Cosmian/kms/blob/main/LICENSE.
+
+Cosmian KMS is an excellent product, and we thank its authors. But its
+license restrictions harm a non-profit project like iotgw-ng: they prevent
+users from freely running, scaling and sharing the platform. For this reason
+Cosmian KMS will be REMOVED from this project soon and replaced by an
+open-source key-management service. Until then, anyone who deploys iotgw-ng
+is responsible for complying with the Cosmian KMS license.
+
+-------------------------------------------------------------------------------
+Other third-party components (deployed as separate services)
+-------------------------------------------------------------------------------
+
+- Supabase components: GoTrue/auth (MIT), PostgREST (MIT), edge-runtime (MIT),
+  postgres-meta (Apache-2.0), supabase/postgres (PostgreSQL License)
+- PostgreSQL (PostgreSQL License)
+- Kestra (Apache-2.0)
+- Kong Gateway (Apache-2.0)
+- Keycloak (Apache-2.0)
+- Headlamp (Apache-2.0)
+- ingress-nginx (Apache-2.0)
+- StackGres operator (AGPL-3.0) — used unmodified as a separate operator
+- Netmaker (Apache-2.0 for the community code; the "pro/" code is under its
+  own proprietary license and is not used) — reached through its REST API
+- OpenWRT (GPL-2.0 and others) — base of the gateway live image; its source
+  is available from https://openwrt.org and https://github.com/openwrt/openwrt
+
+-------------------------------------------------------------------------------
+Bundled libraries
+-------------------------------------------------------------------------------
+
+The iotgw-ui frontend and backend bundle npm packages under permissive
+licenses (MIT, ISC, Apache-2.0, BSD-2-Clause, BSD-3-Clause, MPL-2.0,
+BlueOak-1.0.0, 0BSD, CC-BY-4.0). The live-image Go tools use Go modules under
+MIT and BSD licenses (charmbracelet bubbletea/bubbles/lipgloss and their
+dependencies). The license texts of these packages ship with the packages.
