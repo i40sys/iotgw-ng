@@ -65,3 +65,9 @@ Run `just` with no args to list every recipe.
 - **Cross-project changes** follow the call chain top-down: schema
   (`iotgw-ui/supabase/migrations`) → contract types → backend/edge function →
   Kestra flow → Ansible.
+
+## License
+
+[Apache License 2.0](LICENSE). Third-party components and their licenses are
+listed in [NOTICE](NOTICE). **Cosmian KMS is under BUSL-1.1, not open
+source**, and it will be removed from this project soon (see `NOTICE`).
